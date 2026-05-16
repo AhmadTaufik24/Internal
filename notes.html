@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes - Taufik System</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="assets/css/notes.css">
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="brand">TAUFIK NOTES <span></span></div>
+        
+        <div class="menu-nav">
+            <div class="menu-section-title">Koleksi Utama</div>
+            <div class="menu-item active" onclick="filterNotes('all', this)"><i class="fa-solid fa-layer-group"></i> <span>Semua Catatan</span></div>
+            <div class="menu-item" onclick="filterNotes('pinned', this)"><i class="fa-solid fa-thumbtack"></i> <span>Di-Pin</span></div>
+            
+            <div class="menu-section-title">Kategori</div>
+            <div class="menu-item" onclick="filterNotes('work', this)"><i class="fa-solid fa-briefcase"></i> <span>Pekerjaan</span></div>
+            <div class="menu-item" onclick="filterNotes('code', this)"><i class="fa-solid fa-code"></i> <span>Koding & Snippet</span></div>
+            <div class="menu-item" onclick="filterNotes('personal', this)"><i class="fa-solid fa-user"></i> <span>Pribadi</span></div>
+            <div class="menu-item" onclick="filterNotes('idea', this)"><i class="fa-solid fa-lightbulb"></i> <span>Ide Kreatif</span></div>
+            <div class="menu-item" onclick="filterNotes('misc', this)"><i class="fa-solid fa-box-open"></i> <span>Lainnya</span></div>
+            
+            <div class="menu-section-title">Sistem</div>
+            <div class="menu-item" onclick="filterNotes('archive', this)"><i class="fa-solid fa-trash-can"></i> <span>Sampah</span></div>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="menu-item btn-back" onclick="window.location.href='index.html'">
+                <i class="fa-solid fa-circle-arrow-left"></i> <span>Kembali</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="topbar">
+            <h2>Lihat Semua Catatan</h2>
+            <div class="topbar-tools">
+                <div class="search-wrapper">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="searchNote" placeholder="Cari judul atau isi..." onkeyup="searchNotes()">
+                </div>
+                <button class="btn" onclick="createNewNote()">+ Catatan Baru</button>
+            </div>
+        </div>
+
+        <div class="split-view-container">
+            
+            <div class="notes-list-panel" id="notes-list">
+                </div>
+
+            <div class="note-editor-panel" id="note-editor" style="display: none;">
+                
+                <div class="editor-header">
+                    <input type="text" id="note-title" placeholder="Ketik Judul Catatan...">
+                    
+                    <div class="editor-actions">
+                        <button class="tool-btn" id="btn-restore" onclick="restoreNote()" title="Kembalikan Catatan" style="display:none; color: var(--success);"><i class="fa-solid fa-trash-arrow-up"></i></button>
+                        <button class="tool-btn" id="btn-pin" onclick="togglePin()" title="Pin ke Atas"><i class="fa-solid fa-thumbtack"></i></button>
+                        <input type="color" id="note-color" value="#ffffff" title="Warna Background">
+                        <button class="tool-btn" onclick="deleteCurrentNote()" title="Hapus" style="color: var(--danger);"><i class="fa-solid fa-trash"></i></button>
+                        <button class="tool-btn d-mobile-only" onclick="closeEditor()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+
+                <div class="editor-meta">
+                    <select id="note-category">
+                        <option value="work">💼 Pekerjaan</option>
+                        <option value="code">💻 Koding & Snippet</option>
+                        <option value="personal">👤 Pribadi</option>
+                        <option value="idea">💡 Ide Kreatif</option>
+                        <option value="misc">📦 Lainnya</option>
+                    </select>
+                    <input type="text" id="note-tags" placeholder="Tambahkan tag (koma)...">
+                </div>
+
+                <textarea id="note-input" placeholder="Ketik catatanmu di sini... Dukung format Markdown untuk kodingan!"></textarea>
+                <div id="note-preview" class="markdown-body" style="display: none;"></div>
+
+                <div class="editor-footer">
+                    <button class="btn" id="btn-toggle-view" onclick="toggleViewMode()"><i class="fa-solid fa-pen"></i> Edit Catatan</button>
+                    <span id="save-status" class="save-status">Tersimpan otomatis.</span>
+                </div>
+
+            </div>
+            
+            <div class="empty-editor-state" id="empty-editor-state">
+                <i class="fa-regular fa-hand-pointer"></i>
+                <p>Pilih catatan di sebelah kiri atau buat catatan baru.</p>
+            </div>
+
+        </div>
+    </div>
+
+    <<div id="modal-delete" class="modal" style="display: none; justify-content: center; align-items: center; z-index: 3000;">
+        <div class="modal-content" style="width: 320px; height: auto; border-radius: 12px; padding: 20px; text-align: left; animation: popIn 0.2s ease-out; border-left: none;">
+            
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <i class="fa-solid fa-triangle-exclamation" style="font-size: 20px; color: var(--danger);"></i>
+                <h3 style="margin: 0; font-size: 16px; color: var(--text-color);">Konfirmasi Hapus</h3>
+            </div>
+            
+            <p id="delete-modal-text" style="font-size: 12px; color: #666; margin-bottom: 15px; line-height: 1.5;"></p>
+            
+            <input type="text" id="delete-confirm-input" placeholder="Ketik YAKIN..." style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; font-weight: 700; font-size: 13px; text-transform: uppercase; outline: none; font-family: inherit;">
+            
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-outline" onclick="closeDeleteModal()" style="padding: 8px 15px; font-size: 12px; flex: 0;">Batal</button>
+                <button class="btn" id="btn-confirm-delete" onclick="processDelete()" style="background: var(--danger); opacity: 0.5; cursor: not-allowed; padding: 8px 15px; font-size: 12px; flex: 0;" disabled>Hapus</button>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Aksi Berhasil!</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="assets/js/notes.js"></script>
+</body>
+</html>

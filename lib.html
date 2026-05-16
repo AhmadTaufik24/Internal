@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asset Library - Taufik System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/lib.css">
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="brand">ASSET LIBRARY<span></span></div>
+        
+        <div class="menu-nav">
+            <div class="menu-section-title">Library</div>
+            <div class="menu-item active" onclick="switchTab('all', this)"><i class="fa-solid fa-layer-group"></i> <span>Semua</span></div>
+            
+            <div class="menu-section-title">Disiplin</div>
+            <div class="menu-item" onclick="switchTab('photo', this)"><i class="fa-solid fa-camera"></i> <span>Photo</span></div>
+            <div class="menu-item" onclick="switchTab('retouch', this)"><i class="fa-solid fa-wand-magic-sparkles"></i> <span>Retouch</span></div>
+            <div class="menu-item" onclick="switchTab('video', this)"><i class="fa-solid fa-video"></i> <span>Video</span></div>
+            <div class="menu-item" onclick="switchTab('design', this)"><i class="fa-solid fa-pen-nib"></i> <span>Design</span></div>
+            <div class="menu-item" onclick="switchTab('web', this)"><i class="fa-solid fa-code"></i> <span>Web</span></div>
+            <div class="menu-item" onclick="switchTab('business', this)"><i class="fa-solid fa-briefcase"></i> <span>Bisnis</span></div>
+            <div class="menu-item" onclick="switchTab('software', this)"><i class="fa-solid fa-key"></i> <span>Software</span></div>
+            <div class="menu-item" onclick="switchTab('misc', this)"><i class="fa-solid fa-box-open"></i> <span>Lain-lain</span></div>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="menu-item btn-back" onclick="window.location.href='index.html'">
+                <i class="fa-solid fa-circle-arrow-left"></i> <span>Kembali</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="topbar">
+            <h2>Asset Library</h2>
+            <div class="topbar-tools">
+                <div class="search-wrapper">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="searchInput" placeholder="Cari aset..." onkeyup="searchAssets()">
+                </div>
+                <button class="btn" onclick="openAssetModal()">+ Tambah</button>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <div id="asset-grid" class="asset-grid"></div>
+        </div>
+    </div>
+
+    <div id="modal-asset" class="modal">
+        <div class="modal-content">
+            <h3>Simpan Aset</h3>
+            <input type="hidden" id="asset-id">
+            
+            <div class="form-group">
+                <label>Nama Aset</label>
+                <input type="text" id="asset-name" placeholder="Nama folder/file">
+            </div>
+
+            <div class="form-group">
+                <label>Folder / Kategori</label>
+                <select id="asset-category">
+                    <option value="photo">Fotografi</option>
+                    <option value="retouch">Retouching</option>
+                    <option value="video">Videografi</option>
+                    <option value="design">Desain Grafis</option>
+                    <option value="web">Web Development</option>
+                    <option value="business">Bisnis & Admin</option>
+                    <option value="software">Software & Lisensi</option>
+                    <option value="misc">Lain-lain / Pribadi</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Link Cloud / Path</label>
+                <input type="url" id="asset-url" placeholder="https://drive.google.com/...">
+            </div>
+
+            <div class="form-group">
+                <label>Tags (koma)</label>
+                <input type="text" id="asset-tags" placeholder="wedding, master, icons">
+            </div>
+
+            <div class="form-group">
+                <label>Catatan</label>
+                <textarea id="asset-desc" rows="3"></textarea>
+            </div>
+
+            <div class="modal-btns">
+                <button class="btn btn-outline" onclick="closeAssetModal()">Batal</button>
+                <button class="btn" onclick="saveAsset()">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Berhasil disalin!</div>
+    <script src="assets/js/lib.js"></script>
+</body>
+</html>

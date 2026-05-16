@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Dashboard - Taufik System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    
+    <link rel="stylesheet" href="assets/css/finance.css">
+    <style>
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    </style>
+</head>
+<body>
+
+    <div id="auth-screen" style="display: flex; height: 100vh; width: 100vw; justify-content: center; align-items: center; background: var(--body-bg); position: fixed; top: 0; left: 0; z-index: 9999;">
+        <div class="list-card" style="width: 350px; text-align: center; padding: 40px 30px;">
+            <div style="font-size: 45px; margin-bottom: 10px;">🔒</div>
+            <h2 style="margin: 0 0 5px 0; color: var(--text-color);">Restricted Access</h2>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 25px;">Masukkan sandi keamanan untuk mengakses modul Finance.</p>
+            <input type="password" id="auth-password" placeholder="••••••••" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--navbar-border); text-align: center; letter-spacing: 5px; font-weight: bold; margin-bottom: 15px;" onkeypress="if(event.key === 'Enter') checkAuth()">
+            <button class="btn btn-masuk" style="width: 100%; padding: 12px; font-size: 14px;" onclick="checkAuth()">Buka Akses</button>
+            <div id="auth-error" style="color: var(--danger); font-size: 11px; margin-top: 15px; font-weight: bold; display: none;">❌ Katasandi tidak valid!</div>
+        </div>
+    </div>
+
+    <div id="app-wrapper" style="display: none; height: 100vh; width: 100vw;">
+        
+        <div class="sidebar">
+            <div class="logo" style="margin-bottom: 30px; font-weight: 800; font-size: 20px;">FINANCE</div>
+            
+            <div class="menu-section-title">MENU UTAMA</div>
+            <div class="menu-item active" id="menu-dashboard" onclick="switchView('dashboard')">
+                <span class="menu-icon">📊</span> Dashboard Real
+            </div>
+            <div class="menu-item" id="menu-kelola" onclick="switchView('kelola')">
+                <span class="menu-icon">💼</span> Dana Kelola
+            </div>
+            <div class="menu-item" id="menu-accounts" onclick="switchView('accounts')">
+                <span class="menu-icon">🏦</span> Rekening & Transfer
+            </div>
+            
+            <div style="flex: 1;"></div>
+            
+            <div class="sidebar-bottom-control">
+                <div class="asset-card clickable" onclick="openAssetBreakdown()">
+                    <div class="asset-label">TOTAL ASET (SEMUA)</div>
+                    <div class="asset-value" id="sidebar-total-asset">Rp 0</div>
+                    <div style="font-size: 10px; opacity: 0.6; margin-top: 5px;">Klik untuk detail Real & Dana Kelola</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main">
+            <div id="dashboard-header-area">
+                <div class="dash-header">
+                    <div>
+                        <h2 id="page-main-title" style="margin: 0; color: var(--text-color); font-weight: 800; font-size: 28px;">Dashboard Keuangan</h2>
+                        <p style="margin: 5px 0 0 0; color: var(--text-color); opacity: 0.6; font-size: 13px;">Analisis & Kontrol Arus Kas.</p>
+                    </div>
+                    
+                    <div class="search-bar">
+                        <input type="text" id="global-search" placeholder="🔍 Cari judul, kategori..." oninput="handleSearch()">
+                    </div>
+
+                    <div class="date-navigator">
+                        <button onclick="changeDateOffset(-1)">&lt;</button>
+                        <div class="date-display" onclick="openDatePicker()" style="cursor: pointer; position: relative;" title="Klik untuk pilih rentang tanggal">
+                            <span id="header-period-label">MONTH</span>
+                            <strong id="header-date-text">Mar 2026</strong>
+                            <input type="date" id="hidden-date-picker" onchange="applyPickedDate(event)" style="visibility: hidden; position: absolute; width: 0; height: 0; left: 50%; top: 50%;">
+                        </div>
+                        <button onclick="changeDateOffset(1)">&gt;</button>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn btn-masuk" onclick="openTransactionModal('income')">+ Masuk</button>
+                        <button class="btn btn-keluar" onclick="openTransactionModal('expense')">- Keluar</button>
+                    </div>
+                </div>
+
+                <div class="period-tabs">
+                    <div class="period-tab" id="tab-hari" onclick="setPeriodFilter('hari')">Hari</div>
+                    <div class="period-tab" id="tab-minggu" onclick="setPeriodFilter('minggu')">Rentang/Minggu</div>
+                    <div class="period-tab active" id="tab-bulan" onclick="setPeriodFilter('bulan')">Bulan</div>
+                    <div class="period-tab" id="tab-tahun" onclick="setPeriodFilter('tahun')">Tahun</div>
+                    <div class="period-tab" id="tab-semua" onclick="setPeriodFilter('semua')">Semua</div>
+                </div>
+            </div>
+
+            <div id="view-dashboard" class="view-section active">
+                <div class="stats-grid-3"> 
+                    <div class="stat-card clickable" onclick="openDetailView('type', 'income', 'Pemasukan Real')">
+                        <div class="stat-icon bg-light-green">↗</div>
+                        <div><div class="stat-title">PEMASUKAN REAL</div><div class="stat-value text-success" id="dash-income">Rp 0</div></div>
+                    </div>
+                    <div class="stat-card clickable" onclick="openDetailView('type', 'expense', 'Pengeluaran Real')">
+                        <div class="stat-icon bg-light-red">↘</div>
+                        <div><div class="stat-title">PENGELUARAN REAL</div><div class="stat-value text-danger" id="dash-expense">Rp 0</div></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon bg-light-blue">🗂</div>
+                        <div>
+                            <div class="stat-title">CASHFLOW REAL</div>
+                            <div class="stat-value" id="dash-net">0%</div>
+                            <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px; font-weight: 600;" id="dash-net-sub">Rp 0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-grid-main" style="margin-top: 25px;">
+                    <div class="left-column">
+                        <div class="chart-card">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <h3 style="margin: 0;">📊 Proporsi Kategori</h3>
+                                <select id="chart-type-toggle" onchange="renderPieChart()" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 11px; outline: none;">
+                                    <option value="all">Semua Arus Kas</option>
+                                    <option value="expense">Pengeluaran Real Saja</option>
+                                    <option value="income">Pemasukan Real Saja</option>
+                                </select>
+                            </div>
+                            <div style="height: 350px; position: relative;"><canvas id="expensePieChart"></canvas></div>
+                        </div>
+                    </div>
+
+                    <div class="right-column">
+                        <div class="list-card" style="margin-bottom: 20px;">
+                            <h3>🔥 Top Analytics (Real)</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <div>
+                                    <h4 style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">🏆 Top Pemasukan</h4>
+                                    <div id="top-income-list"></div>
+                                </div>
+                                <div>
+                                    <h4 style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">⚠️ Top Pengeluaran</h4>
+                                    <div id="top-expense-list"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="list-card" style="height: fit-content;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                <h3 style="margin: 0;">📜 Riwayat Transaksi</h3>
+                                <a href="#" style="font-size: 12px; font-weight: 700; color: var(--primary); text-decoration: none;" onclick="openDetailView('ALL', null, 'Semua Transaksi')">Lihat Lengkap ➔</a>
+                            </div>
+                            <div style="overflow-x: auto; max-height: 250px; overflow-y: auto;">
+                                <table class="mini-table">
+                                    <thead><tr><th style="position: sticky; top: 0; background: #fff;">TGL</th><th style="position: sticky; top: 0; background: #fff;">INFO</th><th style="position: sticky; top: 0; background: #fff;">KATEGORI</th><th style="text-align: right; position: sticky; top: 0; background: #fff;">NOMINAL</th></tr></thead>
+                                    <tbody id="mini-transaction-table"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-kelola" class="view-section" style="display: none;">
+                <div class="stats-grid-3">
+                    <div class="stat-card clickable" onclick="openDetailView('assetType', 'titipan', 'Semua Dana Kelola')">
+                        <div class="stat-icon bg-light-purple">💼</div>
+                        <div><div class="stat-title">SALDO DANA KELOLA AKTIF</div><div class="stat-value text-warning" id="dash-titipan">Rp 0</div></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#fdf2e9; color:#e67e22;">↓</div>
+                        <div><div class="stat-title">TOTAL KELOLA MASUK (PERIODE INI)</div><div class="stat-value" id="dash-kelola-in">Rp 0</div></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#fdf2e9; color:#e67e22;">↑</div>
+                        <div><div class="stat-title">TOTAL KELOLA KELUAR (PERIODE INI)</div><div class="stat-value" id="dash-kelola-out">Rp 0</div></div>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 25px;">
+                    <div class="list-card">
+                        <h3>💼 Analitik Pemilik Dana Kelola</h3>
+                        <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 15px;">Daftar sisa dana yang sedang dikelola berdasarkan Kategori/Pemilik.</p>
+                        <div id="titipan-analytics-list"></div>
+                    </div>
+                    <div class="list-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h3 style="margin: 0;">📜 Riwayat Dana Kelola</h3>
+                            <a href="#" style="font-size: 12px; font-weight: 700; color: var(--primary); text-decoration: none;" onclick="openDetailView('assetType', 'titipan', 'Semua Dana Kelola')">Lihat Lengkap ➔</a>
+                        </div>
+                        <div style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                            <table class="mini-table">
+                                <thead><tr><th style="position: sticky; top: 0; background: #fff;">TGL</th><th style="position: sticky; top: 0; background: #fff;">INFO</th><th style="text-align: right; position: sticky; top: 0; background: #fff;">NOMINAL</th></tr></thead>
+                                <tbody id="mini-kelola-table"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-detail" class="view-section" style="display: none;">
+                <div id="breadcrumb-container" class="breadcrumb" style="margin-bottom: 20px;"></div>
+                
+                <div class="list-card" style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <h2 id="detail-title" style="margin: 0 0 15px 0; font-size: 22px;">Detail Transaksi</h2>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-masuk" onclick="exportTransactionToPDF()">📄 Export PDF</button>
+                            <button class="btn btn-outline" onclick="exportTransactionToCSV()">⬇️ Export CSV</button>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-grid" style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--navbar-border);">
+                        <select id="view-mode" onchange="applyFilters()" style="background: var(--primary-bg); color: var(--primary); font-weight: 800; border-color: var(--primary);">
+                            <option value="detail">Tampilan: Semua Detail</option>
+                            <option value="category">Rekap: Kategori Saja</option>
+                            <option value="subcategory">Rekap: Jenis (Sub) Saja</option>
+                        </select>
+                        
+                        <select id="filter-asset" onchange="applyFilters()"><option value="ALL">Semua Aset</option><option value="real">Real Saja</option><option value="titipan">Dana Kelola Saja</option></select>
+                        <select id="filter-type" onchange="applyFilters()"><option value="ALL">Semua Jenis</option><option value="income">Income Real</option><option value="expense">Expense Real</option><option value="titipan_in">Dana Masuk</option><option value="titipan_out">Dana Keluar</option><option value="transfer">Transfer</option></select>
+                        <select id="filter-cat" onchange="populateFilterSubCat(); applyFilters();"><option value="ALL">Semua Kategori</option></select>
+                        <select id="filter-subcat" onchange="applyFilters()"><option value="ALL">Semua Sub Kategori</option></select>
+                        <select id="filter-acc" onchange="applyFilters()" style="grid-column: span 6;"><option value="ALL">Semua Akun Rekening</option></select>
+                    </div>
+
+                    <div id="detail-summary" style="display: flex; gap: 30px; flex-wrap: wrap;">
+                        <div><span style="font-size: 12px; color: #888;">Jumlah Data:</span><br><strong style="font-size: 18px;" id="dt-count">0</strong></div>
+                        <div><span style="font-size: 12px; color: #888;">Total Uang Masuk:</span><br><strong style="font-size: 18px; color: var(--success);" id="dt-in">Rp 0</strong></div>
+                        <div><span style="font-size: 12px; color: #888;">Total Uang Keluar:</span><br><strong style="font-size: 18px; color: var(--danger);" id="dt-out">Rp 0</strong></div>
+                        <div style="border-left: 2px solid var(--navbar-border); padding-left: 30px;">
+                            <span style="font-size: 12px; color: #888; font-weight: bold;">TOTAL BERSIH (Masuk - Keluar):</span><br>
+                            <strong style="font-size: 22px; color: var(--primary);" id="dt-net">Rp 0</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="detail-category-summary" class="list-card" style="margin-bottom: 20px; display: none;">
+                    <h3 style="margin: 0 0 15px 0; font-size: 14px; color: var(--text-color);">📊 Rekap Top 5 Per Kategori</h3>
+                    <div id="cat-summary-list"></div>
+                </div>
+
+                <div class="list-card" style="padding: 0; overflow-x: auto;">
+                    <table class="finance-table">
+                        <thead><tr><th>Tanggal</th><th>Judul Transaksi</th><th>Kategori > Jenis</th><th>Tipe & Aset</th><th>Akun</th><th style="text-align: right;">Nominal</th></tr></thead>
+                        <tbody id="detail-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view-accounts" class="view-section" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">🏦 Rekening & Dompet</h2>
+                    <button class="btn btn-masuk" onclick="openAccountModal()">+ Tambah Akun</button>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 25px;">
+                    <div class="client-grid" id="account-manager-list" style="grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:20px; display:grid; align-content: start;"></div>
+                    
+                    <div class="list-card transfer-box">
+                        <h3 style="margin: 0 0 5px 0; text-align: center;">⇄ Transfer Internal</h3>
+                        <p style="font-size: 11px; color: var(--text-muted); text-align: center; margin-bottom: 20px;">Pindahkan saldo tanpa mengubah laporan Pemasukan/Pengeluaran Real.</p>
+                        
+                        <div id="transfer-secure-btn">
+                            <button class="btn btn-outline" style="width: 100%; border-color: var(--primary); color: var(--primary); font-weight: bold; padding: 12px;" onclick="toggleTransferForm()">🔓 Buka Menu Transfer</button>
+                        </div>
+
+                        <div id="transfer-form-area" style="display: none;">
+                            <div class="form-group"><label>Dari Akun</label><select id="tf-from"></select></div>
+                            <div style="text-align: center; color: var(--text-muted); font-size: 18px; margin: 5px 0;">⬇</div>
+                            <div class="form-group"><label>Ke Akun</label><select id="tf-to"></select></div>
+                            <div class="form-group" style="margin-top: 15px;"><label>Nominal Transfer (Rp)</label><input type="number" id="tf-amount" placeholder="0" style="font-size: 16px; font-weight: bold; padding: 10px;"></div>
+                            <div class="form-group"><label>Tanggal Transfer</label><input type="date" id="tf-date"></div>
+                            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                                <button class="btn btn-outline" style="flex:1;" onclick="toggleTransferForm()">Batal</button>
+                                <button class="btn" style="background:var(--primary); color:white; flex:2; font-size: 13px;" onclick="saveTransfer()">🚀 Eksekusi</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> 
+
+    <div id="full-category-overlay" style="display: none; position: fixed; top: 0; right: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 3000; justify-content: flex-end;" onclick="if(event.target === this) closeFullCategoryView()">
+        <div id="full-category-panel" style="width: 100%; max-width: 550px; background: var(--body-bg); height: 100%; overflow-y: auto; box-shadow: -5px 0 25px rgba(0,0,0,0.1); padding: 30px; animation: slideInRight 0.3s ease;">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0; font-size: 20px;">📑 Laporan Detail</h2>
+                <span class="clickable text-danger" style="font-weight: bold; font-size: 12px; background: var(--danger-bg); padding: 6px 12px; border-radius: 8px; cursor: pointer;" onclick="closeFullCategoryView()">✖ Tutup</span>
+            </div>
+            
+            <div class="period-tabs" style="margin-bottom: 20px; display: flex; width: 100%;">
+                <div class="period-tab active" id="tab-full-expense" onclick="switchFullCatTab('expense')" style="flex:1; text-align:center;">🔴 Pengeluaran</div>
+                <div class="period-tab" id="tab-full-income" onclick="switchFullCatTab('income')" style="flex:1; text-align:center;">🟢 Pemasukan</div>
+            </div>
+
+            <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 15px; text-align: center;">Klik pada nama kategori untuk melihat rincian jenis dan transaksinya.</p>
+            
+            <div id="full-category-content-expense" style="display: block;"></div>
+            <div id="full-category-content-income" style="display: none;"></div>
+            
+        </div>
+    </div>
+
+    <div class="modal" id="modal-transaction">
+        <div class="modal-content">
+            <h3 id="tx-modal-title">Catat Transaksi</h3>
+            <input type="hidden" id="tx-base-type">
+            <div class="form-group"><label>Judul Transaksi</label><input type="text" id="tx-title" placeholder="Contoh: Beli Kopi..."></div>
+            <div style="display: flex; gap: 15px;">
+                <div class="form-group" style="flex: 1;"><label>Total Nominal (Rp)</label><input type="number" id="tx-amount" oninput="autoCalculateSplit()"></div>
+                <div class="form-group" style="flex: 1;"><label>Tanggal</label><input type="date" id="tx-date"></div>
+            </div>
+            
+            <div class="form-group" style="flex: 1;"><label>Kepemilikan Asset</label><select id="tx-asset-type" onchange="toggleTitipanFields()"><option value="real">Asset Real</option><option value="titipan">Dana Kelola</option></select></div>
+            
+            <div class="form-group" style="background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px dashed var(--navbar-border);">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <label style="margin: 0;">Gunakan Akun / Wallet</label>
+                    <span id="btn-add-split" style="font-size: 10px; color: var(--primary); font-weight: bold; cursor: pointer; display: none;" onclick="addAccountRow()">+ Split Akun</span>
+                </div>
+                <div id="tx-account-container"></div>
+            </div>
+
+            <div style="display: flex; gap: 15px;">
+                <div class="form-group" style="flex: 1;">
+                    <div style="display: flex; justify-content: space-between;"><label>Kategori Utama</label> <span style="font-size: 10px; color: var(--primary); cursor: pointer;" onclick="openCategoryManager()">⚙️ Kelola</span></div>
+                    <select id="tx-category" onchange="populateSubCategoryTx()"></select>
+                    <small style="color:var(--primary); cursor:pointer; font-weight:bold;" onclick="addNewParentCategory()">+ Kategori Baru</small>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Sub Kategori (Jenis)</label>
+                    <select id="tx-subcategory"></select>
+                    <small style="color:var(--primary); cursor:pointer; font-weight:bold;" onclick="addNewSubCategory()">+ Jenis Baru</small>
+                </div>
+            </div>
+            <div class="form-group"><label>Catatan Tambahan</label><textarea id="tx-notes" rows="2"></textarea></div>
+            <div style="text-align: right; margin-top: 20px;">
+                <button class="btn btn-outline" onclick="closeModal('modal-transaction')">Batal</button>
+                <button class="btn btn-masuk" onclick="saveTransaction()">Simpan Transaksi</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-date-range">
+        <div class="modal-content" style="width: 350px !important;">
+            <h3 style="margin-top: 0;">Pilih Rentang Tanggal</h3>
+            <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 15px;">Atur filter untuk Range / Mingguan</p>
+            <div class="form-group"><label>Dari Tanggal</label><input type="date" id="range-start"></div>
+            <div class="form-group"><label>Sampai Tanggal</label><input type="date" id="range-end"></div>
+            <div style="text-align: right; margin-top: 20px;">
+                <button class="btn btn-outline" onclick="closeModal('modal-date-range')">Batal</button>
+                <button class="btn btn-masuk" onclick="applyCustomRange()">Terapkan</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-category-manager">
+        <div class="modal-content" style="width: 500px !important;">
+            <h3 style="margin-top: 0;">⚙️ Manajemen Kategori</h3>
+            <p style="font-size: 11px; color: var(--text-muted);">Edit nama atau hapus kategori. Menghapus kategori tidak akan menghapus transaksi yang sudah ada.</p>
+            <div class="period-tabs" style="width: 100%; display: flex;">
+                <div class="period-tab active" id="tab-cat-expense" onclick="renderCategoryManager('expense')" style="flex:1; text-align:center;">Pengeluaran</div>
+                <div class="period-tab" id="tab-cat-income" onclick="renderCategoryManager('income')" style="flex:1; text-align:center;">Pemasukan</div>
+                <div class="period-tab" id="tab-cat-titipan" onclick="renderCategoryManager('titipan')" style="flex:1; text-align:center;">Dana Kelola</div>
+            </div>
+            <div id="cat-manager-list" style="margin-top: 15px; max-height: 300px; overflow-y: auto; padding-right: 10px;"></div>
+            <div style="text-align: right; margin-top: 25px;"><button class="btn btn-masuk" onclick="closeModal('modal-category-manager')">Selesai</button></div>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-asset-breakdown">
+        <div class="modal-content" style="width: 400px !important;">
+            <h3 style="margin-top: 0;">Rincian Kepemilikan Aset</h3>
+            <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 15px;">Klik kotak di bawah untuk melihat rincian transaksinya.</p>
+            <div style="margin-top: 10px;">
+                <div class="clickable" onclick="openDetailView('assetType', 'real', 'Semua Aset Real'); closeModal('modal-asset-breakdown');" style="display:flex; justify-content:space-between; padding: 15px; background: #eef4fa; border-radius: 8px; margin-bottom: 10px; border: 1px solid #cce0f5;">
+                    <span style="font-weight: 700; color: var(--primary);">Aset Real ➔</span><strong id="modal-val-real">Rp 0</strong>
+                </div>
+                <div class="clickable" onclick="openDetailView('assetType', 'titipan', 'Semua Dana Kelola'); closeModal('modal-asset-breakdown');" style="display:flex; justify-content:space-between; padding: 15px; background: #fdf2e9; border-radius: 8px; border: 1px solid #f6dabb;">
+                    <span style="font-weight: 700; color: #e67e22;">Dana Kelola ➔</span><strong id="modal-val-titipan">Rp 0</strong>
+                </div>
+            </div>
+            <div style="text-align: right; margin-top: 25px;"><button class="btn btn-outline" onclick="closeModal('modal-asset-breakdown')">Tutup</button></div>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-account">
+        <div class="modal-content" style="width: 400px !important;">
+            <h3 id="acc-modal-title">Tambah Akun Baru</h3>
+            <input type="hidden" id="acc-edit-id">
+            <div class="form-group"><label>Nama Akun</label><input type="text" id="acc-name"></div>
+            <div class="form-group"><label>Jenis Penyimpanan</label><select id="acc-type"><option value="Bank">Bank</option><option value="E-Wallet">E-Wallet</option><option value="Cash">Cash</option></select></div>
+            <div style="text-align: right; margin-top: 20px;">
+                <button class="btn btn-outline" onclick="closeModal('modal-account')">Batal</button>
+                <button class="btn btn-masuk" onclick="saveAccount()">Simpan Akun</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
+
+    <script src="assets/js/finance.js"></script>
+</body>
+</html>

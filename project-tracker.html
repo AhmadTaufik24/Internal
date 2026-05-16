@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Production</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/project-tracker.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        /* CSS Mode Canvas & Link Box */
+        .edit-mode { display: none; }
+        .view-mode { display: block; padding: 8px 0; border-bottom: 1px dashed var(--navbar-border); min-height: 35px; }
+        .is-editing .edit-mode { display: block; }
+        .is-editing .view-mode { display: none; }
+        #modal-detail input, #modal-detail select { background:var(--bg-color); border:1px solid var(--navbar-border); transition:0.2s; width: 100%; padding: 10px 12px; border-radius: 6px; font-family: 'Plus Jakarta Sans', sans-serif;}
+        #modal-detail input:focus, #modal-detail select:focus { background:#fff; border-color:var(--primary); box-shadow:0 0 0 3px rgba(122,158,191,0.15); outline: none; }
+        
+        /* Tombol Link Rapi */
+        .link-text a { display: inline-flex; align-items: center; background: var(--bg-color); padding: 6px 12px; border-radius: 6px; border: 1px solid var(--navbar-border); color: var(--primary); font-size: 12px; font-weight: 600; text-decoration: none; transition: 0.2s; }
+        .link-text a:hover { background: var(--highlight); color: var(--text-color); border-color: var(--primary); }
+        
+        /* Alert Box UI */
+        .ui-alert { padding: 12px 15px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 15px; display: none; align-items: flex-start; gap: 10px; line-height: 1.4; }
+        .ui-alert.warning { background: #fff8e1; color: #b78103; border: 1px solid #ffe082; display: flex; }
+        .ui-alert.success { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; display: flex; }
+        
+        .sidebar .menu-item[onclick*="index.html"]:hover { background: var(--primary) !important; color: white !important; transform: translateX(5px); }
+        .log-item.voided { display: none; }
+        .show-voided-logs .log-item.voided { display: block; opacity: 0.4; text-decoration: line-through; background: #eee; }
+
+        /* =========================================================
+           FITUR PENCARIAN (SEARCH BOX MODERN)
+           ========================================================= */
+        .board-filter { margin-bottom: 25px; position: relative; max-width: 350px; }
+        .board-filter input { 
+            width: 100%; padding: 12px 15px 12px 40px; border-radius: 8px; 
+            border: 1px solid var(--navbar-border); background-color: var(--card-bg); 
+            font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 500; 
+            color: var(--text-color); transition: all 0.2s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23897e7a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>');
+            background-repeat: no-repeat; background-position: 12px center; background-size: 16px;
+        }
+        .board-filter input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(122, 158, 191, 0.15); }
+        @media screen and (max-width: 992px) { .board-filter { max-width: 100%; margin-bottom: 20px; } }
+
+        /* Custom Dropdown untuk Search Klien */
+        .cc-dropdown-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px dashed var(--navbar-border); font-size: 12px; transition: 0.2s; display: flex; flex-direction: column; gap: 4px;}
+        .cc-dropdown-item:hover { background: var(--highlight); }
+        .cc-dropdown-new { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid var(--navbar-border); color: var(--primary); font-weight: 800; font-size: 12px; background: var(--bg-color); }
+        .cc-dropdown-new:hover { background: #e2e8f0; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="logo">PROJECT TRACKING</div>
+    <div class="menu-item" style="background: var(--text-color); color: white; margin-bottom: 20px;" onclick="window.location.href='index.html'"><span>🏠 Command Center</span></div>
+    <div class="menu-item active" id="menu-board" onclick="switchView('board')"><span>📋 Workflow Board</span></div>
+    <div class="menu-section-title">KEUANGAN</div>
+    <div class="menu-item" id="menu-salary" onclick="switchView('salary')"><span>💰 Active Period</span></div>
+    <div class="menu-item" id="menu-done" onclick="switchView('done')"><span>✅ History & Done</span></div>
+    <div style="font-size:10px; color:var(--text-color); opacity: 0.5; text-align:center; margin-top:auto; padding-top:15px; font-weight: 600;">v5.3 - Enterprise Workflow<br>Taufik System</div>
+</div>
+
+<div class="main" id="view-board">
+    <div class="header-tools" style="margin-bottom: 20px; padding-bottom: 15px;">
+        <h2>Production Board</h2>
+        <div style="display:flex; gap:10px;">
+            <button class="btn btn-outline" onclick="openManualJob()">+ Job Manual</button>
+            <button class="btn" onclick="openTargetCalc()">🎯 Target (Auto-Limit)</button>
+            <button class="btn" onclick="generateWeeklyTarget()">🔄 Auto Weekly</button>
+        </div>
+    </div>
+
+    <div class="board-filter">
+        <input type="text" id="searchInput" placeholder="Cari Kode JO, Nama Klien, atau Status..." onkeyup="searchJobs()">
+    </div>
+
+    <div class="board">
+        <div class="column"><div class="col-header">1. Scheduling <span class="col-count" id="c-scheduling">0</span></div><div class="col-body" id="col-scheduling"></div></div>
+        <div class="column"><div class="col-header">2. Preparing <span class="col-count" id="c-preparing">0</span></div><div class="col-body" id="col-preparing"></div></div>
+        <div class="column"><div class="col-header">3. On Progress <span class="col-count" id="c-progress">0</span></div><div class="col-body" id="col-progress"></div></div>
+        <div class="column"><div class="col-header">4. Internal Check <span class="col-count" id="c-internal">0</span></div><div class="col-body" id="col-internal"></div></div>
+        <div class="column"><div class="col-header">5. Review Klien <span class="col-count" id="c-review">0</span></div><div class="col-body" id="col-review"></div></div>
+        <div class="column"><div class="col-header">6. Upload <span class="col-count" id="c-upload">0</span></div><div class="col-body" id="col-upload"></div></div>
+    </div>
+</div>
+
+<div class="main" id="view-salary" style="display:none;"><div class="header-tools"><h2>Active Period</h2><button class="btn" onclick="openAdjustModal()">+ Adjust (Konten)</button></div><div class="tab-container"><button class="tab-btn active" onclick="switchTab('salary', 'content')">Konten Kreator</button><button class="tab-btn" onclick="switchTab('salary', 'general')">Freelance General</button></div><div id="salary-content" class="tab-content active"><div id="salary-dashboard-content"></div></div><div id="salary-general" class="tab-content"><div id="salary-dashboard-general"></div></div></div>
+<div class="main" id="view-done" style="display:none;"><div class="header-tools"><h2>History & Arsip</h2></div><div class="salary-card" style="border-color: var(--success);"><h3 style="margin-bottom:10px; color:var(--text-color); opacity:0.6;">Total Pendapatan (Lifetime)</h3><h1 class="total-display" id="grand-total">Rp 0</h1></div><div class="tab-container"><button class="tab-btn active" onclick="switchTab('history', 'content')">History Konten</button><button class="tab-btn" onclick="switchTab('history', 'general')">History Freelance</button></div><div id="history-content" class="tab-content active"><div id="history-dashboard-content"></div></div><div id="history-general" class="tab-content"><div id="history-dashboard-general"></div></div></div>
+
+<div class="modal" id="modal-detail">
+    <div class="modal-content" style="width:850px;" id="detail-container">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px; border-bottom: 1px solid var(--navbar-border); padding-bottom: 10px;">
+            <div style="display:flex; gap:10px; align-items:center;">
+                <h3 style="margin:0; color:var(--primary);">Job Detail</h3>
+                <span id="det-deadline-badge" class="badge"></span>
+            </div>
+            <button class="btn btn-outline btn-sm" style="width:auto; margin:0;" onclick="toggleEditMode()" id="btn-toggle-edit">✏️ Edit Info</button>
+        </div>
+        
+        <input type="hidden" id="edit-id">
+        <div style="font-size:12px; font-family:monospace; color:var(--text-color); margin-bottom:10px; display:inline-block;">
+            Batch Code: <strong id="view-batch" style="color:var(--text-color);">...</strong>
+        </div>
+        
+        <div style="display:flex; gap:15px; margin-bottom:10px;">
+            <div style="flex:2;">
+                <label style="font-size:11px; color:var(--text-color); opacity:0.7; font-weight:700;">Judul Konten / Keterangan</label>
+                <div class="view-mode" id="view-title" style="font-weight:800; font-size:16px; color:var(--primary);"></div>
+                <div class="edit-mode form-group"><input type="text" id="edit-title"></div>
+            </div>
+            <div style="flex:1;">
+                <label style="font-size:11px; color:var(--text-color); opacity:0.7; font-weight:700;">Tipe Pekerjaan (Permanen)</label>
+                <div id="view-type" style="padding: 8px 0; font-weight:700;"></div>
+            </div>
+        </div>
+
+        <div style="display:flex; gap:15px; margin-bottom:10px;">
+           <div style="flex:1;">
+                <label style="font-size:11px; color:var(--text-color); opacity:0.7; font-weight:700;">Data Klien</label>
+                <div class="view-mode" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                    <div id="view-client" style="font-weight:800; color:var(--primary); font-size:14px;"></div>
+                    <button class="btn btn-sm btn-outline" id="btn-to-crm" style="padding:4px 8px; font-size:10px;">Buka CRM ↗</button>
+                </div>
+                <div class="view-mode" id="client-info-box" style="font-size:11px; color:#666; background:#f8f9fa; padding:10px; border-radius:6px; border:1px solid #eee;">
+                    <div style="margin-bottom:3px;">📞 <span id="det-client-phone">-</span></div>
+                    <div style="margin-bottom:3px;">✉️ <span id="det-client-email">-</span></div>
+                    <div>📍 <span id="det-client-address">-</span></div>
+                </div>
+                <div class="edit-mode form-group"><input type="text" id="edit-client"></div>
+            </div>
+            <div style="flex:1;">
+                <label style="font-size:11px; color:var(--text-color); opacity:0.7; font-weight:700;">Deadline</label>
+                <div class="view-mode" id="view-deadline" style="font-weight:600;"></div>
+                <div class="edit-mode form-group"><input type="date" id="edit-deadline"></div>
+            </div>
+            <div style="flex:1;">
+                <label style="font-size:11px; color:var(--text-color); opacity:0.7; font-weight:700;">💬 Status Text</label>
+                <div class="view-mode" id="view-status" style="font-weight:700; color:var(--warning);"></div>
+                <div class="edit-mode form-group"><input type="text" id="edit-status" placeholder="Cth: Menunggu Feedback"></div>
+            </div>
+            <div id="edit-slide-group" style="flex:1; display:none;">
+                <label style="font-size:11px; color:var(--text-color); opacity:0.7; font-weight:700;">🔢 Jumlah Slide</label>
+                <div class="edit-mode form-group"><input type="number" id="edit-slides"></div>
+            </div>
+            <div id="edit-nominal-group" style="flex:1; display:none;">
+                <label style="font-size:11px; color:var(--text-color); opacity:0.7; font-weight:700;">💰 Nominal (Rp)</label>
+                <div class="view-mode" id="view-nominal" style="font-weight:700; color:var(--success);"></div>
+                <div class="edit-mode form-group"><input type="number" id="edit-nominal"></div>
+            </div>
+        </div>
+
+        <div class="path-box">
+            <small style="opacity:0.7;">📂 Folder Penyimpanan Server:</small><br>
+            <code id="det-path" style="color:var(--text-color); font-weight:700; font-size: 13px; display:block; margin-top:5px;">...</code>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:15px; margin-bottom:10px; background:transparent; padding:0; border:none; border-radius:8px; margin-top: 20px;">
+            <div>
+                <label style="font-size:11px; color:var(--text-color); opacity:0.7; font-weight:700;">🔗 Link Referensi</label>
+                <div class="view-mode link-text" id="view-ref"></div>
+                <div class="edit-mode form-group"><input type="text" id="edit-ref" placeholder="https://..."></div>
+            </div>
+            <div>
+                <label style="font-size:11px; color:var(--text-color); opacity:0.7; font-weight:700;">🔗 Link QC Internal</label>
+                <div class="view-mode link-text" id="view-int-link"></div>
+                <div class="edit-mode form-group"><input type="text" id="edit-int-link" placeholder="https://..."></div>
+            </div>
+            <div>
+                <label style="font-size:11px; color:var(--text-color); opacity:0.7; font-weight:700;">🔗 Link Review Klien</label>
+                <div class="view-mode link-text" id="view-cli-link"></div>
+                <div class="edit-mode form-group"><input type="text" id="edit-cli-link" placeholder="https://..."></div>
+            </div>
+        </div>
+
+        <div class="edit-mode" style="text-align:right; margin-bottom:20px; border-bottom:1px solid var(--navbar-border); padding-bottom:15px; margin-top:15px;">
+            <button class="btn btn-outline" style="margin-right:10px;" onclick="toggleEditMode()">Batal</button>
+            <button class="btn" style="background:var(--success); color:white;" onclick="saveJobDetail()">💾 Simpan & Sinkron Detail</button>
+        </div>
+
+        <div class="history-section" style="margin-top:20px; border-top: 1px dashed var(--navbar-border); padding-top:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h4 style="font-size:16px; font-weight:800; margin:0;">📜 Activity Log</h4>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-sm btn-outline" style="width:auto; padding:6px 12px;" onclick="toggleVoidVisibility()">👁️ Tampilkan Catatan Void</button>
+                    <button class="btn btn-sm" style="width:auto; padding:6px 12px;" onclick="openQuickNote()">+ Tulis Catatan</button>
+                </div>
+            </div>
+            <div id="history-log-container" style="max-height:200px; overflow-y:auto; padding-right:5px;"></div>
+        </div>
+        
+        <div style="text-align:right; margin-top:20px;">
+            <button class="btn btn-danger" onclick="closeModal('modal-detail')">Tutup</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="modal-prep"><div class="modal-content" style="width:500px;"><h3>Stage 2: Preparing Checklist</h3><input type="hidden" id="prep-id"><p style="font-size:12px; color:var(--text-color); opacity:0.7; margin-bottom:15px;">Semua checklist wajib diselesaikan sebelum masuk ke On Progress.</p><div id="prep-alert" class="ui-alert"></div><div style="background:var(--bg-color); padding:15px; border-radius:8px; border:1px solid var(--navbar-border); margin-bottom:15px;"><div class="checklist-item"><input type="checkbox" id="prep-chk-ref"><label for="prep-chk-ref">1. Menyiapkan link referensi</label></div><div class="checklist-item" style="margin-top:10px;"><input type="checkbox" id="prep-chk-folder"><label for="prep-chk-folder">2. Membuat folder project di Server</label></div></div><div class="form-group"><label>Link Referensi (Isi jika ada)</label><input type="text" id="prep-ref"></div><div class="form-group"><label>Deadline Fix</label><input type="date" id="prep-deadline"></div><div class="form-group"><label>📝 Catatan Internal</label><textarea id="prep-notes-internal" rows="3" placeholder="Tulis progress atau kendala di sini..."></textarea></div><div class="form-group" id="slide-group"><label>Jml Slide (Khusus Feed)</label><input type="number" id="prep-slides" value="1"></div><div style="text-align:right; margin-top:20px;"><button class="btn btn-danger" onclick="closeModal('modal-prep')">Batal</button><button class="btn" onclick="savePreparing()">Simpan Progress</button></div></div></div>
+<div class="modal" id="modal-prog"><div class="modal-content" style="width:450px;"><h3>Kirim ke Internal Check</h3><input type="hidden" id="prog-id"><div class="form-group"><label>🔗 Link QC Internal (Wajib)</label><p style="font-size:11px; color:var(--text-color); opacity:0.7; margin-top:-5px; margin-bottom:8px;">Link tidak akan hilang saat bolak-balik revisi.</p><input type="text" id="prog-link" placeholder="Paste link drive/frame.io..."></div><div style="text-align:right;"><button class="btn btn-danger" onclick="closeModal('modal-prog')">Batal</button><button class="btn" onclick="saveProgress()">Kirim Internal</button></div></div></div>
+<div class="modal" id="modal-internal-rev"><div class="modal-content" style="width:450px;"><h3 style="color:var(--danger)">Revisi Internal</h3><input type="hidden" id="int-rev-id"><div class="form-group"><label>Catatan Revisi (Wajib Diisi)</label><textarea id="int-rev-notes" rows="4" placeholder="Jelaskan secara spesifik apa yang harus diperbaiki oleh tim..."></textarea></div><div style="text-align:right;"><button class="btn btn-outline" onclick="closeModal('modal-internal-rev')">Batal</button><button class="btn btn-danger" onclick="saveInternalRev()">Kembalikan ke Tim</button></div></div></div>
+<div class="modal" id="modal-send-client"><div class="modal-content" style="width:450px;"><h3 style="color:var(--success)">Kirim ke Klien</h3><input type="hidden" id="send-cli-id"><div class="form-group"><label>🔗 Link Review Klien (Wajib Diisi)</label><input type="text" id="send-cli-link" placeholder="Paste link preview untuk klien..."></div><div style="text-align:right;"><button class="btn btn-danger" onclick="closeModal('modal-send-client')">Batal</button><button class="btn" style="background:var(--success); color:white" onclick="saveSendClient()">Lanjut ke Review Klien</button></div></div></div>
+<div class="modal" id="modal-rev"><div class="modal-content" style="width:500px;"><h3>Keputusan Klien</h3><input type="hidden" id="rev-id"><div class="form-group"><label>💬 Catatan Klien</label><textarea id="rev-notes-client" rows="4"></textarea></div><div style="display:flex; gap:10px; margin-top:20px;"><button class="btn btn-danger" style="flex:1" onclick="saveReview('revisi')">Revisi</button><button class="btn" style="flex:1; background:var(--success); color:white;" onclick="saveReview('oke')">ACC</button></div></div></div>
+<div class="modal" id="modal-period-link"><div class="modal-content" style="width:450px;"><h3>🔗 Link Hasil Pekerjaan (Master)</h3><input type="hidden" id="pl-period-key"><input type="hidden" id="pl-category-key"><div class="form-group"><label>Link Folder Cloud</label><input type="text" id="pl-link"></div><div style="text-align:right; margin-top:20px;"><button class="btn btn-danger" onclick="closeModal('modal-period-link')">Batal</button><button class="btn" onclick="savePeriodLink()">Simpan</button></div></div></div>
+<div class="modal" id="modal-quick-note" style="z-index: 2005;"><div class="modal-content" style="width:450px;"><h3>Tambah Catatan</h3><div class="form-group"><label>Jenis</label><select id="quick-note-type"><option value="internal">🔵 Internal</option><option value="client">🟠 Klien / Revisi</option></select></div><div class="form-group"><label>Isi Catatan</label><textarea id="quick-note-text" rows="5"></textarea></div><div style="text-align:right; margin-top:10px;"><button class="btn btn-danger" onclick="closeModal('modal-quick-note')">Batal</button><button class="btn" onclick="saveQuickNote()">Simpan</button></div></div></div>
+
+<div class="modal" id="modal-adjust">
+    <div class="modal-content" style="width:450px;">
+        <h3>Input Penyesuaian</h3>
+        <div class="form-group">
+            <label>Kategori Masuk</label>
+            <select id="adj-category">
+                <option value="Content">Konten Kreator</option>
+                <option value="General">Freelance General</option>
+            </select>
+        </div>
+        <div class="form-group"><label>Keterangan</label><input type="text" id="adj-title"></div>
+        <div class="form-group"><label>Nominal (Rp)</label><input type="number" id="adj-nominal"></div>
+        <div class="form-group"><label>Rentang Waktu</label><input type="text" id="adj-date-range"></div>
+        <div class="form-group"><label>Pekan Ke-</label><select id="adj-week"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></div>
+        <div class="form-group"><label>Catatan</label><textarea id="adj-note" rows="2"></textarea></div>
+        <div style="text-align:right;">
+            <button class="btn btn-danger" onclick="closeModal('modal-adjust')">Batal</button>
+            <button class="btn" onclick="saveAdjustment()">Simpan</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="modal-move-period">
+    <div class="modal-content" style="width:400px;">
+        <h3>🗓️ Pindah Periode</h3>
+        <p style="font-size:12px; color:var(--text-color); opacity:0.7;">Pilih tanggal baru untuk memindahkan JO ke periode tagihan tersebut.</p>
+        <input type="hidden" id="move-period-id">
+        <div class="form-group">
+            <label>Tanggal Masuk Periode</label>
+            <input type="date" id="move-period-date">
+        </div>
+        <div style="text-align:right; margin-top:20px;">
+            <button class="btn btn-danger" onclick="closeModal('modal-move-period')">Batal</button>
+            <button class="btn" onclick="saveMovePeriod()">Simpan Pindah</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="modal-target"><div class="modal-content"><h3>🎯 Target Income</h3><div class="form-group"><label>Target (Rp)</label><input type="number" id="target-money"></div><div style="text-align:right;"><button class="btn btn-danger" onclick="closeModal('modal-target')">Batal</button><button class="btn" onclick="generateByTarget()">Generate</button></div></div></div>
+<div class="modal" id="modal-finalize"><div class="modal-content" style="width:500px;"><h3>🧹 Finalisasi Periode</h3><input type="hidden" id="fin-period-key"><input type="hidden" id="fin-category-key"><div style="background:var(--bg-color); padding:15px; border-radius:8px; border:1px solid var(--navbar-border); margin-bottom:15px;"><a id="fin-display-link" href="#" target="_blank" style="color:var(--primary); font-weight:600;">Checking...</a></div><div class="checklist-item"><input type="checkbox" id="check-cloud"><label for="check-cloud">File Cloud Aman</label></div><div class="checklist-item"><input type="checkbox" id="check-master"><label for="check-master">File Local Dihapus</label></div><div style="text-align:right; margin-top:15px;"><button class="btn btn-danger" onclick="closeModal('modal-finalize')">Batal</button><button class="btn" style="background:var(--success); color:white" onclick="executeFinalize()">Tutup Periode</button></div></div></div>
+
+<div class="modal" id="modal-manual">
+    <div class="modal-content">
+        <h3>Buat JO Manual</h3>
+        
+        <div class="form-group" style="position: relative;">
+            <label>Pilih / Cari Klien (Dari CRM) *</label>
+            <input type="text" id="man-client-search" placeholder="🔍 Ketik nama, perusahaan, atau ujung No HP..." oninput="filterClientOptions()" onfocus="showClientOptions()" autocomplete="off" style="width: 100%; padding: 12px 15px; border-radius: 6px; border: 1px solid var(--navbar-border); font-family: inherit; font-size: 13px; color: var(--text-color); background: #f8f9fa;">
+            
+            <div id="man-client-dropdown" style="display: none; position: absolute; width: 100%; max-height: 200px; overflow-y: auto; background: var(--card-bg); border: 1px solid var(--primary); border-radius: 6px; z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.15); margin-top: 4px;">
+                </div>
+        </div>
+
+        <div class="form-group" id="manual-client-input-group" style="display: none; padding: 15px; background: rgba(122, 158, 191, 0.1); border-radius: 8px; border-left: 3px solid var(--primary); margin-bottom: 20px;">
+            <label style="color: var(--primary); margin-bottom: 5px;">Nama Klien Baru *</label>
+            <input type="text" id="man-client" placeholder="Ketik nama lengkap klien di sini..." style="width: 100%; padding: 12px 15px; border-radius: 6px; border: 1px solid var(--primary); background: #ffffff; font-weight: 700; color: var(--primary);">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+            <div>
+                <label style="display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; color: var(--text-color); opacity: 0.7; text-transform: uppercase;">No. WA (Opsional)</label>
+                <input type="text" id="man-client-phone" placeholder="62812..." style="width: 100%; padding: 12px 15px; background: #f8f9fa; border: 1px solid var(--navbar-border); border-radius: 6px; font-family: inherit; font-size: 13px;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; color: var(--text-color); opacity: 0.7; text-transform: uppercase;">Email (Opsional)</label>
+                <input type="email" id="man-client-email" placeholder="email@domain.com" style="width: 100%; padding: 12px 15px; background: #f8f9fa; border: 1px solid var(--navbar-border); border-radius: 6px; font-family: inherit; font-size: 13px;">
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 18px;">
+            <div>
+                <label style="display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; color: var(--text-color); opacity: 0.7; text-transform: uppercase;">Perusahaan / Brand</label>
+                <input type="text" id="man-client-company" placeholder="Contoh: PT Kreatif" style="width: 100%; padding: 12px 15px; background: #f8f9fa; border: 1px solid var(--navbar-border); border-radius: 6px; font-family: inherit; font-size: 13px;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; color: var(--text-color); opacity: 0.7; text-transform: uppercase;">Alamat</label>
+                <input type="text" id="man-client-address" placeholder="Contoh: Jakarta Selatan" style="width: 100%; padding: 12px 15px; background: #f8f9fa; border: 1px solid var(--navbar-border); border-radius: 6px; font-family: inherit; font-size: 13px;">
+            </div>
+        </div>
+
+        <div class="form-group"><label>Kategori Utama</label><select id="man-category" onchange="toggleManualTypes()"><option value="Content">Konten Kreator</option><option value="General">Freelance General</option></select></div>
+        <div class="form-group"><label>Tipe Job Khusus</label><select id="man-type" onchange="toggleManualTypes()"></select></div>
+        <div class="form-group"><label>Keterangan / Judul (Opsional jika General)</label><input type="text" id="man-title"></div>
+        <div class="form-group" id="man-slide-group" style="display:none;"><label>Jumlah Slide (Khusus Feed)</label><input type="number" id="man-slides" value="1"></div>
+        <div class="form-group" id="man-nominal-group"><label>Nominal (Rp)</label><input type="number" id="man-price"></div>
+        <div class="form-group"><label>Deadline</label><input type="date" id="man-deadline"></div>
+        <div style="text-align:right;">
+            <button class="btn btn-danger" onclick="closeModal('modal-manual')">Batal</button>
+            <button class="btn" onclick="saveManualJob()">Simpan</button>
+        </div>
+    </div>
+</div>
+
+<div id="pdf-template-container" style="display:none;">
+    <div id="pdf-template" style="width: 100%; font-family: 'Plus Jakarta Sans', sans-serif; color: #333; padding: 40px; background: white;">
+        <div style="border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; display:flex; justify-content:space-between;">
+            <div>
+                <h2 style="margin: 0; font-weight: 800; font-size: 24px;">INVOICE REPORT</h2>
+            </div>
+            <div style="text-align:right;">
+                <h3 style="margin:0; color:#7a9ebf;">TAUFIK SYSTEM</h3>
+                <div id="pdf-period">Periode X</div>
+            </div>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+            <thead>
+                </thead>
+            <tbody id="pdf-table-body">
+                </tbody>
+        </table>
+        <div style="display: flex; justify-content: flex-end;">
+            <table style="width: 45%;">
+                <tr>
+                    <td>Subtotal:</td>
+                    <td style="text-align: right; font-weight:bold;" id="pdf-subtotal"></td>
+                </tr>
+                <tr>
+                    <td>Adjustment:</td>
+                    <td style="text-align: right; font-weight:bold;" id="pdf-adjust"></td>
+                </tr>
+                <tr>
+                    <td style="font-size:16px; font-weight:bold; border-top:2px solid #333;">TOTAL:</td>
+                    <td style="text-align: right; font-weight:bold; color:green; font-size:16px; border-top:2px solid #333;" id="pdf-total"></td>
+                </tr>
+            </table>
+        </div>
+        <p style="margin-top: 20px; font-size: 12px;"><strong>Link Master:</strong> <span id="pdf-cloud-text"></span></p>
+    </div>
+</div>
+
+<script src="assets/js/project-tracker.js"></script>
+<script>
+function searchJobs() {
+    let input = document.getElementById('searchInput').value.toLowerCase();
+    let cards = document.querySelectorAll('.card');
+    cards.forEach(card => {
+        let text = card.innerText.toLowerCase();
+        if (text.includes(input)) {
+            card.style.display = ""; 
+        } else {
+            card.style.display = "none"; 
+        }
+    });
+}
+</script>
+
+</body>
+</html>

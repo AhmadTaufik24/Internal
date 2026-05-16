@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client CRM - Taufik System</title>
+    <link rel="stylesheet" href="project-tracker.css"> 
+    <link rel="stylesheet" href="assets/css/client-crm.css">
+</head>
+<body class="">
+
+    <div class="sidebar">
+        <div class="logo">CLIENT CRM</div>
+        
+        <div class="menu-section-title">MENU UTAMA</div>
+        <div class="menu-item active" id="menu-clients" onclick="switchView('clients')">
+            <span>👥</span> Data Klien
+        </div>
+        <div class="menu-item" id="menu-vip" onclick="switchView('vip')">
+            <span>👑</span> VIP Clients
+        </div>
+        <div class="menu-item" id="menu-dashboard" onclick="switchView('dashboard')">
+            <span>📊</span> Analytics Dashboard
+        </div>
+        
+        <div class="menu-section-title">TINDAKAN</div>
+        <div class="menu-item" onclick="openBroadcastModal()">
+            <span>📢</span> Broadcast WA
+        </div>
+        
+        <div style="flex: 1;"></div>
+        <button class="btn btn-outline btn-sm" onclick="window.location.href='index.html'">⬅ Kembali</button>
+    </div>
+
+    <div class="main">
+        
+        <div class="header-tools" style="flex-direction: column; align-items: flex-start; gap: 15px;">
+            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                <h2 id="view-title">Data Klien</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn" onclick="openAddClientModal()">+ Tambah Klien</button>
+                </div>
+            </div>
+            
+            <div class="board-filter" id="client-search-container" style="width: 100%; max-width: 400px; margin-bottom: 0;">
+                <input type="text" id="searchClient" placeholder="Cari nama, kode JO, company, no HP..." onkeyup="searchClients()">
+            </div>
+            
+            <div id="dash-filter-container" style="display: none; gap: 10px; width: 100%;">
+                <select id="dash-client-filter" onchange="renderDashboard()" style="padding: 10px; border-radius: 8px; border: 1px solid var(--navbar-border); font-family: inherit; font-size: 13px;">
+                    <option value="ALL">Semua Klien</option>
+                </select>
+                <input type="month" id="dash-month-filter" onchange="renderDashboard()" style="padding: 10px; border-radius: 8px; border: 1px solid var(--navbar-border); font-family: inherit; font-size: 13px;">
+            </div>
+        </div>
+
+        <div id="view-clients" style="flex: 1; overflow-y: auto; padding-bottom: 20px;">
+            <div class="client-grid" id="client-list">
+                </div>
+        </div>
+
+        <div id="view-dashboard" style="display: none; flex: 1; overflow-y: auto; padding-bottom: 20px;">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-title">Pendapatan Hari Ini</div>
+                    <div class="stat-value" id="dash-day">Rp 0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Pendapatan Minggu Ini</div>
+                    <div class="stat-value" id="dash-week">Rp 0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Pendapatan Bulan Ini</div>
+                    <div class="stat-value" id="dash-month">Rp 0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Total Pendapatan (Paid)</div>
+                    <div class="stat-value" id="dash-total" style="color: var(--success);">Rp 0</div>
+                </div>
+            </div>
+
+            <div class="salary-card" style="margin-top: 25px;">
+                <h3 style="color: var(--primary); margin-top: 0; margin-bottom: 15px; font-size: 16px;">Daftar Pekerjaan Selesai</h3>
+                <div class="history-list" id="dash-job-list"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="modal" id="modal-client-detail">
+        <div class="modal-content" style="width: 500px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                <div>
+                    <h3 id="det-name" style="margin-bottom: 5px; font-size: 24px;">Nama Klien</h3>
+                    <span id="det-vip-badge" class="badge bg-warning" style="display: none; font-size: 12px; padding: 4px 10px;">👑 VIP Client</span>
+                </div>
+                <button class="btn-outline" style="border: none; font-size: 20px; padding: 0 10px; cursor: pointer; background: transparent; color: var(--text-color);" onclick="closeClientDetail()">✖</button>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 25px;">
+                <button class="btn btn-wa" style="flex: 1; background: #25D366; color: white;" id="btn-chat-wa" onclick="chatWhatsApp()">💬 Chat WA</button>
+                <button class="btn" style="flex: 1;" id="btn-buat-jo" onclick="buatJODariCRM()">📝 Buat JO</button>
+                <button class="btn btn-outline" style="padding: 10px 15px; font-size: 12px;" id="btn-toggle-edit" onclick="toggleEditMode()">✏️ Edit Info</button>
+            </div>
+
+            <div class="info-section" style="margin-bottom: 25px;">
+                <h4 style="font-size: 14px; color: var(--primary); border-bottom: 2px solid var(--navbar-border); padding-bottom: 8px; margin-bottom: 15px;">Informasi Detail</h4>
+
+                <div id="info-view">
+                    <table class="info-table" style="width: 100%; font-size: 13px;">
+                        <tr><td style="width: 35%; color: #888; padding: 8px 0;">No. WhatsApp</td><td style="padding: 8px 0;">: <strong id="view-phone">-</strong></td></tr>
+                        <tr><td style="color: #888; padding: 8px 0;">Perusahaan</td><td style="padding: 8px 0;">: <strong id="view-company">-</strong></td></tr>
+                        <tr><td style="color: #888; padding: 8px 0;">Email</td><td style="padding: 8px 0;">: <a href="#" id="view-email" style="color: var(--primary); font-weight: 700;">-</a></td></tr>
+                        <tr><td style="color: #888; padding: 8px 0;">Alamat</td><td style="padding: 8px 0;">: <span id="view-address">-</span></td></tr>
+                        <tr><td style="color: #888; padding: 8px 0; vertical-align: top;">Catatan</td><td style="padding: 8px 0;">: <span id="view-notes">-</span></td></tr>
+                    </table>
+                </div>
+
+                <div id="info-edit" style="display: none; background: var(--bg-color); padding: 15px; border-radius: 8px; border: 1px solid var(--navbar-border);">
+                    <input type="hidden" id="edit-id">
+                    <div class="form-group"><label>Nama Lengkap</label><input type="text" id="edit-name"></div>
+                    <div class="form-group"><label>Nomor WhatsApp</label><input type="text" id="edit-phone"></div>
+                    <div class="form-group"><label>Perusahaan / Brand</label><input type="text" id="edit-company"></div>
+                    <div class="form-group"><label>Email</label><input type="email" id="edit-email"></div>
+                    <div class="form-group"><label>Alamat / Kota</label><input type="text" id="edit-address"></div>
+                    <div class="form-group"><label>Catatan Khusus</label><textarea id="edit-notes" rows="3"></textarea></div>
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button class="btn" style="flex: 1;" onclick="updateClient()">💾 Simpan</button>
+                        <button class="btn btn-danger" onclick="deleteClient()">🗑️ Hapus Klien</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-section">
+                <div class="salary-card" style="padding: 15px; margin-bottom: 20px; text-align: center;">
+                    <h4 style="font-size: 11px; color: var(--text-color); opacity: 0.7; text-transform: uppercase; margin-bottom: 5px; margin-top: 0;">Total Pendapatan (Paid)</h4>
+                    <div id="stat-income" class="total-display" style="font-size: 28px;">Rp 0</div>
+                    <div id="stat-pending" style="font-size: 12px; color: var(--warning); margin-top: 5px; font-weight: 700;">Estimasi Belum Paid: Rp 0</div>
+                </div>
+                
+                <h4 style="font-size: 14px; color: var(--primary); border-bottom: 2px solid var(--navbar-border); padding-bottom: 8px; margin-bottom: 15px;">Riwayat Pekerjaan</h4>
+                <div class="history-list" id="job-history-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-add-client">
+        <div class="modal-content" style="width: 450px; height: auto; animation: slideUp 0.3s ease; border-radius: 16px;">
+            <h3 style="margin-bottom: 20px;">Tambah Klien Baru</h3>
+            <div class="form-group"><label>Nama Lengkap *</label><input type="text" id="add-name" placeholder="Wajib diisi"></div>
+            <div class="form-group"><label>Nomor WhatsApp</label><input type="text" id="add-phone" placeholder="628123456789"></div>
+            <div class="form-group"><label>Perusahaan / Brand</label><input type="text" id="add-company"></div>
+            <div class="form-group"><label>Email</label><input type="email" id="add-email"></div>
+            <div class="form-group"><label>Alamat</label><input type="text" id="add-address"></div>
+            <div class="form-group"><label>Catatan</label><textarea id="add-notes" rows="2"></textarea></div>
+            <div style="text-align: right; margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-outline" onclick="closeModal('modal-add-client')">Batal</button>
+                <button class="btn" onclick="saveClient()">Simpan Klien</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-broadcast">
+        <div class="modal-content" style="width: 500px; height: auto; animation: slideUp 0.3s ease; border-radius: 16px;">
+            <h3 style="margin-bottom: 10px;">📢 Broadcast Tertarget</h3>
+            <p style="font-size: 12px; color: var(--text-color); opacity: 0.7; margin-bottom: 15px; line-height: 1.4;">Pilih kategori klien. Sistem akan otomatis menyaring klien berdasarkan <strong>riwayat pekerjaan</strong> yang pernah mereka pesan.</p>
+            
+            <div id="broadcast-input-area">
+                <div class="form-group">
+                    <label>Target Klien</label>
+                    <select id="broadcast-category">
+                        <option value="ALL">🌟 Semua Klien</option>
+                        <option value="Content">📱 Konten Kreator (Feed/Reels/Story)</option>
+                        <option value="Design">🎨 Design Graphics</option>
+                        <option value="Photography">📸 Photography</option>
+                        <option value="Videography">🎥 Videography</option>
+                        <option value="Retoucher">✨ Retouching</option>
+                        <option value="Web">💻 Web Development</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Isi Pesan Promo</label>
+                    <textarea id="broadcast-msg" rows="5" placeholder="Halo Kak! Ada promo spesial bulan ini..."></textarea>
+                </div>
+                <div style="text-align: right; display: flex; gap: 10px; justify-content: flex-end;">
+                    <button class="btn btn-outline" onclick="closeModal('modal-broadcast')">Batal</button>
+                    <button class="btn" style="background: #25D366; color: white;" onclick="startBroadcastQueue()">🚀 Mulai Broadcast</button>
+                </div>
+            </div>
+
+            <div id="broadcast-action-area" style="display: none; text-align: center; padding: 20px 0;">
+                <div id="broadcast-status-text" style="font-size: 16px; font-weight: 700; color: var(--primary); margin-bottom: 20px;">Menunggu...</div>
+                <button class="btn" id="btn-send-next-wa" style="background: #25D366; color: white; font-size: 16px; padding: 15px 30px; width: 100%;" onclick="sendNextBroadcast()">Kirim Pesan Berikutnya ➔</button>
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-outline" style="font-size: 12px;" onclick="closeModal('modal-broadcast')">Tutup & Selesai</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/client-crm.js"></script>
+</body>
+</html>

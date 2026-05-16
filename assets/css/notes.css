@@ -1,0 +1,295 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --bg-color: #f8f9fa;
+    --text-color: #1a1a1a;
+    --navbar-border: #dfdfdf; 
+    --primary: #7a9ebf;       
+    --highlight: #bbd5e8;
+    --card-bg: #ffffff;
+    --danger: #f96b6b;
+    --warning: #f9af6b;
+    --success: #27ae60;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body { 
+    font-family: 'Plus Jakarta Sans', sans-serif; 
+    background-color: var(--bg-color); 
+    color: var(--text-color); 
+    margin: 0; display: flex; height: 100vh; overflow: hidden;
+    /* Motif Background OS Kita */
+    background-image: radial-gradient(var(--navbar-border) 1px, transparent 1px);
+    background-size: 24px 24px;
+}
+
+/* =========================================
+   SIDEBAR (DESKTOP)
+   ========================================= */
+.sidebar { 
+    width: 250px; background: var(--card-bg); border-right: 1px solid var(--navbar-border);
+    display: flex; flex-direction: column; padding: 25px; z-index: 100;
+}
+.brand { font-size: 20px; font-weight: 800; color: var(--primary); margin-bottom: 30px; text-align: center; }
+.brand span { color: #333; }
+.menu-section-title { font-size: 10px; font-weight: 800; color: #aaa; text-transform: uppercase; margin: 20px 0 10px 10px; letter-spacing: 1px; }
+.menu-item { 
+    padding: 12px 15px; cursor: pointer; border-radius: 10px; font-size: 14px; font-weight: 600;
+    display: flex; align-items: center; gap: 12px; color: #555; transition: 0.2s;
+}
+.menu-item:hover, .menu-item.active { background: var(--primary); color: #fff; }
+.sidebar-footer { margin-top: auto; border-top: 1px solid #eee; padding-top: 15px; }
+
+/* =========================================
+   MAIN CONTENT & TOPBAR (DESKTOP)
+   ========================================= */
+.main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar { 
+    padding: 20px 40px; background: transparent; 
+    display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap;
+}
+.topbar h2 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+.topbar-tools { display: flex; gap: 15px; align-items: center; flex: 1; justify-content: flex-end;}
+.search-wrapper { position: relative; max-width: 100%; }
+.search-wrapper i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #aaa; font-size: 14px; }
+.search-wrapper input { padding: 10px 15px 10px 35px; border-radius: 8px; border: 1px solid #ddd; outline: none; width: 250px; font-family: inherit;}
+.search-wrapper input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(122, 158, 191, 0.15); }
+
+/* BUTTONS */
+.btn { background: var(--primary); color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.2s; white-space: nowrap;}
+.btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(122, 158, 191, 0.3); }
+.btn-sm { padding: 6px 12px; font-size: 11px; }
+.btn-outline { background: transparent; border: 1px solid var(--navbar-border); color: var(--text-color); box-shadow: none; }
+.btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+.tool-btn { background: none; border: none; color: #888; cursor: pointer; font-size: 16px; transition: 0.2s; padding: 5px 10px; border-radius: 6px; }
+.tool-btn:hover { color: var(--text-color); background: #f0f0f0; }
+
+/* =========================================
+   SPLIT VIEW LAYOUT (LIST & EDITOR)
+   ========================================= */
+.split-view-container { 
+    display: flex; gap: 20px; padding: 0 40px 30px 40px; 
+    flex: 1; min-height: 0; 
+    overflow: hidden; 
+}
+
+/* KIRI: LIST CATATAN */
+.notes-list-panel { 
+    width: 320px; display: flex; flex-direction: column; gap: 15px; 
+    overflow-y: auto; padding-right: 5px; 
+}
+.notes-list-panel::-webkit-scrollbar { width: 4px; }
+.notes-list-panel::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+
+.note-card-item { 
+    background: var(--card-bg); border-radius: 12px; padding: 15px; 
+    border: 1px solid var(--navbar-border); border-left: 4px solid var(--navbar-border);
+    cursor: pointer; transition: 0.2s; position: relative;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02); flex-shrink: 0;
+    overflow: hidden; 
+}
+.note-card-item:hover { border-color: var(--highlight); transform: translateY(-2px); }
+.note-card-item.active { border-color: var(--primary); border-left-color: var(--primary); background: #fbfdff; box-shadow: 0 5px 15px rgba(122, 158, 191, 0.1); }
+
+/* PIN ICON */
+.note-card-item.is-pinned::before {
+    content: '\f08d'; font-family: 'FontAwesome'; position: absolute; 
+    top: 12px; right: 12px; 
+    background: var(--warning); color: #fff; width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 11px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    z-index: 2;
+}
+
+.nc-title { 
+    font-size: 14px; font-weight: 800; color: var(--text-color); 
+    margin: 0 0 5px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+    padding-right: 30px; 
+}
+.nc-preview { font-size: 12px; color: #888; margin: 0 0 10px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nc-meta { display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; color: #aaa; text-transform: uppercase; }
+
+/* KANAN: EDITOR PINTAR */
+.note-editor-panel { 
+    flex: 1; background: var(--card-bg); border-radius: 16px; 
+    border: 1px solid var(--navbar-border); display: flex; flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05); overflow: hidden;
+}
+
+.empty-editor-state { 
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: transparent; color: #aaa; border: 2px dashed var(--navbar-border); border-radius: 16px;
+}
+.empty-editor-state i { font-size: 40px; margin-bottom: 15px; color: var(--highlight); }
+
+/* Komponen Editor */
+.editor-header { 
+    display: flex; justify-content: space-between; align-items: center; gap: 15px;
+    padding: 20px 25px; border-bottom: 1px solid #f0f0f0; flex-wrap: wrap;
+}
+#note-title { 
+    flex: 1; font-size: 20px; font-weight: 800; border: none; outline: none; min-width: 150px;
+    color: var(--text-color); background: transparent; font-family: inherit;
+}
+.editor-actions { display: flex; align-items: center; gap: 5px; }
+#note-color { width: 28px; height: 28px; padding: 0; border: none; border-radius: 50%; cursor: pointer; background: transparent; overflow: hidden; }
+
+.editor-meta { display: flex; gap: 15px; padding: 15px 25px; border-bottom: 1px solid #f0f0f0; background: #fafafa; flex-wrap: wrap;}
+.editor-meta select, .editor-meta input { 
+    border: 1px solid #ddd; border-radius: 6px; padding: 8px 12px; font-size: 12px; font-family: inherit; outline: none;
+}
+.editor-meta input { flex: 1; min-width: 150px;}
+
+#note-input { 
+    flex: 1; border: none; outline: none; padding: 25px; font-family: 'Consolas', 'Courier New', monospace; 
+    font-size: 14px; line-height: 1.6; resize: none; background: transparent; color: #333;
+}
+#note-preview { 
+    flex: 1; padding: 25px; overflow-y: auto; background: transparent;
+}
+
+.editor-footer { 
+    padding: 15px 25px; border-top: 1px solid #f0f0f0; display: flex; 
+    justify-content: space-between; align-items: center; background: #fafafa;
+}
+.save-status { font-size: 11px; color: #aaa; font-weight: 600; font-style: italic; }
+
+/* Helper Class */
+.d-mobile-only { display: none; }
+.d-desktop-only { display: inline-block; }
+
+/* =========================================
+   MARKDOWN STYLE (Highlight.js)
+   ========================================= */
+.markdown-body { font-family: inherit; font-size: 14px; line-height: 1.6; color: var(--text-color); }
+.markdown-body h1, .markdown-body h2, .markdown-body h3 { font-weight: 800; margin-top: 20px; margin-bottom: 10px; }
+.markdown-body p { margin-bottom: 15px; }
+.markdown-body a { color: var(--primary); text-decoration: none; font-weight: 600; }
+.markdown-body ul, .markdown-body ol { margin-bottom: 15px; padding-left: 20px; }
+.markdown-body blockquote { border-left: 4px solid var(--highlight); padding-left: 15px; color: #666; font-style: italic; margin: 0 0 15px 0; background: #f9f9f9; padding: 10px 15px;}
+.markdown-body pre { background: #282c34; border-radius: 8px; padding: 15px; overflow-x: auto; margin-bottom: 15px; }
+.markdown-body code { font-family: 'Consolas', monospace; font-size: 13px; }
+.markdown-body p code, .markdown-body li code { background: #eee; padding: 2px 6px; border-radius: 4px; color: #d63200; font-weight: 600;}
+
+/* =========================================
+   READ-ONLY MODE (VIEW MODE)
+   ========================================= */
+input[readonly], select[disabled], textarea[readonly] {
+    background-color: transparent !important;
+    border-color: transparent !important;
+    color: var(--text-color) !important;
+    cursor: default;
+    appearance: none; 
+    -webkit-appearance: none;
+    padding-left: 0 !important;
+}
+input[readonly]:focus, select[disabled]:focus {
+    box-shadow: none !important;
+}
+
+/* =========================================
+   ANIMASI MODAL
+   ========================================= */
+@keyframes popIn { 
+    0% { transform: scale(0.9); opacity: 0; } 
+    100% { transform: scale(1); opacity: 1; } 
+}
+#delete-confirm-input:focus {
+    border-color: var(--danger) !important;
+    box-shadow: 0 0 0 4px rgba(249, 107, 107, 0.15) !important;
+}
+
+/* =========================================
+   MOBILE RESPONSIVE (HP)
+   ========================================= */
+@media (max-width: 992px) {
+    body { flex-direction: column; }
+    
+    /* Navigasi Bawah Bisa di-Scroll + Visual Hint */
+    .sidebar { 
+        width: 100%; height: auto; position: fixed; bottom: 0; left: 0; 
+        padding: 5px 0 0 0; 
+        flex-direction: row; border-right: none; border-top: 1px solid var(--navbar-border);
+        z-index: 1000;
+        background: var(--card-bg);
+    }
+    
+    /* Efek Gradasi & Animasi Panah Geser di Kanan Layar */
+    .sidebar::after {
+        content: '»'; 
+        font-family: inherit; font-size: 24px; font-weight: 800;
+        position: absolute; right: 0; top: 0; bottom: 0; width: 45px;
+        background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 75%);
+        display: flex; align-items: center; justify-content: flex-end;
+        padding-right: 10px; color: var(--primary);
+        pointer-events: none; 
+        animation: hintSwipe 1.5s infinite ease-in-out;
+    }
+
+    @keyframes hintSwipe {
+        0%, 100% { transform: translateX(0); opacity: 0.7; }
+        50% { transform: translateX(-4px); opacity: 1; }
+    }
+
+    .brand, .menu-section-title, .sidebar-footer { display: none; }
+    
+    .menu-nav { 
+        display: flex; width: 100%; justify-content: flex-start; gap: 10px; 
+        overflow-x: auto; padding-bottom: 8px; padding-left: 10px; padding-right: 50px; 
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Munculin Scrollbar Tipis */
+    .menu-nav::-webkit-scrollbar { display: block; height: 3px; }
+    .menu-nav::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    .menu-nav::-webkit-scrollbar-track { background: transparent; }
+    
+    .menu-item { flex-direction: column; padding: 8px 12px; font-size: 10px; gap: 4px; border-radius: 8px; min-width: 70px; text-align: center;}
+    .menu-item i { font-size: 18px; }
+
+    /* Area Utama: Header HP Dirapihkan */
+    .topbar { 
+        padding: 15px 20px; 
+        flex-direction: row; 
+        flex-wrap: wrap; 
+        gap: 15px; 
+    }
+    .topbar h2 { 
+        width: 100%; 
+        margin-bottom: 5px; 
+    }
+    .topbar-tools { 
+        width: 100%; 
+        flex-direction: row; 
+        justify-content: space-between; 
+        gap: 10px; 
+    }
+    .search-wrapper { flex: 1; }
+    .search-wrapper input { width: 100%; }
+    .topbar-tools .btn { flex: 0 0 auto; white-space: nowrap; }
+
+    .split-view-container { padding: 0 20px 20px 20px; }
+    .notes-list-panel { width: 100%; padding-right: 0; padding-bottom: 70px; }
+    
+    .d-mobile-only { display: inline-block; } 
+    .d-desktop-only { display: none; } 
+    
+    /* Editor Overlay Nutupin Layar HP */
+    .note-editor-panel { 
+        display: none !important; 
+        position: fixed !important; 
+        top: 0; left: 0; right: 0; bottom: 70px; 
+        margin: 0 !important; border-radius: 0 !important; 
+        z-index: 2000; 
+    }
+    
+    body.editor-open .note-editor-panel { display: flex !important; }
+    body.editor-open .notes-list-panel { display: none !important; }
+    .empty-editor-state { display: none !important; }
+}
+
+/* TOAST */
+.toast { visibility: hidden; position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 12px 25px; border-radius: 30px; font-size: 13px; z-index: 3000; font-weight: 600; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+.toast.show { visibility: visible; animation: popUp 0.3s forwards; }
+@keyframes popUp { from { bottom: 65px; opacity: 0; } to { bottom: 85px; opacity: 1; } }

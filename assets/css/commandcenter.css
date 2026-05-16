@@ -1,0 +1,280 @@
+/* =========================================
+   TAUFIK OS - STRICT COMMAND CENTER CSS
+========================================= */
+:root {
+    --primary: #456d91; 
+    --primary-light: #7a9ebf; 
+    --primary-bg: #bbd5e8; 
+    --border: #dfdfdf; 
+    --text-sub: #897e7a; 
+    --danger: #f96b6b; 
+    --warning: #f9af6b; 
+    
+    --danger-bg: #fee2e2;
+    --warning-bg: #fef3c7;
+    --success: #2ecc71; 
+    --success-bg: #e8f5e9;
+    --text-main: #1a1a1a; 
+    --body-bg: #f4f7f9; 
+    --card-bg: #ffffff; 
+}
+
+*, *::before, *::after { box-sizing: border-box !important; margin: 0; padding: 0; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--body-bg); color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; }
+
+/* --- 1. LOGIN SCREEN & ZEN MODE --- */
+.cc-auth-overlay { display: flex; position: fixed; inset: 0; justify-content: center; align-items: center; background: var(--primary); z-index: 9999; }
+.cc-login-card { background: var(--card-bg); border-radius: 20px; width: 100%; max-width: 380px; padding: 40px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.3); }
+.cc-login-icon { width: 60px; height: 60px; background: var(--primary); color: white; font-size: 24px; border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+.cc-login-card h2 { color: var(--primary); margin-bottom: 5px; font-weight: 800; }
+.cc-login-card p { font-size: 12px; color: var(--text-sub); margin-bottom: 25px; }
+.cc-input-wrapper { position: relative; width: 100%; margin-bottom: 20px; }
+.cc-input-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-sub); }
+#auth-password { width: 100%; padding: 15px 15px 15px 45px; border-radius: 12px; border: 1px solid var(--border); font-size: 16px; letter-spacing: 3px; text-align: center; font-weight: 800; color: var(--primary); outline: none; }
+#auth-password:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-bg); }
+.cc-btn-login { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+.cc-btn-login:hover { background: #325473; }
+.cc-login-error { display: none; color: var(--danger); font-size: 12px; font-weight: 700; margin-top: 15px; background: var(--danger-bg); padding: 10px; border-radius: 8px; }
+
+#zen-overlay { position: fixed; inset: 0; background: #0f172a; z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s ease; color: white; }
+.cc-zen-hidden { opacity: 0; pointer-events: none; }
+.cc-btn-exit-zen { position: absolute; top: 30px; right: 40px; background: rgba(255,255,255,0.1); border: none; color: white; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.cc-zen-content { text-align: center; }
+.cc-zen-label { font-size: 12px; font-weight: 800; color: var(--primary-light); letter-spacing: 4px; margin-bottom: 20px; }
+.cc-zen-timer { font-family: 'Fira Code', monospace; font-size: 120px; font-weight: 800; margin-bottom: 30px; }
+.cc-zen-task { font-size: 16px; color: #94a3b8; margin-bottom: 40px; }
+.cc-btn-zen, .cc-btn-zen-outline { padding: 15px 30px; border-radius: 12px; font-weight: 700; cursor: pointer; display: inline-flex; gap: 10px; align-items: center; }
+.cc-btn-zen { background: var(--primary); color: white; border: none; }
+.cc-btn-zen-outline { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: white; margin-left: 10px; }
+
+.cc-zen-task-selector {
+    margin-bottom: 40px;
+    width: 100%;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.cc-zen-task-selector select {
+    background: rgba(255,255,255,0.1);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-family: inherit;
+    font-weight: 600;
+    outline: none;
+    width: 100%;
+    cursor: pointer;
+    text-align: center;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: 0.2s;
+}
+.cc-zen-task-selector select:hover {
+    background: rgba(255,255,255,0.2);
+}
+.cc-zen-task-selector select option {
+    color: black;
+    text-align: left;
+}
+
+/* --- 2. LAYOUT MAIN --- */
+.cc-app-wrapper { display: flex; width: 100vw; height: 100vh; overflow: hidden; }
+.cc-sidebar { width: 240px; background: var(--card-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 30px 20px; z-index: 20; flex-shrink: 0;}
+.cc-brand-logo { font-size: 18px; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 10px; margin-bottom: 40px; padding-left: 10px;}
+.cc-brand-logo i { color: var(--primary); font-size: 22px; }
+.cc-nav-menu { display: flex; flex-direction: column; gap: 5px; width: 100%; }
+.cc-nav-label { font-size: 10px; font-weight: 800; color: var(--text-sub); letter-spacing: 1px; margin-bottom: 5px; padding-left: 10px; }
+.cc-nav-item { padding: 12px 15px; border-radius: 10px; color: var(--text-sub); font-size: 13px; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 12px; transition: 0.2s; }
+.cc-nav-item:hover { background: var(--body-bg); color: var(--primary); }
+.cc-nav-item.active { background: var(--primary); color: white; }
+.cc-sidebar-bottom { margin-top: auto; }
+.cc-btn-exit { width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--danger-bg); color: var(--danger); font-weight: 700; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
+
+.cc-main-content { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--body-bg); }
+
+/* --- 3. TOPBAR & OMNI SEARCH --- */
+.cc-topbar { height: 80px; flex-shrink: 0; background: var(--card-bg); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; padding: 0 40px; }
+.cc-omni-container { flex: 1; max-width: 500px; position: relative; }
+.cc-cmd-prefix { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: var(--text-sub); font-size: 14px; }
+#omni-input { width: 100%; padding: 12px 20px 12px 45px; background: var(--body-bg); border: 1px solid var(--border); border-radius: 30px; font-family: inherit; font-size: 13px; font-weight: 500; outline: none; transition: 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);}
+#omni-input:focus { background: white; border-color: var(--primary); box-shadow: 0 4px 15px rgba(69, 109, 145, 0.1); }
+.cc-omni-dropdown { position: absolute; top: calc(100% + 10px); left: 0; width: 100%; background: white; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); max-height: 350px; overflow-y: auto; padding: 8px; z-index: 100;}
+.omni-group-label { font-size: 10px; font-weight: 800; color: var(--text-sub); padding: 8px 12px; text-transform: uppercase; background: var(--body-bg); border-radius: 6px; margin: 5px 0;}
+.omni-item { padding: 12px; border-radius: 8px; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; gap: 4px;}
+.omni-item:hover { background: var(--primary-bg); padding-left: 16px; }
+.omni-title { font-size: 13px; font-weight: 700; color: var(--primary); }
+.omni-desc { font-size: 11px; color: var(--text-main); }
+
+.cc-header-datetime { text-align: right; }
+.cc-clock-display { font-family: 'Fira Code', monospace; font-size: 20px; font-weight: 800; color: var(--primary); line-height: 1; }
+.cc-date-display { font-size: 10px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; margin-top: 4px; }
+
+/* --- 4. BENTO GRID --- */
+.cc-dashboard-area { flex: 1; overflow-y: auto; padding: 30px 40px; }
+.cc-briefing-panel { background: linear-gradient(135deg, var(--primary) 0%, #2c3e50 100%); border-radius: 16px; padding: 25px 30px; color: white; display: flex; align-items: center; gap: 20px; margin-bottom: 25px; box-shadow: 0 8px 20px rgba(69, 109, 145, 0.2); }
+.cc-briefing-icon { font-size: 30px; background: rgba(255,255,255,0.1); width: 60px; height: 60px; display: flex; justify-content: center; align-items: center; border-radius: 14px; flex-shrink: 0;}
+.cc-briefing-text { flex: 1; }
+.cc-briefing-text h2 { font-size: 20px; font-weight: 800; margin-bottom: 5px; }
+.cc-briefing-text p { font-size: 13px; font-weight: 500; opacity: 0.9; }
+.cc-btn-zen-trigger { background: var(--warning); color: #422006; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 800; font-size: 12px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px;}
+.cc-btn-zen-trigger:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(249, 175, 107, 0.4);}
+
+.cc-bento-grid { display: flex; gap: 25px; max-width: 1400px; margin: 0 auto; align-items: stretch; }
+.cc-bento-main { flex: 6; display: flex; flex-direction: column; gap: 25px; }
+.cc-bento-side { flex: 4; display: flex; flex-direction: column; gap: 25px; }
+
+.cc-card { background: var(--card-bg); border-radius: 16px; border: 1px solid var(--border); padding: 25px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); display: flex; flex-direction: column;}
+.cc-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 15px;}
+.cc-card-header h3 { font-size: 14px; font-weight: 800; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px;}
+.cc-subtitle { font-size: 11px; color: var(--text-sub); font-weight: 500; }
+.cc-badge { background: var(--danger); color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 800; }
+.cc-icon-box { width: 50px; height: 50px; border-radius: 14px; display: flex; justify-content: center; align-items: center; font-size: 20px; }
+
+/* --- 5. SCROLLABLE PANELS --- */
+.cc-inbox-list { display: flex; flex-direction: column; gap: 12px; max-height: 320px; overflow-y: auto; padding-right: 10px; }
+.inbox-item { display: flex; justify-content: space-between; align-items: center; background: var(--body-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border); }
+.inbox-content { display: flex; align-items: center; gap: 15px; }
+.inbox-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 16px; flex-shrink: 0;}
+.inbox-text { font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 3px; }
+.inbox-sub { font-size: 11px; color: var(--text-sub); }
+.inbox-action-btn { background: var(--primary); color: white; border: none; padding: 8px 15px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: 0.2s;}
+.inbox-action-btn:hover { opacity: 0.8; }
+
+.cc-capacity-meter { background: var(--body-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 15px;}
+.cc-meter-labels { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: var(--text-sub); margin-bottom: 8px; text-transform: uppercase;}
+.cc-meter-bg { width: 100%; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+.cc-meter-fill { height: 100%; background: var(--success); border-radius: 4px; transition: 0.5s; }
+
+.cc-radar-table-wrapper { max-height: 300px; overflow-y: auto; padding-right: 5px; }
+.cc-radar-table { width: 100%; border-collapse: collapse; text-align: left; }
+.cc-radar-table th { padding: 10px; border-bottom: 2px solid var(--border); font-size: 10px; font-weight: 800; color: var(--text-sub); text-transform: uppercase; position: sticky; top: 0; background: var(--card-bg);}
+.cc-radar-table td { padding: 12px 10px; border-bottom: 1px dashed var(--border); font-size: 12px; font-weight: 600; color: var(--text-main); }
+.status-pill { padding: 4px 8px; border-radius: 6px; font-size: 9px; font-weight: 800; text-transform: uppercase; }
+
+/* --- 6. PIPELINE & AVERAGES --- */
+.cc-pipeline-list { display: flex; flex-direction: column; gap: 12px; }
+.cc-pipe-item { display: flex; align-items: center; gap: 15px; padding: 15px; border: 1px solid var(--border); border-radius: 12px; background: var(--body-bg); }
+.cc-pipe-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 16px; flex-shrink: 0;}
+.cc-pipe-info { flex: 1; }
+.cc-pipe-label { display: block; font-size: 10px; font-weight: 700; color: var(--text-sub); margin-bottom: 2px; text-transform: uppercase;}
+.cc-pipe-info strong { font-size: 16px; font-weight: 800; }
+
+/* --- 7. PINNED NOTES SCROLL --- */
+.cc-pinned-note-wrapper { display: flex; flex-direction: column; gap: 15px; max-height: 350px; overflow-y: auto; padding-right: 5px; flex: 1; }
+.cc-pin-item { background: #fffdf0; border: 1px solid #fde047; border-left: 4px solid #eab308; padding: 15px; border-radius: 10px; font-size: 12px; font-weight: 500; line-height: 1.6; color: #422006; }
+
+/* UTILS */
+.text-primary { color: var(--primary); } .text-success { color: var(--success); } .text-warning { color: var(--warning); } .text-danger { color: var(--danger); }
+.bg-success-light { background: var(--success-bg); } .bg-warning-light { background: var(--warning-bg); } .bg-primary-light { background: var(--primary-bg); }
+.badge.red { background: var(--danger-bg); color: var(--danger); } .badge.orange { background: var(--warning-bg); color: var(--warning); }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* --- 8. WIDGET FINANCIAL HEALTH --- */
+.cc-health-box { background: var(--body-bg); border: 1px solid var(--border); border-radius: 14px; padding: 25px 20px; text-align: center; }
+.health-title { font-size: 11px; font-weight: 800; color: var(--text-sub); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.health-runway { font-size: 36px; font-weight: 800; color: var(--primary); margin-bottom: 20px; }
+.health-details { display: flex; justify-content: space-between; border-top: 1px dashed var(--border); border-bottom: 1px dashed var(--border); padding: 15px 0; margin-bottom: 15px; text-align: left;}
+.hd-item { display: flex; flex-direction: column; gap: 5px; }
+.hd-item span { font-size: 10px; color: var(--text-sub); font-weight: 700; text-transform: uppercase;}
+.hd-item strong { font-size: 14px; font-weight: 800;}
+.health-indicator { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 700; color: var(--text-sub); text-transform: uppercase; }
+.health-badge { padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 800; }
+
+.health-red { background: var(--danger-bg); color: var(--danger); border: 1px solid #f87171;}
+.health-green { background: #dcfce7; color: #16a34a; border: 1px solid #4ade80;}
+.health-lightblue { background: #e0f2fe; color: #0284c7; border: 1px solid #38bdf8;}
+.health-blue { background: #dbeafe; color: #2563eb; border: 1px solid #60a5fa;}
+
+.cc-toggle-group { display: flex; background: var(--border); border-radius: 8px; padding: 3px; }
+.cc-toggle-btn { background: transparent; border: none; font-size: 9px; font-weight: 800; padding: 4px 10px; border-radius: 6px; color: var(--text-sub); cursor: pointer; text-transform: uppercase; transition: 0.2s; }
+.cc-toggle-btn.active { background: var(--card-bg); color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+/* --- 9. QUICK ACTIONS --- */
+.cc-kpi-clickable:hover { border-color: var(--primary); transform: translateY(-2px); transition: 0.2s; box-shadow: 0 4px 12px rgba(69, 109, 145, 0.1); }
+.cc-qa-btn { flex: 1; min-width: 120px; padding: 10px 15px; border-radius: 10px; border: 1px solid var(--border); background: var(--body-bg); font-size: 11px; font-weight: 700; color: var(--text-main); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
+.cc-qa-btn:hover { background: var(--card-bg); border-color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+
+/* --- 10. SMART SCHEDULER WIDGET --- */
+.cc-calendar-widget { display: flex; flex-direction: column; gap: 10px; }
+.cc-cal-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.cc-cal-nav { background: var(--body-bg); border: 1px solid var(--border); border-radius: 6px; width: 28px; height: 28px; display: flex; justify-content: center; align-items: center; cursor: pointer; color: var(--text-sub); transition: 0.2s; }
+.cc-cal-nav:hover { background: var(--primary); color: white; border-color: var(--primary); }
+.cc-cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 10px; font-weight: 800; color: var(--text-sub); margin-bottom: 5px; text-transform: uppercase; }
+.cc-cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cc-cal-day { aspect-ratio: 1; display: flex; justify-content: center; align-items: center; font-size: 11px; font-weight: 600; border-radius: 8px; cursor: pointer; transition: 0.2s; position: relative; color: var(--text-main); border: 1px solid transparent; }
+.cc-cal-day:hover:not(.empty) { border-color: var(--primary); background: var(--primary-bg); }
+.cc-cal-day.empty { pointer-events: none; opacity: 0; }
+.cc-cal-day.today { background: var(--primary); color: white; font-weight: 800; box-shadow: 0 4px 10px rgba(69, 109, 145, 0.3); }
+.cc-cal-day.selected { border: 2px solid var(--warning); font-weight: 800; }
+.cc-cal-day.has-event::after { content: ''; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--warning); }
+.cc-cal-day.today.has-event::after { background: #fff; }
+
+.cc-client-item { display: flex; align-items: center; gap: 12px; padding: 10px; background: var(--body-bg); border-radius: 8px; border: 1px solid var(--border); margin-bottom: 5px;}
+.cc-client-item i { font-size: 14px; }
+.empty-state { font-size: 11px; color: var(--text-sub); font-style: italic; padding: 10px; background: var(--body-bg); border-radius: 8px; text-align: center; }
+
+/* --- 11. MODAL FORM KALENDER --- */
+.cc-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 10000; display: flex; justify-content: center; align-items: center; padding: 20px; backdrop-filter: blur(4px); }
+.cc-modal-card { background: var(--card-bg); border-radius: 16px; width: 100%; max-width: 420px; padding: 25px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); animation: modalPop 0.3s ease-out; }
+@keyframes modalPop { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+.cc-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+.cc-modal-header h3 { font-size: 16px; font-weight: 800; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px; }
+.cc-modal-header h3 i { color: var(--primary); }
+.cc-modal-header button { background: none; border: none; font-size: 18px; color: var(--text-sub); cursor: pointer; transition: 0.2s; }
+.cc-modal-header button:hover { color: var(--danger); }
+
+.cc-form-group { margin-bottom: 15px; }
+.cc-form-group label { display: block; font-size: 11px; font-weight: 700; color: var(--text-sub); margin-bottom: 6px; text-transform: uppercase; }
+.cc-form-group input, .cc-form-group textarea { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 10px; font-family: inherit; font-size: 13px; font-weight: 500; outline: none; transition: 0.2s; background: var(--body-bg); color: var(--text-main); }
+.cc-form-group input:focus, .cc-form-group textarea:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px var(--primary-bg); }
+.cc-form-row { display: flex; gap: 15px; }
+.cc-form-row .cc-form-group { flex: 1; }
+
+.cc-btn-primary { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 10px; font-weight: 800; font-size: 13px; cursor: pointer; transition: 0.2s; }
+.cc-btn-primary:hover { background: #325473; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(69, 109, 145, 0.2); }
+
+/* --- 12. BOTTOM NAVIGATION (DESKTOP HIDDEN) --- */
+.cc-bottom-nav { display: none; }
+
+/* =========================================
+   13. MOBILE RESPONSIVE (MAX 768px)
+========================================= */
+@media screen and (max-width: 768px) {
+    body { height: auto; overflow-y: auto; }
+    .cc-sidebar { display: none; } 
+    .cc-app-wrapper { flex-direction: column; height: auto; padding-bottom: 70px; } 
+    
+    .cc-bottom-nav { 
+        display: flex; position: fixed; bottom: 0; left: 0; right: 0; 
+        background: var(--card-bg); border-top: 1px solid var(--border); 
+        z-index: 1000; justify-content: space-around; padding: 12px 5px; 
+        box-shadow: 0 -4px 15px rgba(0,0,0,0.05);
+    }
+    .cc-bottom-item {
+        display: flex; flex-direction: column; align-items: center; gap: 4px;
+        color: var(--text-sub); font-size: 10px; font-weight: 700; text-decoration: none;
+        transition: 0.2s;
+    }
+    .cc-bottom-item.active { color: var(--primary); }
+    .cc-bottom-item i { font-size: 18px; }
+    
+    .cc-main-content { height: auto; overflow: visible; }
+    .cc-topbar { padding: 15px 20px; flex-direction: column-reverse; height: auto; gap: 15px; align-items: stretch; }
+    .cc-header-datetime { text-align: left; display: flex; justify-content: space-between; align-items: center; }
+    .cc-cmd-prefix { top: 50%; transform: translateY(-50%); }
+    
+    .cc-dashboard-area { padding: 20px; }
+    .cc-briefing-panel { flex-direction: column; text-align: center; padding: 20px; gap: 15px; }
+    .cc-briefing-icon { margin: 0 auto; }
+    .cc-btn-zen-trigger { width: 100%; justify-content: center; }
+    
+    .cc-bento-grid { flex-direction: column; }
+    .cc-kpi-grid { grid-template-columns: 1fr; }
+    .cc-qa-btn { flex: 1 1 calc(50% - 10px); }
+}
