@@ -7,7 +7,7 @@ const OS_TABLES = [
     'taufik_notes_db_v1',       // Milik halaman: notes.html
     'taufik_crm_v2',            // Milik halaman: client-crm.html
     'taufik_assets_library_v1', // Milik halaman: lib.html
-    'taufik_core_db'            // Milik halaman: index.html (pengaturan/stats)
+    'taufik_core_db'            // Milik halaman: command-center.html
 ];
 
 // ==========================================
@@ -15,40 +15,21 @@ const OS_TABLES = [
 // ==========================================
 const DB = {
     load: async function(tableName) {
-        let rawData = localStorage.getItem(tableName);
-        if (!rawData) return [];
-        
-        try {
-            let parsedData = JSON.parse(rawData);
-            
-            // TAMENG ANTI-DOUBLE STRINGIFY: 
-            // Kalau data ternyata masih wujud string setelah di-parse, parse sekali lagi!
-            if (typeof parsedData === 'string') {
-                parsedData = JSON.parse(parsedData);
-            }
-            
-            return parsedData;
-        } catch (e) {
-            console.error("Error loading table:", tableName, e);
-            return [];
-        }
+        return JSON.parse(localStorage.getItem(tableName)) || [];
     },
 
     save: async function(tableName, data) {
-        // TAMENG ANTI-DOUBLE STRINGIFY:
-        // Cek dulu, kalau wujudnya sudah string, JANGAN di-stringify lagi.
-        let safeData = typeof data === 'string' ? data : JSON.stringify(data);
-        
-        localStorage.setItem(tableName, safeData);
+        localStorage.setItem(tableName, JSON.stringify(data));
         return true;
     }
 };
 
 // ==========================================
-// 3. CLOCK & GREETING SYSTEM
+// 3. CLOCK, DATE & GREETING SYSTEM
 // ==========================================
 function updateTime() {
     const now = new Date();
+    
     const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const clockElement = document.getElementById('clock');
     if (clockElement) clockElement.textContent = timeString;
@@ -62,13 +43,16 @@ function updateTime() {
 
     const hour = now.getHours();
     let greetingText = '';
-    if (hour >= 5 && hour < 12) greetingText = 'Good Morning, Taufik';
-    else if (hour >= 12 && hour < 15) greetingText = 'Good Afternoon, Taufik';
-    else if (hour >= 15 && hour < 19) greetingText = 'Good Evening, Taufik';
-    else greetingText = 'Good Night, Taufik';
+    
+    if (hour >= 5 && hour < 12) greetingText = 'Good Morning,';
+    else if (hour >= 12 && hour < 15) greetingText = 'Good Afternoon Taufik';
+    else if (hour >= 15 && hour < 19) greetingText = 'Good Evening Taufik';
+    else greetingText = 'Good Night Taufik';
 
     const greetingElement = document.getElementById('greeting');
-    if (greetingElement) greetingElement.textContent = greetingText;
+    if (greetingElement) {
+        greetingElement.textContent = greetingText;
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -77,70 +61,102 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// UI CUSTOM TOAST NOTIFICATION
-// ==========================================
-function showToast(message, type = 'success') {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    
-    const icon = type === 'success' ? '<i class="fa-solid fa-circle-check"></i>' : 
-                 type === 'error' ? '<i class="fa-solid fa-triangle-exclamation"></i>' : 
-                 '<i class="fa-solid fa-circle-info"></i>';
-    
-    toast.innerHTML = `${icon} <span>${message}</span>`;
-    container.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.style.animation = 'fadeOut 0.4s forwards';
-        setTimeout(() => toast.remove(), 400);
-    }, 3500);
-}
-
-// ==========================================
-// 4. MASTER OS BACKUP SYSTEM
+// 4. MASTER OS BACKUP SYSTEM (UPDATED)
 // ==========================================
 async function downloadMasterBackup() {
-    showToast('Mengemas data dari 6 tabel...', 'info');
-    let dbDump = {};
+    try {
+        let dbDump = {};
 
-    for (let table of OS_TABLES) {
-        dbDump[table] = await DB.load(table);
+        for (let table of OS_TABLES) {
+            dbDump[table] = await DB.load(table);
+        }
+
+        const masterData = {
+            app_name: "TAUFIK_FREELANCE_OS",
+            backup_date: new Date().toLocaleString('id-ID'),
+            data: dbDump
+        };
+
+        const dataStr = JSON.stringify(masterData, null, 2); 
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `TAUFIK_OS_MASTER_${new Date().toISOString().slice(0,10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        // Munculkan notifikasi sukses menggunakan Custom Modal
+        await showModal(
+            'success', 
+            'Backup Berhasil', 
+            'Seluruh database sistem (6 Tabel) berhasil di-backup dan diunduh. Simpan file tersebut di tempat yang aman.', 
+            false
+        );
+
+    } catch (error) {
+        // Jika terjadi error saat proses backup
+        await showModal(
+            'error', 
+            'Backup Gagal', 
+            'Terjadi kesalahan saat memproses data backup. Silakan coba lagi.', 
+            false
+        );
+        console.error("Backup Error: ", error);
     }
-
-    const masterData = {
-        app_name: "TAUFIK_FREELANCE_OS",
-        backup_date: new Date().toLocaleString('id-ID'),
-        data: dbDump 
-    };
-
-    const dataStr = JSON.stringify(masterData, null, 2);
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `TAUFIK_OS_MASTER_${new Date().toISOString().slice(0,10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    setTimeout(() => { showToast('Backup berhasil diunduh!', 'success'); }, 500);
 }
 
 // ==========================================
-// 5. MASTER OS RESTORE SYSTEM
+// 5. CUSTOM MODAL ENGINE
 // ==========================================
-let pendingRestoreData = null;
+function showModal(type, title, message, showCancel = true) {
+    return new Promise((resolve) => {
+        const overlay = document.getElementById('os-modal');
+        const titleEl = document.getElementById('modal-title');
+        const messageEl = document.getElementById('modal-message');
+        const iconEl = document.getElementById('modal-icon');
+        const btnCancel = document.getElementById('modal-cancel');
+        const btnConfirm = document.getElementById('modal-confirm');
 
-function closeRestoreModal() {
-    document.getElementById('restore-modal').classList.remove('active');
-    pendingRestoreData = null;
-    document.getElementById('restore-upload').value = ""; 
+        // Setup Teks & HTML
+        titleEl.textContent = title;
+        messageEl.innerHTML = message.replace(/\n/g, '<br>');
+
+        // Setup Icon berdasarkan tipe
+        iconEl.className = `modal-icon ${type}`;
+        if (type === 'warning') iconEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+        if (type === 'success') iconEl.innerHTML = '<i class="fa-solid fa-check"></i>';
+        if (type === 'error') iconEl.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+
+        // Setup Tombol
+        btnCancel.style.display = showCancel ? 'block' : 'none';
+        btnConfirm.textContent = showCancel ? 'Lanjutkan' : 'Oke';
+
+        // Tampilkan Modal
+        overlay.classList.add('active');
+
+        // Fungsi Cleanup & Resolve
+        const cleanup = () => {
+            overlay.classList.remove('active');
+            btnConfirm.removeEventListener('click', onConfirm);
+            btnCancel.removeEventListener('click', onCancel);
+        };
+
+        const onConfirm = () => { cleanup(); resolve(true); };
+        const onCancel = () => { cleanup(); resolve(false); };
+
+        btnConfirm.addEventListener('click', onConfirm);
+        btnCancel.addEventListener('click', onCancel);
+    });
 }
 
+// ==========================================
+// 6. MASTER OS RESTORE SYSTEM (UPDATED)
+// ==========================================
 async function restoreMasterBackup(inputElement) {
     const file = inputElement.files[0];
     if (!file) return;
@@ -151,37 +167,35 @@ async function restoreMasterBackup(inputElement) {
             const content = JSON.parse(e.target.result);
 
             if (content.app_name === "TAUFIK_FREELANCE_OS") {
-                pendingRestoreData = content.data;
-                document.getElementById('restore-date-badge').textContent = content.backup_date;
-                document.getElementById('restore-modal').classList.add('active');
+                // Menggunakan Custom Modal pengganti confirm()
+                const isConfirmed = await showModal(
+                    'warning',
+                    'Peringatan Sistem!',
+                    `Kamu akan menimpa seluruh sistem dengan data dari tanggal:\n<strong>${content.backup_date}</strong>\n\nApakah kamu yakin ingin melanjutkan?`,
+                    true
+                );
+
+                if (isConfirmed) {
+                    for (let tableName in content.data) {
+                        await DB.save(tableName, content.data[tableName]);
+                    }
+                    
+                    // Menggunakan Custom Modal pengganti alert()
+                    await showModal(
+                        'success', 
+                        'Restore Berhasil', 
+                        'Master Data berhasil dipulihkan! Seluruh sistem telah sinkron.', 
+                        false
+                    );
+                    location.reload(); 
+                }
             } else {
-                showToast("Gagal. File JSON ini bukan format backup Taufik OS.", "error");
+                await showModal('error', 'Akses Ditolak', 'File JSON ini bukan format backup Taufik OS.', false);
             }
         } catch (err) {
-            showToast("Gagal membaca file. File mungkin corrupt.", "error");
+            await showModal('error', 'File Corrupt', 'Gagal membaca file. File mungkin rusak atau tidak valid.', false);
         }
     };
     reader.readAsText(file);
-}
-
-async function proceedRestore() {
-    if (!pendingRestoreData) return;
-    closeRestoreModal();
-    
-    // Simpan semua data menggunakan DB.save yang sudah diperkuat
-    for (let tableName in pendingRestoreData) {
-        await DB.save(tableName, pendingRestoreData[tableName]);
-    }
-    
-    // Tampilkan animasi sukses dan reload
-    const rebootModal = document.getElementById('reboot-modal');
-    rebootModal.classList.add('active');
-    
-    setTimeout(() => {
-        document.getElementById('reboot-progress').style.width = '100%';
-    }, 100);
-    
-    setTimeout(() => {
-        location.reload(); 
-    }, 2500);
+    inputElement.value = ""; 
 }
