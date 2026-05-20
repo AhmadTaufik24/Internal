@@ -44,10 +44,10 @@ function updateTime() {
     const hour = now.getHours();
     let greetingText = '';
     
-    if (hour >= 5 && hour < 12) greetingText = 'Good Morning Taufik';
-    else if (hour >= 12 && hour < 15) greetingText = 'Good Afternoon Taufik';
-    else if (hour >= 15 && hour < 19) greetingText = 'Good Evening Taufik';
-    else greetingText = 'Good Night Taufik';
+    if (hour >= 5 && hour < 12) greetingText = 'Good Morning, Taufik.';
+    else if (hour >= 12 && hour < 15) greetingText = 'Good Afternoo, Taufik.';
+    else if (hour >= 15 && hour < 19) greetingText = 'Good Evening, Taufik.';
+    else greetingText = 'Good Night, Taufik.';
 
     const greetingElement = document.getElementById('greeting');
     if (greetingElement) {
