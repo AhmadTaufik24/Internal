@@ -11,22 +11,40 @@
 </head>
 <body>
 
-    <div class="sidebar">
+    <div id="share-view-overlay" class="share-view-overlay" style="display: none;">
+        <div class="share-card">
+            <h2 id="share-title"></h2>
+            <div id="share-content" class="markdown-body"></div>
+            <button class="btn btn-outline" style="margin-top: 20px;" onclick="exitShareView()">Kembali ke Workspace</button>
+        </div>
+    </div>
+
+    <div class="sidebar" id="app-sidebar">
         <div class="brand">TAUFIK NOTES <span></span></div>
         
-        <div class="menu-nav">
-            <div class="menu-section-title">Koleksi Utama</div>
-            <div class="menu-item active" onclick="filterNotes('all', this)"><i class="fa-solid fa-layer-group"></i> <span>Semua Catatan</span></div>
-            <div class="menu-item" onclick="filterNotes('pinned', this)"><i class="fa-solid fa-thumbtack"></i> <span>Di-Pin</span></div>
+        <div class="menu-nav" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
             
-            <div class="menu-section-title">Kategori</div>
-            <div class="menu-item" onclick="filterNotes('work', this)"><i class="fa-solid fa-briefcase"></i> <span>Pekerjaan</span></div>
-            <div class="menu-item" onclick="filterNotes('code', this)"><i class="fa-solid fa-code"></i> <span>Koding & Snippet</span></div>
-            <div class="menu-item" onclick="filterNotes('personal', this)"><i class="fa-solid fa-user"></i> <span>Pribadi</span></div>
-            <div class="menu-item" onclick="filterNotes('idea', this)"><i class="fa-solid fa-lightbulb"></i> <span>Ide Kreatif</span></div>
-            <div class="menu-item" onclick="filterNotes('misc', this)"><i class="fa-solid fa-box-open"></i> <span>Lainnya</span></div>
+            <div class="desktop-fixed">
+                <div class="menu-section-title">Koleksi Utama</div>
+                <div class="menu-item active" onclick="filterNotes('all', this)"><i class="fa-solid fa-layer-group"></i> <span>Semua Catatan</span></div>
+                <div class="menu-item" onclick="filterNotes('pinned', this)"><i class="fa-solid fa-thumbtack"></i> <span>Di-Pin</span></div>
+            </div>
             
-            <div class="menu-section-title">Sistem</div>
+            <div class="desktop-scrollable scrollable-menu">
+                <div class="menu-section-title">Kategori Utama</div>
+                <div class="menu-item" onclick="filterNotes('work', this)"><i class="fa-solid fa-briefcase"></i> <span>Pekerjaan</span></div>
+                <div class="menu-item" onclick="filterNotes('code', this)"><i class="fa-solid fa-code"></i> <span>Koding & Snippet</span></div>
+                <div class="menu-item" onclick="filterNotes('personal', this)"><i class="fa-solid fa-user"></i> <span>Pribadi</span></div>
+                <div class="menu-item" onclick="filterNotes('idea', this)"><i class="fa-solid fa-lightbulb"></i> <span>Ide Kreatif</span></div>
+                <div class="menu-item" onclick="filterNotes('misc', this)"><i class="fa-solid fa-box-open"></i> <span>Lainnya</span></div>
+                
+                <div id="custom-categories-container"></div>
+            </div>
+
+        </div>
+
+        <div class="menu-system" style="padding-top: 15px; border-top: 1px solid #eee; margin-top: 10px;">
+            <div class="menu-section-title" style="margin-top: 0;">Sistem</div>
             <div class="menu-item" onclick="filterNotes('archive', this)"><i class="fa-solid fa-trash-can"></i> <span>Sampah</span></div>
         </div>
 
@@ -37,7 +55,7 @@
         </div>
     </div>
 
-    <div class="main-content">
+    <div class="main-content" id="app-main">
         <div class="topbar">
             <h2>Lihat Semua Catatan</h2>
             <div class="topbar-tools">
@@ -52,7 +70,7 @@
         <div class="split-view-container">
             
             <div class="notes-list-panel" id="notes-list">
-                </div>
+            </div>
 
             <div class="note-editor-panel" id="note-editor" style="display: none;">
                 
@@ -60,6 +78,7 @@
                     <input type="text" id="note-title" placeholder="Ketik Judul Catatan...">
                     
                     <div class="editor-actions">
+                        <button class="tool-btn" id="btn-share" onclick="toggleShare()" title="Share/Kunci Catatan"><i class="fa-solid fa-lock"></i></button>
                         <button class="tool-btn" id="btn-restore" onclick="restoreNote()" title="Kembalikan Catatan" style="display:none; color: var(--success);"><i class="fa-solid fa-trash-arrow-up"></i></button>
                         <button class="tool-btn" id="btn-pin" onclick="togglePin()" title="Pin ke Atas"><i class="fa-solid fa-thumbtack"></i></button>
                         <input type="color" id="note-color" value="#ffffff" title="Warna Background">
@@ -69,14 +88,23 @@
                 </div>
 
                 <div class="editor-meta">
-                    <select id="note-category">
-                        <option value="work">💼 Pekerjaan</option>
-                        <option value="code">💻 Koding & Snippet</option>
-                        <option value="personal">👤 Pribadi</option>
-                        <option value="idea">💡 Ide Kreatif</option>
-                        <option value="misc">📦 Lainnya</option>
-                    </select>
-                    <input type="text" id="note-tags" placeholder="Tambahkan tag (koma)...">
+                    <div style="display: flex; gap: 8px; align-items: center; flex: 1; min-width: 200px;">
+                        <select id="note-category" style="flex: 1;"></select>
+                        <button class="tool-btn" onclick="openCategoryModal()" title="Kelola Kategori" style="background: #eee;"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <input type="text" id="note-tags" placeholder="Tambahkan tag (koma)..." style="flex: 1;">
+                </div>
+
+                <div class="format-toolbar" id="format-toolbar">
+                    <button type="button" onclick="insertFormat('bold')" title="Bold"><i class="fa-solid fa-bold"></i></button>
+                    <button type="button" onclick="insertFormat('italic')" title="Italic"><i class="fa-solid fa-italic"></i></button>
+                    <button type="button" onclick="insertFormat('strike')" title="Strikethrough"><i class="fa-solid fa-strikethrough"></i></button>
+                    <div class="divider"></div>
+                    <button type="button" onclick="insertFormat('code')" title="Inline Code"><i class="fa-solid fa-code"></i></button>
+                    <button type="button" onclick="insertFormat('codeblock')" title="Code Block"><i class="fa-solid fa-file-code"></i></button>
+                    <div class="divider"></div>
+                    <button type="button" onclick="insertFormat('ul')" title="Bullet List"><i class="fa-solid fa-list-ul"></i></button>
+                    <button type="button" onclick="insertFormat('quote')" title="Quote"><i class="fa-solid fa-quote-left"></i></button>
                 </div>
 
                 <textarea id="note-input" placeholder="Ketik catatanmu di sini... Dukung format Markdown untuk kodingan!"></textarea>
@@ -97,23 +125,57 @@
         </div>
     </div>
 
-    <<div id="modal-delete" class="modal" style="display: none; justify-content: center; align-items: center; z-index: 3000;">
-        <div class="modal-content" style="width: 320px; height: auto; border-radius: 12px; padding: 20px; text-align: left; animation: popIn 0.2s ease-out; border-left: none;">
-            
+    <div id="modal-delete" class="modal" style="display: none; justify-content: center; align-items: center; z-index: 3000;">
+        <div class="modal-content" style="width: 320px; height: auto; border-radius: 12px; padding: 20px; text-align: left; animation: popIn 0.2s ease-out; border-left: none; background: white;">
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                 <i class="fa-solid fa-triangle-exclamation" style="font-size: 20px; color: var(--danger);"></i>
                 <h3 style="margin: 0; font-size: 16px; color: var(--text-color);">Konfirmasi Hapus</h3>
             </div>
-            
             <p id="delete-modal-text" style="font-size: 12px; color: #666; margin-bottom: 15px; line-height: 1.5;"></p>
-            
             <input type="text" id="delete-confirm-input" placeholder="Ketik YAKIN..." style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; font-weight: 700; font-size: 13px; text-transform: uppercase; outline: none; font-family: inherit;">
-            
             <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                <button class="btn btn-outline" onclick="closeDeleteModal()" style="padding: 8px 15px; font-size: 12px; flex: 0;">Batal</button>
-                <button class="btn" id="btn-confirm-delete" onclick="processDelete()" style="background: var(--danger); opacity: 0.5; cursor: not-allowed; padding: 8px 15px; font-size: 12px; flex: 0;" disabled>Hapus</button>
+                <button class="btn btn-outline" onclick="closeDeleteModal()" style="padding: 8px 15px; font-size: 12px;">Batal</button>
+                <button class="btn" id="btn-confirm-delete" onclick="processDelete()" style="background: var(--danger); opacity: 0.5; cursor: not-allowed; padding: 8px 15px; font-size: 12px;" disabled>Hapus</button>
             </div>
+        </div>
+    </div>
 
+    <div id="modal-category" class="modal" style="display: none; justify-content: center; align-items: center; z-index: 3000;">
+        <div class="modal-content" style="width: 320px; background: white; padding: 20px; border-radius: 12px; animation: popIn 0.2s ease-out;">
+            <h3 style="margin: 0 0 15px 0; font-size: 16px; color: var(--text-color);">Kelola Kategori</h3>
+            
+            <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                <input type="text" id="new-category-input" placeholder="Nama kategori baru..." style="flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; outline: none; font-family: inherit; font-size: 13px;">
+                <button class="btn" onclick="addCategory()" style="padding: 8px 15px;">Tambah</button>
+            </div>
+            
+            <div id="category-list" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+            </div>
+            
+            <button class="btn btn-outline" onclick="closeCategoryModal()" style="margin-top: 15px; width: 100%;">Tutup</button>
+        </div>
+    </div>
+
+    <div id="modal-delete-category" class="modal" style="display: none; justify-content: center; align-items: center; z-index: 4000;">
+        <div class="modal-content" style="width: 320px; background: white; padding: 20px; border-radius: 12px; text-align: left; animation: popIn 0.2s ease-out;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <i class="fa-solid fa-triangle-exclamation" style="font-size: 20px; color: var(--danger);"></i>
+                <h3 style="margin: 0; font-size: 16px; color: var(--text-color);">Hapus Kategori</h3>
+            </div>
+            <p style="font-size: 12px; color: #666; margin-bottom: 15px; line-height: 1.5;">Yakin hapus kategori ini? Catatan di dalamnya akan otomatis pindah ke <strong>Lainnya</strong>.</p>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-outline" onclick="closeDeleteCategoryModal()" style="padding: 8px 15px; font-size: 12px;">Batal</button>
+                <button class="btn" onclick="processDeleteCategory()" style="background: var(--danger); padding: 8px 15px; font-size: 12px;">Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-share-info" class="modal" style="display: none; justify-content: center; align-items: center; z-index: 3000;">
+        <div class="modal-content" style="width: 320px; background: white; padding: 20px; border-radius: 12px; text-align: center;">
+            <i class="fa-solid fa-globe" style="font-size: 30px; color: var(--primary); margin-bottom: 10px;"></i>
+            <h3 style="margin: 0 0 10px 0;">Link Berhasil Dicopy!</h3>
+            <p style="font-size: 12px; color: #666;">Catatan sekarang terbuka. Siapapun yang punya link ini bisa membacanya.</p>
+            <button class="btn" onclick="document.getElementById('modal-share-info').style.display='none'" style="margin-top: 15px; width: 100%;">Tutup</button>
         </div>
     </div>
 
