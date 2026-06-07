@@ -1,15 +1,28 @@
 /**
- * TAUFIK SYSTEM - SMART NOTES ENGINE v4.2 (REVISED)
- * + HTML Sanitizer Fix, Animated Drag Drop, Format Toolbar, Share Mode, Dynamic Categories
- * + FIXED: Custom Delete Category Modal, Pin Toggle State Detection, Split Sidebar Layout
+ * TAUFIK SYSTEM - SMART NOTES ENGINE v5.0 (CLOUD EDITION)
+ * + Firebase Firestore Integration, Realtime Sync, Cloud Share Mode
  */
 
-const DB = window.DB || {
+// 1. FIREBASE CONFIGURATION & INIT
+const firebaseConfig = {
+    apiKey: "AIzaSyD8WJ5l4fWBt4w9dnnjohGjRk_90NNC4Ts",
+    authDomain: "taufik-notes.firebaseapp.com",
+    projectId: "taufik-notes",
+    storageBucket: "taufik-notes.firebasestorage.app",
+    messagingSenderId: "861735961891",
+    appId: "1:861735961891:web:71341c0aa70545d0e57896"
+};
+
+// Inisialisasi Firebase (menggunakan SDK v8 dari HTML)
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// 2. STATE & LOCAL STORAGE (Hanya untuk Kategori Custom)
+const DB = {
     load: function(t) { return JSON.parse(localStorage.getItem(t)) || null; },
     save: function(t, d) { localStorage.setItem(t, JSON.stringify(d)); }
 };
 
-const TABLE_NAME = 'taufik_notes_db_v1';
 let notesData = [];
 let currentFilter = 'all';
 let activeNoteId = null;
@@ -52,8 +65,7 @@ function escapeHTML(str) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    notesData = DB.load(TABLE_NAME) || [];
-    
+    // Cek Mode Share
     const urlParams = new URLSearchParams(window.location.search);
     const shareId = urlParams.get('share');
     if (shareId) {
@@ -61,27 +73,39 @@ document.addEventListener('DOMContentLoaded', () => {
         return; 
     }
 
-    // Auto Cleanup Sampah 30 Hari
-    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    let isCleaned = false;
-
-    notesData = notesData.filter(n => {
-        if (n.isArchived && n.archived_at) {
-            if (now - new Date(n.archived_at).getTime() > THIRTY_DAYS_MS) {
-                isCleaned = true;
-                return false; 
-            }
-        }
-        return true;
-    });
-
-    if (isCleaned) DB.save(TABLE_NAME, notesData);
-    
-    // Init Kategori & Render
+    // Init Kategori Dropdown & Sidebar
     renderCategoryDropdown();
     renderSidebarCategories();
-    renderNotesList();
+
+    // 3. REALTIME SYNC DENGAN FIREBASE
+    db.collection("notes").onSnapshot((snapshot) => {
+        notesData = [];
+        snapshot.forEach((doc) => {
+            notesData.push(doc.data());
+        });
+        
+        // Render ulang list catatan setiap kali ada perubahan di database
+        renderNotesList();
+    }, (error) => {
+        console.error("Error fetching notes: ", error);
+        showToast("Gagal mengambil data dari server.");
+    });
+
+    // Auto-cleanup arsip lama (Lebih dari 30 hari) - Dijalankan sekali saat load
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    db.collection("notes").where("isArchived", "==", true).get().then((snapshot) => {
+        const batch = db.batch();
+        let hasDeletions = false;
+        snapshot.forEach((doc) => {
+            const note = doc.data();
+            if (note.archived_at && (now - new Date(note.archived_at).getTime() > THIRTY_DAYS_MS)) {
+                batch.delete(doc.ref);
+                hasDeletions = true;
+            }
+        });
+        if (hasDeletions) batch.commit();
+    });
 
     // Event Listener Editor Inputs
     const editorInputs = ['note-title', 'note-input', 'note-category', 'note-tags', 'note-color'];
@@ -99,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Tutup dropdown kebab menu saat klik di luar
+    // Tutup dropdown kebab menu
     window.addEventListener('click', function(e) {
         if (!e.target.closest('.kebab-wrapper')) {
             document.querySelectorAll('.kebab-dropdown').forEach(d => d.classList.remove('show'));
@@ -139,7 +163,7 @@ function renderSidebarCategories() {
 }
 
 // ==========================================
-// LOGIKA KELOLA KATEGORI (FIXED MODAL)
+// LOGIKA KELOLA KATEGORI
 // ==========================================
 window.openCategoryModal = function() {
     document.getElementById('modal-category').style.display = 'flex';
@@ -164,30 +188,30 @@ window.addCategory = function() {
     showToast("Kategori berhasil ditambah");
 }
 
-// Buka Modal Konfirmasi Hapus Kategori
 window.deleteCategory = function(id) {
     categoryToDelete = id;
     document.getElementById('modal-delete-category').style.display = 'flex';
 }
 
-// Tutup Modal Konfirmasi Hapus Kategori
 window.closeDeleteCategoryModal = function() {
     document.getElementById('modal-delete-category').style.display = 'none';
     categoryToDelete = null;
 }
 
-// Eksekusi Hapus Kategori
 window.processDeleteCategory = function() {
     if(!categoryToDelete) return;
 
     customCategories = customCategories.filter(c => c.id !== categoryToDelete);
     DB.save('taufik_categories_v1', customCategories);
     
-    let changed = false;
-    notesData.forEach(n => {
-        if(n.category === categoryToDelete) { n.category = 'misc'; changed = true; }
+    // Update semua catatan di Firebase yang ada di kategori ini
+    db.collection("notes").where("category", "==", categoryToDelete).get().then((snapshot) => {
+        const batch = db.batch();
+        snapshot.forEach((doc) => {
+            batch.update(doc.ref, { category: 'misc' });
+        });
+        batch.commit();
     });
-    if(changed) DB.save(TABLE_NAME, notesData);
     
     if(currentFilter === categoryToDelete) {
         filterNotes('all', document.querySelectorAll('.sidebar .menu-item')[0]);
@@ -196,7 +220,6 @@ window.processDeleteCategory = function() {
     renderCategoryManager();
     renderCategoryDropdown();
     renderSidebarCategories();
-    renderNotesList();
     showToast("Kategori berhasil dihapus");
     closeDeleteCategoryModal();
 }
@@ -347,9 +370,14 @@ function handleDrop(e) {
     const draggedItem = notesData.splice(dragIndex, 1)[0];
     notesData.splice(targetIndex, 0, draggedItem);
     
-    notesData.forEach((note, idx) => { note.order = idx; });
-    DB.save(TABLE_NAME, notesData);
-    renderNotesList();
+    // Update urutan massal ke Firebase
+    const batch = db.batch();
+    notesData.forEach((note, idx) => { 
+        note.order = idx; 
+        const ref = db.collection("notes").doc(note.id);
+        batch.update(ref, { order: idx });
+    });
+    batch.commit();
 }
 
 window.toggleKebab = function(e, id) {
@@ -498,18 +526,22 @@ function saveNote(isAutoSave = false) {
     const isPinned = document.getElementById('btn-pin').dataset.pinned === "true";
     
     if (activeNoteId) {
-        const idx = notesData.findIndex(n => n.id === activeNoteId);
-        if (idx > -1 && !notesData[idx].isArchived) {
-            notesData[idx].title = title || 'Tanpa Judul';
-            notesData[idx].content = content;
-            notesData[idx].category = category;
-            notesData[idx].tags = tags;
-            notesData[idx].color = color;
-            notesData[idx].isPinned = isPinned;
-        }
+        // Update dokumen lama
+        db.collection("notes").doc(activeNoteId).update({
+            title: title || 'Tanpa Judul',
+            content: content,
+            category: category,
+            tags: tags,
+            color: color,
+            isPinned: isPinned
+        });
     } else {
+        // Buat dokumen baru di Firebase
+        const newId = 'NOTE-' + Date.now();
+        activeNoteId = newId; 
+        
         const newNote = {
-            id: 'NOTE-' + Date.now(),
+            id: newId,
             title: title || 'Tanpa Judul',
             content: content,
             category: category,
@@ -518,15 +550,13 @@ function saveNote(isAutoSave = false) {
             isPinned: isPinned,
             isArchived: false,
             isShared: false,
+            order: 0,
             created_at: new Date().toISOString()
         };
-        notesData.push(newNote);
-        activeNoteId = newNote.id; 
+        db.collection("notes").doc(newId).set(newNote);
     }
 
-    DB.save(TABLE_NAME, notesData);
     document.getElementById('save-status').innerText = 'Tersimpan otomatis.';
-    renderNotesList(); 
 }
 
 // ==========================================
@@ -556,74 +586,92 @@ window.processDelete = function() {
     if (noteIndex === -1) return;
 
     if (notesData[noteIndex].isArchived) {
-        notesData.splice(noteIndex, 1);
-        showToast('Catatan dihapus permanen.');
+        // Hapus permanen dari Firebase
+        db.collection("notes").doc(activeNoteId).delete().then(() => {
+            showToast('Catatan dihapus permanen.');
+            closeDeleteModal();
+            closeEditor(); 
+        });
     } else {
-        notesData[noteIndex].isArchived = true;
-        notesData[noteIndex].archived_at = new Date().toISOString();
-        notesData[noteIndex].isPinned = false; 
-        showToast('Catatan dipindah ke Sampah.');
+        // Pindah ke arsip
+        db.collection("notes").doc(activeNoteId).update({
+            isArchived: true,
+            archived_at: new Date().toISOString(),
+            isPinned: false
+        }).then(() => {
+            showToast('Catatan dipindah ke Sampah.');
+            closeDeleteModal();
+            closeEditor(); 
+        });
     }
-    DB.save(TABLE_NAME, notesData);
-    closeDeleteModal();
-    closeEditor(); 
-    renderNotesList();
 }
 
 window.restoreNote = function() {
-    const noteIndex = notesData.findIndex(n => n.id === activeNoteId);
-    if (noteIndex > -1) {
-        notesData[noteIndex].isArchived = false;
-        delete notesData[noteIndex].archived_at;
-        DB.save(TABLE_NAME, notesData);
+    // Keluarkan dari arsip
+    db.collection("notes").doc(activeNoteId).update({
+        isArchived: false,
+        archived_at: firebase.firestore.FieldValue.delete()
+    }).then(() => {
         closeEditor();
-        renderNotesList();
         showToast('Catatan berhasil dikembalikan.');
-    }
+    });
 }
 
 // ==========================================
-// SHARE MODE
+// SHARE MODE (CLOUD FETCHING)
 // ==========================================
 window.toggleShare = function() {
     if(!activeNoteId) return;
-    const noteIndex = notesData.findIndex(n => n.id === activeNoteId);
-    notesData[noteIndex].isShared = !notesData[noteIndex].isShared;
-    DB.save(TABLE_NAME, notesData);
+    const note = notesData.find(n => n.id === activeNoteId);
+    const newShareStatus = !note.isShared;
     
-    const shareBtn = document.getElementById('btn-share');
-    if(notesData[noteIndex].isShared) {
-        shareBtn.innerHTML = '<i class="fa-solid fa-unlock"></i>';
-        shareBtn.style.color = 'var(--primary)';
-        const shareURL = window.location.origin + window.location.pathname + '?share=' + activeNoteId;
-        navigator.clipboard.writeText(shareURL).then(() => {
-            document.getElementById('modal-share-info').style.display = 'flex';
-        });
-    } else {
-        shareBtn.innerHTML = '<i class="fa-solid fa-lock"></i>';
-        shareBtn.style.color = '#888';
-        showToast('Catatan Private');
-    }
+    // Update ke Firebase
+    db.collection("notes").doc(activeNoteId).update({
+        isShared: newShareStatus
+    }).then(() => {
+        const shareBtn = document.getElementById('btn-share');
+        if(newShareStatus) {
+            shareBtn.innerHTML = '<i class="fa-solid fa-unlock"></i>';
+            shareBtn.style.color = 'var(--primary)';
+            const shareURL = window.location.origin + window.location.pathname + '?share=' + activeNoteId;
+            navigator.clipboard.writeText(shareURL).then(() => {
+                document.getElementById('modal-share-info').style.display = 'flex';
+            });
+        } else {
+            shareBtn.innerHTML = '<i class="fa-solid fa-lock"></i>';
+            shareBtn.style.color = '#888';
+            showToast('Catatan Private');
+        }
+    });
 }
 
 window.initShareMode = function(id) {
-    const note = notesData.find(n => n.id === id);
     document.getElementById('app-sidebar').style.display = 'none';
     document.getElementById('app-main').style.display = 'none';
     document.body.style.background = '#f8f9fa';
     const overlay = document.getElementById('share-view-overlay');
     overlay.style.display = 'block';
 
-    if(!note || !note.isShared) {
-        document.getElementById('share-title').innerText = "Terkunci";
-        document.getElementById('share-content').innerHTML = "<p>Private.</p>";
-    } else {
-        document.getElementById('share-title').innerText = escapeHTML(note.title) || 'Catatan';
-        if (typeof marked !== 'undefined') { document.getElementById('share-content').innerHTML = marked.parse(note.content || ''); } 
-        else { document.getElementById('share-content').innerText = note.content; }
-    }
+    // Fetch langsung dari Firebase Cloud
+    db.collection("notes").doc(id).get().then((doc) => {
+        if (doc.exists && doc.data().isShared) {
+            const note = doc.data();
+            document.getElementById('share-title').innerText = escapeHTML(note.title) || 'Catatan';
+            if (typeof marked !== 'undefined') { 
+                document.getElementById('share-content').innerHTML = marked.parse(note.content || ''); 
+            } else { 
+                document.getElementById('share-content').innerText = note.content; 
+            }
+        } else {
+            document.getElementById('share-title').innerText = "Terkunci / Tidak Ditemukan";
+            document.getElementById('share-content').innerHTML = "<p>Catatan ini diatur sebagai private atau telah dihapus.</p>";
+        }
+    }).catch((error) => {
+        document.getElementById('share-title').innerText = "Error Sistem";
+        document.getElementById('share-content').innerHTML = "<p>Gagal mengambil catatan dari server.</p>";
+        console.error("Error getting document:", error);
+    });
 }
-window.exitShareView = function() { window.location.href = window.location.pathname; }
 
 // ==========================================
 // VIEW MODE TOGGLE & PIN
