@@ -36,7 +36,6 @@
                 <p>Pengaturan utama, statistik sistem, dan core database.</p>
             </a>
 
-
             <a href="project-tracker.html" class="nav-card">
                 <div class="icon-box"><i class="fa-solid fa-briefcase"></i></div>
                 <h3>Project Tracker</h3>
@@ -68,35 +67,55 @@
             </a>
 
              <a href="https://ahmadtaufik24.github.io/profile-taufik/" class="nav-card">
-                <div class="icon-box"><i class="fa-solid fa-folder-open"></i></div>
+                <div class="icon-box"><i class="fa-solid fa-globe"></i></div>
                 <h3>Personal Website</h3>
                 <p>Penyimpanan Portofolio, personal life, layanan sampai Blog.</p>
             </a>
 
-
-            
             <div class="section-label">System Control</div>
 
             <div class="admin-panel">
                 <div class="admin-info">
                     <h3><i class="fa-solid fa-star"></i> Master Control</h3>
-                    <p>Backup dan Restore seluruh database OS (6 Tabel)</p>
+                    <p>Backup, Restore, dan Autentikasi Sistem</p>
                 </div>
                 <div class="admin-buttons">
-                    <button class="btn-admin primary" onclick="downloadMasterBackup()">
-                        <i class="fa-solid fa-download"></i> Backup Data
+                    <button class="btn-admin primary" onclick="downloadMasterBackup()" title="Backup Database">
+                        <i class="fa-solid fa-download"></i>
                     </button>
                     
                     <input type="file" id="restore-upload" accept=".json" style="display: none;" onchange="restoreMasterBackup(this)">
-                    
-                    <button class="btn-admin secondary" onclick="document.getElementById('restore-upload').click()">
-                        <i class="fa-solid fa-upload"></i> Restore Data
+                    <button class="btn-admin secondary" onclick="document.getElementById('restore-upload').click()" title="Restore Database">
+                        <i class="fa-solid fa-upload"></i>
+                    </button>
+
+                    <button class="btn-admin danger-btn" onclick="processLogout()" title="Keluar dari Sistem">
+                        <i class="fa-solid fa-power-off"></i> Logout
                     </button>
                 </div>
             </div>
 
         </div>
     </main>
+
+    <div id="login-overlay" class="login-overlay">
+        <div class="login-card">
+            <div class="icon-box" style="margin: 0 auto 20px auto; background: var(--warning); border-color: var(--warning);"><i class="fa-solid fa-lock" style="color: white;"></i></div>
+            <h2>System Locked</h2>
+            <p>Authentication required to access Taufik OS.</p>
+            
+            <input type="email" id="login-email" placeholder="Admin Email" class="login-input">
+            <input type="password" id="login-pass" placeholder="Password" class="login-input">
+            
+            <div style="text-align: right; margin-top: -5px; margin-bottom: 15px;">
+                <a href="#" class="forgot-pass-link" onclick="resetPassword()">Lupa Password?</a>
+            </div>
+
+            <button id="btn-login" class="btn-admin primary" style="width: 100%; justify-content: center;" onclick="processLogin()">
+                <i class="fa-solid fa-right-to-bracket"></i> Login System
+            </button>
+        </div>
+    </div>
 
     <div id="os-modal" class="modal-overlay">
         <div class="modal-content">
@@ -109,6 +128,9 @@
             </div>
         </div>
     </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
     <script src="assets/js/script.js"></script>
 </body>
