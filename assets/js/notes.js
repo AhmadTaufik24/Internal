@@ -1,21 +1,22 @@
 /**
  * TAUFIK SYSTEM - SMART NOTES ENGINE v5.0 (CLOUD EDITION)
- * + Firebase Firestore Integration, Realtime Sync, Cloud Share Mode
+ * + Firebase Firestore Integration, Realtime Sync, Cloud Share Mode, Gateway Security
  */
 
-// 1. FIREBASE CONFIGURATION & INIT
+// 1. FIREBASE CONFIGURATION (TAUFIK INTERNAL INDUK)
 const firebaseConfig = {
-    apiKey: "AIzaSyD8WJ5l4fWBt4w9dnnjohGjRk_90NNC4Ts",
-    authDomain: "taufik-notes.firebaseapp.com",
-    projectId: "taufik-notes",
-    storageBucket: "taufik-notes.firebasestorage.app",
-    messagingSenderId: "861735961891",
-    appId: "1:861735961891:web:71341c0aa70545d0e57896"
+    apiKey: "AIzaSyCkUQXBYeMyQuB9X2HleubBDKuV3YpzVRg",
+    authDomain: "taufik-internal.firebaseapp.com",
+    projectId: "taufik-internal",
+    storageBucket: "taufik-internal.firebasestorage.app",
+    messagingSenderId: "212857824811",
+    appId: "1:212857824811:web:15ba9d4d7edeae4afeec6e"
 };
 
-// Inisialisasi Firebase (menggunakan SDK v8 dari HTML)
-firebase.initializeApp(firebaseConfig);
+// Inisialisasi Firebase
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const db = firebase.firestore();
+const auth = firebase.auth();
 
 // 2. STATE & LOCAL STORAGE (Hanya untuk Kategori Custom)
 const DB = {
@@ -64,64 +65,77 @@ function escapeHTML(str) {
     );
 }
 
+// 3. LOGIKA INISIALISASI & SATPAM GATEWAY
 document.addEventListener('DOMContentLoaded', () => {
     // Cek Mode Share
     const urlParams = new URLSearchParams(window.location.search);
     const shareId = urlParams.get('share');
+    
     if (shareId) {
+        // Jika link share, bypass sistem satpam (langsung tampilkan mode baca)
         initShareMode(shareId);
         return; 
     }
 
-    // Init Kategori Dropdown & Sidebar
-    renderCategoryDropdown();
-    renderSidebarCategories();
+    // SATPAM UTAMA: Jalankan pengecekan auth Firebase
+    auth.onAuthStateChanged((user) => {
+        if (!user) {
+            // Jika tidak bawa parameter share DAN belum login, tendang balik ke index.html
+            window.location.href = 'index.html';
+        } else {
+            // Jika user valid (sudah login), jalankan sistem notes utama
+            renderCategoryDropdown();
+            renderSidebarCategories();
 
-    // 3. REALTIME SYNC DENGAN FIREBASE
-    db.collection("notes").onSnapshot((snapshot) => {
-        notesData = [];
-        snapshot.forEach((doc) => {
-            notesData.push(doc.data());
-        });
-        
-        // Render ulang list catatan setiap kali ada perubahan di database
-        renderNotesList();
-    }, (error) => {
-        console.error("Error fetching notes: ", error);
-        showToast("Gagal mengambil data dari server.");
-    });
+            // REALTIME SYNC DENGAN FIREBASE DATA CATATAN
+            db.collection("notes").onSnapshot((snapshot) => {
+                notesData = [];
+                snapshot.forEach((doc) => {
+                    notesData.push(doc.data());
+                });
+                renderNotesList();
+            }, (error) => {
+                console.error("Error fetching notes: ", error);
+                showToast("Gagal mengambil data dari server.");
+            });
 
-    // Auto-cleanup arsip lama (Lebih dari 30 hari) - Dijalankan sekali saat load
-    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    db.collection("notes").where("isArchived", "==", true).get().then((snapshot) => {
-        const batch = db.batch();
-        let hasDeletions = false;
-        snapshot.forEach((doc) => {
-            const note = doc.data();
-            if (note.archived_at && (now - new Date(note.archived_at).getTime() > THIRTY_DAYS_MS)) {
-                batch.delete(doc.ref);
-                hasDeletions = true;
-            }
-        });
-        if (hasDeletions) batch.commit();
+            // Auto-cleanup arsip lama yang sudah lebih dari 30 hari
+            const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+            const now = Date.now();
+            db.collection("notes").where("isArchived", "==", true).get().then((snapshot) => {
+                const batch = db.batch();
+                let hasDeletions = false;
+                snapshot.forEach((doc) => {
+                    const note = doc.data();
+                    if (note.archived_at && (now - new Date(note.archived_at).getTime() > THIRTY_DAYS_MS)) {
+                        batch.delete(doc.ref);
+                        hasDeletions = true;
+                    }
+                });
+                if (hasDeletions) batch.commit();
+            });
+        }
     });
 
     // Event Listener Editor Inputs
     const editorInputs = ['note-title', 'note-input', 'note-category', 'note-tags', 'note-color'];
     editorInputs.forEach(id => {
-        document.getElementById(id).addEventListener('input', triggerAutoSave);
+        const el = document.getElementById(id);
+        if(el) el.addEventListener('input', triggerAutoSave);
     });
 
     // Validasi Modal Hapus Catatan
-    document.getElementById('delete-confirm-input').addEventListener('input', function(e) {
-        const btn = document.getElementById('btn-confirm-delete');
-        if (e.target.value.trim().toUpperCase() === 'YAKIN') {
-            btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
-        } else {
-            btn.disabled = true; btn.style.opacity = '0.5'; btn.style.cursor = 'not-allowed';
-        }
-    });
+    const deleteInput = document.getElementById('delete-confirm-input');
+    if (deleteInput) {
+        deleteInput.addEventListener('input', function(e) {
+            const btn = document.getElementById('btn-confirm-delete');
+            if (e.target.value.trim().toUpperCase() === 'YAKIN') {
+                btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+            } else {
+                btn.disabled = true; btn.style.opacity = '0.5'; btn.style.cursor = 'not-allowed';
+            }
+        });
+    }
 
     // Tutup dropdown kebab menu
     window.addEventListener('click', function(e) {
@@ -136,6 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================
 function renderCategoryDropdown() {
     const select = document.getElementById('note-category');
+    if(!select) return;
     select.innerHTML = '';
     getAllCategories().forEach(cat => {
         const opt = document.createElement('option');
@@ -147,6 +162,7 @@ function renderCategoryDropdown() {
 
 function renderSidebarCategories() {
     const container = document.getElementById('custom-categories-container');
+    if(!container) return;
     container.innerHTML = '';
     if (customCategories.length > 0) {
         container.innerHTML = `<div class="menu-section-title" style="margin-top: 15px;">Kategori Custom</div>`;
@@ -204,7 +220,6 @@ window.processDeleteCategory = function() {
     customCategories = customCategories.filter(c => c.id !== categoryToDelete);
     DB.save('taufik_categories_v1', customCategories);
     
-    // Update semua catatan di Firebase yang ada di kategori ini
     db.collection("notes").where("category", "==", categoryToDelete).get().then((snapshot) => {
         const batch = db.batch();
         snapshot.forEach((doc) => {
@@ -226,6 +241,7 @@ window.processDeleteCategory = function() {
 
 function renderCategoryManager() {
     const list = document.getElementById('category-list');
+    if(!list) return;
     list.innerHTML = '';
     defaultCategories.forEach(cat => {
         list.innerHTML += `<div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f5f5f5; border-radius: 6px;"><span style="font-size: 13px; color: #666;">${cat.label}</span><span style="font-size: 10px; font-weight: bold; color: #aaa; text-transform: uppercase;">Default</span></div>`;
@@ -242,7 +258,7 @@ function getCategoryLabel(catId) {
 }
 
 // ==========================================
-// RENDER & FILTER LIST
+// RENDER & FILTER CATATAN
 // ==========================================
 window.filterNotes = function(filter, element) {
     currentFilter = filter;
@@ -256,6 +272,7 @@ window.searchNotes = function() { renderNotesList(); }
 
 function renderNotesList() {
     const listPanel = document.getElementById('notes-list');
+    if(!listPanel) return;
     const searchVal = document.getElementById('searchNote').value.toLowerCase();
     listPanel.innerHTML = '';
 
@@ -336,7 +353,7 @@ function renderNotesList() {
 }
 
 // ==========================================
-// DRAG AND DROP LOGIC
+// DRAG AND DROP URUTAN CATATAN
 // ==========================================
 function handleDragStart(e) {
     draggedNoteId = this.dataset.id;
@@ -370,7 +387,6 @@ function handleDrop(e) {
     const draggedItem = notesData.splice(dragIndex, 1)[0];
     notesData.splice(targetIndex, 0, draggedItem);
     
-    // Update urutan massal ke Firebase
     const batch = db.batch();
     notesData.forEach((note, idx) => { 
         note.order = idx; 
@@ -393,7 +409,7 @@ window.quickDelete = function(e, id) {
 }
 
 // ==========================================
-// EDITOR & TOOLBAR
+// TOOLBAR FORMAT MARKDOWN
 // ==========================================
 window.insertFormat = function(type) {
     const textarea = document.getElementById('note-input');
@@ -421,6 +437,9 @@ window.insertFormat = function(type) {
     triggerAutoSave();
 }
 
+// ==========================================
+// MANAJEMEN EDITOR BACA & SIMPAN
+// ==========================================
 window.createNewNote = function() {
     activeNoteId = null; 
     document.getElementById('note-title').value = '';
@@ -522,11 +541,9 @@ function saveNote(isAutoSave = false) {
     const color = document.getElementById('note-color').value;
     const tagsInput = document.getElementById('note-tags').value;
     const tags = tagsInput ? tagsInput.split(',').map(t => t.trim().toLowerCase()).filter(t => t !== '') : [];
-    
     const isPinned = document.getElementById('btn-pin').dataset.pinned === "true";
     
     if (activeNoteId) {
-        // Update dokumen lama
         db.collection("notes").doc(activeNoteId).update({
             title: title || 'Tanpa Judul',
             content: content,
@@ -536,7 +553,6 @@ function saveNote(isAutoSave = false) {
             isPinned: isPinned
         });
     } else {
-        // Buat dokumen baru di Firebase
         const newId = 'NOTE-' + Date.now();
         activeNoteId = newId; 
         
@@ -555,12 +571,11 @@ function saveNote(isAutoSave = false) {
         };
         db.collection("notes").doc(newId).set(newNote);
     }
-
     document.getElementById('save-status').innerText = 'Tersimpan otomatis.';
 }
 
 // ==========================================
-// DELETE & RESTORE CATATAN
+// HAPUS & DIKEMBALIKAN (RESTORE) CATATAN
 // ==========================================
 window.deleteCurrentNote = function() {
     if (!activeNoteId) return;
@@ -586,14 +601,12 @@ window.processDelete = function() {
     if (noteIndex === -1) return;
 
     if (notesData[noteIndex].isArchived) {
-        // Hapus permanen dari Firebase
         db.collection("notes").doc(activeNoteId).delete().then(() => {
             showToast('Catatan dihapus permanen.');
             closeDeleteModal();
             closeEditor(); 
         });
     } else {
-        // Pindah ke arsip
         db.collection("notes").doc(activeNoteId).update({
             isArchived: true,
             archived_at: new Date().toISOString(),
@@ -607,7 +620,6 @@ window.processDelete = function() {
 }
 
 window.restoreNote = function() {
-    // Keluarkan dari arsip
     db.collection("notes").doc(activeNoteId).update({
         isArchived: false,
         archived_at: firebase.firestore.FieldValue.delete()
@@ -618,14 +630,13 @@ window.restoreNote = function() {
 }
 
 // ==========================================
-// SHARE MODE (CLOUD FETCHING)
+// SHARE MODE (PUBLIC LINK VIEW)
 // ==========================================
 window.toggleShare = function() {
     if(!activeNoteId) return;
     const note = notesData.find(n => n.id === activeNoteId);
     const newShareStatus = !note.isShared;
     
-    // Update ke Firebase
     db.collection("notes").doc(activeNoteId).update({
         isShared: newShareStatus
     }).then(() => {
@@ -652,7 +663,6 @@ window.initShareMode = function(id) {
     const overlay = document.getElementById('share-view-overlay');
     overlay.style.display = 'block';
 
-    // Fetch langsung dari Firebase Cloud
     db.collection("notes").doc(id).get().then((doc) => {
         if (doc.exists && doc.data().isShared) {
             const note = doc.data();
@@ -669,12 +679,11 @@ window.initShareMode = function(id) {
     }).catch((error) => {
         document.getElementById('share-title').innerText = "Error Sistem";
         document.getElementById('share-content').innerHTML = "<p>Gagal mengambil catatan dari server.</p>";
-        console.error("Error getting document:", error);
     });
 }
 
 // ==========================================
-// VIEW MODE TOGGLE & PIN
+// TOGGLE PIN & VIEW/EDIT MODE
 // ==========================================
 window.togglePin = function() {
     const pinBtn = document.getElementById('btn-pin');
@@ -709,8 +718,6 @@ window.enablePreviewMode = function() {
     document.getElementById('note-color').disabled = true;
     
     btnToggle.innerHTML = '<i class="fa-solid fa-pen"></i> Edit Catatan';
-    btnToggle.classList.remove('btn-outline');
-    btnToggle.classList.add('btn');
     
     const note = notesData.find(n => n.id === activeNoteId);
     document.getElementById('save-status').innerText = note && note.isArchived ? 'Sampah (Read-Only)' : 'Mode Baca.';
@@ -732,8 +739,6 @@ window.enableEditMode = function() {
     document.getElementById('note-color').disabled = false;
     
     btnToggle.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Simpan Catatan';
-    btnToggle.classList.remove('btn-outline');
-    btnToggle.classList.add('btn');
     
     document.getElementById('save-status').innerText = 'Mode Edit.';
     isPreviewMode = false;
@@ -741,6 +746,7 @@ window.enableEditMode = function() {
 
 function showToast(message) {
     const toast = document.getElementById("toast");
+    if(!toast) return;
     toast.innerText = message;
     toast.className = "toast show";
     setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
