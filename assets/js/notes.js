@@ -1,5 +1,5 @@
 /**
- * TAUFIK SYSTEM - SMART NOTES ENGINE v6.0 (ULTIMATE SHARE EDITION)
+ * TAUFIK SYSTEM - SMART NOTES ENGINE v6.1 (FIXED RESPONSIVE + DELETE COMMENT)
  * + Firebase Firestore Sync, Gateway Auth, Realtime Public Comments, Shared Editor
  */
 
@@ -73,12 +73,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const shareId = urlParams.get('share');
     
     if (shareId) {
-        // BYPASS GATEWAY: Jalankan mode Share Publik
         initShareMode(shareId);
         return; 
     }
 
-    // SATPAM INTERNAL ADMIN
     auth.onAuthStateChanged((user) => {
         if (!user) {
             window.location.href = 'index.html';
@@ -86,7 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
             renderCategoryDropdown();
             renderSidebarCategories();
 
-            // REALTIME DATABASE SYNC (Admin View)
             db.collection("notes").onSnapshot((snapshot) => {
                 notesData = [];
                 snapshot.forEach((doc) => { notesData.push(doc.data()); });
@@ -96,7 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast("Gagal menyinkronkan server.");
             });
 
-            // Auto Cleanup 30 Hari
             const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
             const now = Date.now();
             db.collection("notes").where("isArchived", "==", true).get().then((snapshot) => {
@@ -114,14 +110,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Auto-save listeners
     const editorInputs = ['note-title', 'note-input', 'note-category', 'note-tags', 'note-color'];
     editorInputs.forEach(id => {
         const el = document.getElementById(id);
         if(el) el.addEventListener('input', triggerAutoSave);
     });
 
-    // Modal Validation
     const deleteInput = document.getElementById('delete-confirm-input');
     if (deleteInput) {
         deleteInput.addEventListener('input', function(e) {
@@ -134,7 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Kebab Menu Close Logic
     window.addEventListener('click', function(e) {
         if (!e.target.closest('.kebab-wrapper')) {
             document.querySelectorAll('.kebab-dropdown').forEach(d => d.classList.remove('show'));
@@ -253,7 +246,6 @@ function renderNotesList() {
     });
 }
 
-// Drag & Drop
 function handleDragStart(e) { draggedNoteId = this.dataset.id; e.dataTransfer.effectAllowed = 'move'; setTimeout(() => this.classList.add('dragging'), 0); }
 function handleDragOver(e) { e.preventDefault(); this.classList.add('drag-over'); }
 function handleDragLeave() { this.classList.remove('drag-over'); }
@@ -324,7 +316,6 @@ window.openNoteInEditor = function(id) {
     pinBtn.dataset.pinned = note.isPinned ? "true" : "false"; 
     pinBtn.style.color = note.isPinned ? 'var(--warning)' : '#888';
     
-    // Set Share Status in Editor
     const shareBtn = document.getElementById('btn-share');
     const permSelect = document.getElementById('share-permission-select');
     if(note.isShared) {
@@ -335,7 +326,6 @@ window.openNoteInEditor = function(id) {
         permSelect.style.display = 'none';
     }
 
-    // Set Comment Section for Admin
     if (note.isShared && note.shareMode === 'comment') {
         document.getElementById('admin-comments-section').style.display = 'block';
         loadAdminComments(id);
@@ -376,7 +366,6 @@ function saveNote(isAutoSave = false) {
     }
     document.getElementById('save-status').innerText = 'Tersimpan otomatis.';
 }
-
 
 window.deleteCurrentNote = function() {
     if (!activeNoteId) return; const note = notesData.find(n => n.id === activeNoteId); document.getElementById('delete-confirm-input').value = '';
@@ -452,61 +441,52 @@ window.initShareMode = function(id) {
     document.body.style.background = '#f8f9fa';
     document.getElementById('share-view-overlay').style.display = 'block';
 
-    // Gunakan onSnapshot agar pengunjung selalu melihat update realtime dari Admin/Pihak lain
     db.collection("notes").doc(id).onSnapshot((doc) => {
         if (doc.exists) {
             const note = doc.data();
             const mode = note.shareMode || 'view';
             
             if (!note.isShared) {
-                // Skenario 1: Catatan Dikunci
                 document.getElementById('share-locked-view').style.display = 'block';
                 document.getElementById('share-preview-view').style.display = 'none';
                 document.getElementById('share-edit-view').style.display = 'none';
                 document.getElementById('share-comments-section').style.display = 'none';
             } else {
-                // Skenario 2: Catatan Dibuka
                 document.getElementById('share-locked-view').style.display = 'none';
                 
-                // Jangan paksa balik ke preview jika pengunjung sedang sibuk mengetik (edit view aktif)
                 const isEditingNow = document.getElementById('share-edit-view').style.display === 'flex';
                 if (!isEditingNow) {
                     document.getElementById('share-preview-view').style.display = 'block';
                 }
 
-                // Render Data
                 document.getElementById('share-title').innerText = escapeHTML(note.title) || 'Catatan';
                 document.getElementById('share-content').innerHTML = typeof marked !== 'undefined' ? marked.parse(note.content || '') : note.content;
                 
-                // Update text area diam-diam jika pengunjung tidak sedang ngetik
                 if (document.activeElement !== document.getElementById('share-note-input') && document.activeElement !== document.getElementById('share-title-input')) {
                     document.getElementById('share-note-input').value = note.content || '';
                     document.getElementById('share-title-input').value = note.title || '';
                 }
 
-                // Konfigurasi Visibilitas UI Berdasarkan Izin (Mode)
                 const btnEdit = document.getElementById('btn-share-edit-trigger');
                 const commentSec = document.getElementById('share-comments-section');
                 const footerStatus = document.getElementById('share-footer-status');
 
                 if (mode === 'edit') {
-                    btnEdit.style.display = 'flex'; // Tampilkan tombol trigger Edit
+                    btnEdit.style.display = 'flex';
                     commentSec.style.display = 'none';
                     footerStatus.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Mode Kolaborasi Publik (Dapat Mengedit)';
                 } else if (mode === 'comment') {
                     btnEdit.style.display = 'none';
                     commentSec.style.display = 'block';
                     footerStatus.innerHTML = '<i class="fa-regular fa-comment-dots"></i> Mode Interaktif (Dapat Berkomentar)';
-                    loadCommentsRealtime(id); // Muat komentar
+                    loadCommentsRealtime(id); 
                 } else { 
-                    // Default: View Only
                     btnEdit.style.display = 'none';
                     commentSec.style.display = 'none';
                     footerStatus.innerHTML = '<i class="fa-solid fa-eye"></i> Catatan Publik (Read-Only)';
                 }
             }
         } else {
-            // Skenario 3: Link Error / Dihapus
             document.getElementById('share-locked-view').style.display = 'block';
             document.getElementById('share-preview-view').style.display = 'none';
             document.getElementById('share-edit-view').style.display = 'none';
@@ -517,7 +497,6 @@ window.initShareMode = function(id) {
     });
 }
 
-// Navigasi Pindah Layar Preview <--> Layar Edit untuk Pengunjung
 window.toggleShareEditMode = function() {
     const previewView = document.getElementById('share-preview-view');
     const editView = document.getElementById('share-edit-view');
@@ -532,7 +511,6 @@ window.toggleShareEditMode = function() {
     }
 }
 
-// Simpan Hasil Editan Pengunjung
 window.saveSharedEdit = function() {
     if(!activeShareId) return;
     const nextContent = document.getElementById('share-note-input').value;
@@ -549,7 +527,7 @@ window.saveSharedEdit = function() {
     }).then(() => {
         btn.innerHTML = origText;
         btn.disabled = false;
-        toggleShareEditMode(); // Mulus kembali ke layar preview
+        toggleShareEditMode();
         showToast("Perubahan berhasil disimpan dan disinkronkan!");
     }).catch(err => {
         btn.innerHTML = origText;
@@ -558,7 +536,6 @@ window.saveSharedEdit = function() {
     });
 }
 
-// Format Toolbar Spesifik untuk Pengunjung (Share View)
 window.insertShareFormat = function(type) {
     const textarea = document.getElementById('share-note-input'); 
     const start = textarea.selectionStart; const end = textarea.selectionEnd; const text = textarea.value; const selectedText = text.substring(start, end);
@@ -577,7 +554,6 @@ window.insertShareFormat = function(type) {
     textarea.focus(); textarea.selectionStart = start + before.length; textarea.selectionEnd = textarea.selectionStart + insertText.length;
 }
 
-// Kirim Komentar Pengunjung
 window.submitSharedComment = function() {
     if(!activeShareId) return;
     const author = document.getElementById('share-comment-author').value.trim() || 'Anonymous';
@@ -603,7 +579,6 @@ function loadCommentsRealtime(id) {
         snapshot.forEach(doc => {
             const data = doc.data();
             const dateStr = new Date(data.created_at).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) + ' - ' + new Date(data.created_at).toLocaleDateString('id-ID', {day:'numeric', month:'short'});
-            
             const isAdmin = data.author === 'Admin' ? 'border-left: 3px solid var(--warning); background: #fff8e6;' : 'border-left: 3px solid var(--primary); background: #f1f5f9;';
 
             box.innerHTML += `
@@ -621,7 +596,7 @@ function loadCommentsRealtime(id) {
 }
 
 // ==========================================
-// 9. FITUR KOMENTAR UNTUK ADMIN
+// 9. FITUR KOMENTAR UNTUK ADMIN (DITAMBAH FUNGSI HAPUS)
 // ==========================================
 function loadAdminComments(id) {
     if(adminCommentListener) adminCommentListener(); 
@@ -636,11 +611,15 @@ function loadAdminComments(id) {
             const dateStr = new Date(data.created_at).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) + ' - ' + new Date(data.created_at).toLocaleDateString('id-ID', {day:'numeric', month:'short'});
             const isAdmin = data.author === 'Admin' ? 'border-left: 3px solid var(--warning); background: #fff8e6;' : 'border-left: 3px solid var(--primary); background: #f1f5f9;';
             
+            // Perbaikan: Nambahin tombol Delete (Tong Sampah Merah) khusus di view Admin
             box.innerHTML += `
                 <div style="padding: 10px 14px; border-radius: 12px; font-size: 12px; line-height: 1.4; margin-bottom: 5px; ${isAdmin}">
-                    <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; color: #64748b; margin-bottom: 4px; text-transform: uppercase;">
+                    <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; color: #64748b; margin-bottom: 4px; text-transform: uppercase; align-items: center;">
                         <span>👤 ${escapeHTML(data.author)} ${data.author === 'Admin' ? '👑' : ''}</span>
-                        <span>${dateStr}</span>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span>${dateStr}</span>
+                            <button onclick="deleteComment('${id}', '${doc.id}')" style="background: none; border: none; color: var(--danger); cursor: pointer; padding: 0; font-size: 12px;" title="Hapus Komentar"><i class="fa-solid fa-trash"></i></button>
+                        </div>
                     </div>
                     <div style="color:#333;">${escapeHTML(data.message)}</div>
                 </div>
@@ -663,6 +642,17 @@ window.submitAdminComment = function() {
     }).then(() => {
         document.getElementById('admin-comment-input').value = '';
     });
+}
+
+window.deleteComment = function(noteId, commentId) {
+    if(confirm("Yakin ingin menghapus komentar ini?")) {
+        db.collection("notes").doc(noteId).collection("comments").doc(commentId).delete().then(() => {
+            showToast("Komentar berhasil dihapus");
+        }).catch(err => {
+            console.error(err);
+            showToast("Gagal menghapus komentar");
+        });
+    }
 }
 
 // ==========================================
