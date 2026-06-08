@@ -13,26 +13,62 @@
 
     <div id="share-view-overlay" class="share-view-overlay" style="display: none;">
         <div class="share-card">
-            <div class="share-header">
-                <span class="share-brand"><i class="fa-solid fa-note-sticky"></i> Taufik Notes Public</span>
-                <h2 id="share-title"></h2>
-                <div class="share-divider"></div>
+            
+            <div id="share-locked-view" style="display: none; text-align: center; padding: 50px 20px;">
+                <div style="margin: 0 auto 20px auto; background: rgba(249, 107, 107, 0.1); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(249, 107, 107, 0.2);">
+                    <i class="fa-solid fa-lock" style="font-size: 32px; color: var(--danger);"></i>
+                </div>
+                <h2 style="font-size: 24px; color: #333; font-weight: 800; margin-bottom: 10px;">Access Restricted</h2>
+                <p style="color: #888; font-size: 14px; max-width: 400px; margin: 0 auto; line-height: 1.5;">Catatan ini telah dikunci atau diatur sebagai privat oleh pemiliknya.</p>
             </div>
 
-            <div id="share-content" class="markdown-body"></div>
-            
-            <div id="share-edit-area" style="display: none; flex-direction: column; gap: 10px; margin-top: 20px;">
-                <textarea id="share-note-input" style="width: 100%; height: 300px; padding: 15px; font-family: monospace; border: 1px solid #ddd; border-radius: 8px; resize: vertical; outline: none;"></textarea>
-                <button class="btn" onclick="saveSharedEdit()" style="align-self: flex-end;"><i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan</button>
+            <div id="share-preview-view">
+                <div class="share-header">
+                    <span class="share-brand"><i class="fa-solid fa-note-sticky"></i> Taufik Notes</span>
+                    <h2 id="share-title"></h2>
+                    <div class="share-divider"></div>
+                    
+                    <button id="btn-share-edit-trigger" class="btn btn-sm btn-outline" onclick="toggleShareEditMode()" style="display: none; margin: 10px auto 0 auto; gap: 8px; align-items: center;">
+                        <i class="fa-solid fa-pen"></i> Edit Catatan Ini
+                    </button>
+                </div>
+                <div id="share-content" class="markdown-body"></div>
+            </div>
+
+            <div id="share-edit-view" style="display: none; flex-direction: column; gap: 15px; text-align: left;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                    <i class="fa-solid fa-user-pen" style="color: var(--primary); font-size: 20px;"></i>
+                    <h3 style="margin: 0; font-size: 18px; font-weight: 800;">Mode Kolaborasi Publik</h3>
+                </div>
+                
+                <input type="text" id="share-title-input" placeholder="Judul Catatan..." style="width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 8px; font-weight: 800; font-size: 16px; font-family: inherit; outline: none;">
+                
+                <div class="format-toolbar" style="border: 1px solid #ddd; border-bottom: none; border-radius: 8px 8px 0 0; padding: 8px 15px; background: #fafafa; display: flex;">
+                    <button type="button" onclick="insertShareFormat('bold')" title="Bold"><i class="fa-solid fa-bold"></i></button>
+                    <button type="button" onclick="insertShareFormat('italic')" title="Italic"><i class="fa-solid fa-italic"></i></button>
+                    <button type="button" onclick="insertShareFormat('strike')" title="Strikethrough"><i class="fa-solid fa-strikethrough"></i></button>
+                    <div class="divider" style="width: 1px; height: 18px; background: #ddd; margin: 0 5px; display: inline-block;"></div>
+                    <button type="button" onclick="insertShareFormat('code')" title="Inline Code"><i class="fa-solid fa-code"></i></button>
+                    <button type="button" onclick="insertShareFormat('codeblock')" title="Code Block"><i class="fa-solid fa-file-code"></i></button>
+                    <div class="divider" style="width: 1px; height: 18px; background: #ddd; margin: 0 5px; display: inline-block;"></div>
+                    <button type="button" onclick="insertShareFormat('ul')" title="Bullet List"><i class="fa-solid fa-list-ul"></i></button>
+                    <button type="button" onclick="insertShareFormat('quote')" title="Quote"><i class="fa-solid fa-quote-left"></i></button>
+                </div>
+                
+                <textarea id="share-note-input" placeholder="Ketik catatan di sini..." style="width: 100%; height: 350px; padding: 20px; font-family: 'Consolas', monospace; font-size: 14px; line-height: 1.6; border: 1px solid #ddd; border-radius: 0 0 8px 8px; resize: vertical; outline: none; margin-top: 0;"></textarea>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 5px;">
+                    <button class="btn btn-outline" onclick="toggleShareEditMode()">Batal</button>
+                    <button class="btn" onclick="saveSharedEdit()"><i class="fa-solid fa-floppy-disk"></i> Simpan & Selesai</button>
+                </div>
             </div>
 
             <div id="share-comments-section" style="display: none; margin-top: 40px; padding-top: 30px; border-top: 1px solid #eee; text-align: left;">
-                <h4 style="margin-bottom: 15px; font-weight: 700; font-size: 16px;"><i class="fa-regular fa-comments"></i> Komentar</h4>
-                <div id="share-comments-list" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; max-height: 250px; overflow-y: auto;">
-                    </div>
+                <h4 style="margin-bottom: 15px; font-weight: 700; font-size: 15px; color: #333;"><i class="fa-regular fa-comments"></i> Komentar Diskusi</h4>
+                <div id="share-comments-list" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; max-height: 250px; overflow-y: auto; padding-right: 5px;"></div>
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" id="share-comment-author" placeholder="Nama lo..." style="width: 100px; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; outline: none;">
-                    <input type="text" id="share-comment-input" placeholder="Tulis komentar kamu di sini..." style="flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; outline: none;">
+                    <input type="text" id="share-comment-author" placeholder="Nama Anda..." style="width: 110px; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; font-family: inherit; outline: none;">
+                    <input type="text" id="share-comment-input" placeholder="Tulis masukan atau komentar di sini..." style="flex: 1; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; font-family: inherit; outline: none;">
                     <button class="btn btn-sm" onclick="submitSharedComment()">Kirim</button>
                 </div>
             </div>
@@ -98,7 +134,7 @@
                     
                     <div class="editor-actions">
                         <div class="share-settings-wrapper" style="position: relative; display: flex; align-items: center; gap: 5px;">
-                            <select id="share-permission-select" onchange="updateSharePermission()" style="padding: 4px 8px; font-size: 11px; border-radius: 6px; border: 1px solid #ddd; font-family: inherit; font-weight: 600; color: #555; display: none;">
+                            <select id="share-permission-select" onchange="updateSharePermission()" style="padding: 6px 10px; font-size: 11px; border-radius: 6px; border: 1px solid #ddd; font-family: inherit; font-weight: 600; color: #555; display: none; outline: none; background: white; cursor: pointer;">
                                 <option value="view">👀 Lihat Saja</option>
                                 <option value="comment">💬 Bisa Komen</option>
                                 <option value="edit">✏️ Bisa Edit</option>
@@ -137,6 +173,15 @@
                 <textarea id="note-input" placeholder="Ketik catatanmu di sini... Dukung format Markdown untuk kodingan!"></textarea>
                 <div id="note-preview" class="markdown-body" style="display: none;"></div>
 
+                <div id="admin-comments-section" style="display: none; padding: 15px 25px; border-top: 1px dashed #ddd; background: #fdfdfd; max-height: 250px; overflow-y: auto;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #555; font-weight: 700;"><i class="fa-regular fa-comments"></i> Komentar Publik</h4>
+                    <div id="admin-comments-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;"></div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="admin-comment-input" placeholder="Balas sebagai Admin..." style="flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; font-family: inherit; outline: none;">
+                        <button class="btn btn-sm" onclick="submitAdminComment()">Balas</button>
+                    </div>
+                </div>
+
                 <div class="editor-footer">
                     <button class="btn" id="btn-toggle-view" onclick="toggleViewMode()"><i class="fa-solid fa-pen"></i> Edit Catatan</button>
                     <span id="save-status" class="save-status">Tersimpan otomatis.</span>
@@ -151,13 +196,13 @@
     </div>
 
     <div id="modal-delete" class="modal" style="display: none; justify-content: center; align-items: center; z-index: 3000;">
-        <div class="modal-content" style="width: 320px; height: auto; border-radius: 12px; padding: 20px; text-align: left; animation: popIn 0.2s ease-out; background: white;">
+        <div class="modal-content" style="width: 320px; background: white; border-radius: 12px; padding: 20px; text-align: left; animation: popIn 0.2s ease-out;">
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                 <i class="fa-solid fa-triangle-exclamation" style="font-size: 20px; color: var(--danger);"></i>
                 <h3 style="margin: 0; font-size: 16px; color: var(--text-color);">Konfirmasi Hapus</h3>
             </div>
             <p id="delete-modal-text" style="font-size: 12px; color: #666; margin-bottom: 15px; line-height: 1.5;"></p>
-            <input type="text" id="delete-confirm-input" placeholder="Ketik YAKIN..." style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; font-weight: 700; font-size: 13px; text-transform: uppercase; outline: none;">
+            <input type="text" id="delete-confirm-input" placeholder="Ketik YAKIN..." style="width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; font-weight: 700; font-size: 13px; text-transform: uppercase; outline: none; font-family: inherit;">
             <div style="display: flex; gap: 10px; justify-content: flex-end;">
                 <button class="btn btn-outline" onclick="closeDeleteModal()">Batal</button>
                 <button class="btn" id="btn-confirm-delete" onclick="processDelete()" style="background: var(--danger); opacity: 0.5; cursor: not-allowed;" disabled>Hapus</button>
@@ -166,10 +211,10 @@
     </div>
 
     <div id="modal-category" class="modal" style="display: none; justify-content: center; align-items: center; z-index: 3000;">
-        <div class="modal-content" style="width: 320px; background: white; padding: 20px; border-radius: 12px;">
+        <div class="modal-content" style="width: 320px; background: white; padding: 20px; border-radius: 12px; animation: popIn 0.2s ease-out;">
             <h3 style="margin: 0 0 15px 0; font-size: 16px;">Kelola Kategori</h3>
             <div style="display: flex; gap: 8px; margin-bottom: 15px;">
-                <input type="text" id="new-category-input" placeholder="Nama kategori baru..." style="flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; outline: none;">
+                <input type="text" id="new-category-input" placeholder="Nama kategori baru..." style="flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; outline: none; font-family: inherit; font-size: 13px;">
                 <button class="btn" onclick="addCategory()">Tambah</button>
             </div>
             <div id="category-list" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;"></div>
@@ -178,12 +223,12 @@
     </div>
 
     <div id="modal-delete-category" class="modal" style="display: none; justify-content: center; align-items: center; z-index: 4000;">
-        <div class="modal-content" style="width: 320px; background: white; padding: 20px; border-radius: 12px;">
+        <div class="modal-content" style="width: 320px; background: white; padding: 20px; border-radius: 12px; text-align: left; animation: popIn 0.2s ease-out;">
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                 <i class="fa-solid fa-triangle-exclamation" style="font-size: 20px; color: var(--danger);"></i>
                 <h3 style="margin: 0; font-size: 16px;">Hapus Kategori</h3>
             </div>
-            <p style="font-size: 12px; color: #666; margin-bottom: 15px;">Yakin hapus kategori ini? Catatan di dalamnya akan otomatis pindah ke <strong>Lainnya</strong>.</p>
+            <p style="font-size: 12px; color: #666; margin-bottom: 15px; line-height: 1.5;">Yakin hapus kategori ini? Catatan di dalamnya akan otomatis pindah ke <strong>Lainnya</strong>.</p>
             <div style="display: flex; gap: 10px; justify-content: flex-end;">
                 <button class="btn btn-outline" onclick="closeDeleteCategoryModal()">Batal</button>
                 <button class="btn" onclick="processDeleteCategory()" style="background: var(--danger);">Hapus</button>
@@ -192,10 +237,10 @@
     </div>
 
     <div id="modal-share-info" class="modal" style="display: none; justify-content: center; align-items: center; z-index: 3000;">
-        <div class="modal-content" style="width: 320px; background: white; padding: 20px; border-radius: 12px; text-align: center;">
+        <div class="modal-content" style="width: 320px; background: white; padding: 20px; border-radius: 12px; text-align: center; animation: popIn 0.2s ease-out;">
             <i class="fa-solid fa-globe" style="font-size: 30px; color: var(--primary); margin-bottom: 10px;"></i>
-            <h3 style="margin: 0 0 10px 0;">Link Berhasil Dicopy!</h3>
-            <p id="share-info-text" style="font-size: 12px; color: #666;"></p>
+            <h3 style="margin: 0 0 10px 0; font-size: 16px;">Link Berhasil Dicopy!</h3>
+            <p id="share-info-text" style="font-size: 12px; color: #666; line-height: 1.4;"></p>
             <button class="btn" onclick="document.getElementById('modal-share-info').style.display='none'" style="margin-top: 15px; width: 100%;">Tutup</button>
         </div>
     </div>
