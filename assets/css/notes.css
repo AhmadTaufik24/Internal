@@ -286,6 +286,7 @@ body {
     box-shadow: 0 5px 15px rgba(122, 158, 191, 0.1); 
 }
 
+/* Animasi saat Drag Drop */
 .note-card-item:active { 
     cursor: grabbing; 
 }
@@ -304,6 +305,7 @@ body {
     background: linear-gradient(to bottom, #eff6ff 0%, #ffffff 40px);
 }
 
+/* PIN ICON */
 .note-card-item.is-pinned::before {
     content: '\f08d'; 
     font-family: 'FontAwesome'; 
@@ -382,6 +384,7 @@ body {
     color: var(--highlight); 
 }
 
+/* Komponen Editor */
 .editor-header { 
     display: flex; 
     justify-content: space-between; 
@@ -480,6 +483,7 @@ body {
     font-style: italic; 
 }
 
+/* Helper Class */
 .d-mobile-only { 
     display: none; 
 }
@@ -530,6 +534,7 @@ body {
     border-radius: 0 8px 8px 0;
 }
 
+/* Perbaikan Warna Gelap Kodingan */
 .markdown-body pre { 
     background: #282c34 !important; 
     border-radius: 8px; 
@@ -554,6 +559,7 @@ body {
     font-size: 13px;
 }
 
+/* Override Highlight.js Colors untuk Dark Mode Code Block */
 .hljs-keyword, .hljs-tag, .hljs-name { color: #c678dd !important; }
 .hljs-string { color: #98c379 !important; }
 .hljs-title, .hljs-attr { color: #61afef !important; }
@@ -1008,6 +1014,33 @@ input[readonly]:focus, select[disabled]:focus {
     .format-toolbar button { 
         padding: 6px 8px; 
     }
+
+    /* =======================================================
+       🔥 SOLUSI FIX AREA KOMENTAR & EDITOR KEPOTONG DI HP 🔥
+       ======================================================= */
+       
+    /* 1. Potong jarak padding bagian atas (header & meta) biar hemat tempat */
+    .editor-header { padding: 12px 15px !important; }
+    .editor-meta { padding: 8px 15px !important; }
+    
+    /* 2. Kurangi jarak di area preview catatan */
+    #note-input, #note-preview { padding: 12px 15px !important; }
+    
+    /* 3. BATASI tinggi kolom komentar supaya nggak makan layar, bisa di-scroll di dalamnya */
+    #admin-comments-section { 
+        max-height: 150px !important; /* Disesuaikan agar hemat tempat */
+        padding: 10px 15px !important;
+    }
+    #share-comments-section {
+        margin-top: 20px !important;
+        padding-top: 15px !important;
+    }
+    #share-comments-list {
+        max-height: 150px !important;
+    }
+    
+    /* 4. Padetin footer */
+    .editor-footer { padding: 10px 15px !important; }
 }
 
 /* TOAST SYSTEM */
