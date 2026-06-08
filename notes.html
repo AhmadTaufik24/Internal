@@ -11,6 +11,9 @@
 </head>
 <body>
 
+    <!-- =========================================================
+         1. SHARE VIEW UI PREMIUM (UNTUK PENGUNJUNG LUAR)
+         ========================================================= -->
     <div id="share-view-overlay" class="share-view-overlay" style="display: none;">
         <div class="share-card">
             
@@ -80,6 +83,9 @@
         </div>
     </div>
 
+    <!-- =========================================================
+         2. MAIN WORKSPACE SIDEBAR (UNTUK ADMIN INTERNAL LO)
+         ========================================================= -->
     <div class="sidebar" id="app-sidebar">
         <div class="brand">TAUFIK NOTES <span></span></div>
         
@@ -114,6 +120,9 @@
         </div>
     </div>
 
+    <!-- =========================================================
+         3. MAIN WORKSPACE PANEL (UNTUK ADMIN INTERNAL LO)
+         ========================================================= -->
     <div class="main-content" id="app-main">
         <div class="topbar">
             <h2>Lihat Semua Catatan</h2>
@@ -130,10 +139,26 @@
             <div class="notes-list-panel" id="notes-list"></div>
 
             <div class="note-editor-panel" id="note-editor" style="display: none;">
-                <div class="editor-header">
-                    <input type="text" id="note-title" placeholder="Ketik Judul Catatan...">
+                
+                <!-- 🔥 PERUBAHAN SUPER COMPACT: Judul, Kategori & Tag diringkas di sini 🔥 -->
+                <div class="editor-header" style="align-items: flex-start; padding-bottom: 15px;">
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 200px;">
+                        <input type="text" id="note-title" placeholder="Ketik Judul Catatan..." style="width: 100%; font-size: 24px; font-weight: 800; border: none; outline: none; color: var(--text-color); background: transparent; font-family: inherit; padding: 0;">
+                        
+                        <!-- Mini Bar buat Tag dan Kategori -->
+                        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; background: #f0f0f0; border-radius: 6px; border: 1px solid #e0e0e0; overflow: hidden;">
+                                <select id="note-category" style="border: none; background: transparent; padding: 4px 8px; font-size: 11px; font-weight: 600; outline: none; cursor: pointer; color: #555;"></select>
+                                <button onclick="openCategoryModal()" title="Kelola Kategori" style="border: none; background: #e8e8e8; padding: 4px 8px; cursor: pointer; color: #555; border-left: 1px solid #e0e0e0;"><i class="fa-solid fa-plus" style="font-size: 10px;"></i></button>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 150px;">
+                                <i class="fa-solid fa-tags" style="color: #aaa; font-size: 12px;"></i>
+                                <input type="text" id="note-tags" placeholder="Ketik tag pisahkan dengan koma..." style="border: none; background: transparent; outline: none; font-size: 12px; font-family: inherit; width: 100%; color: #666;">
+                            </div>
+                        </div>
+                    </div>
                     
-                    <div class="editor-actions">
+                    <div class="editor-actions" style="margin-top: 5px;">
                         <div class="share-settings-wrapper" style="position: relative; display: flex; align-items: center; gap: 5px;">
                             <select id="share-permission-select" onchange="updateSharePermission()" style="padding: 6px 10px; font-size: 11px; border-radius: 6px; border: 1px solid #ddd; font-family: inherit; font-weight: 600; color: #555; display: none; outline: none; background: white; cursor: pointer;">
                                 <option value="view">👀 Lihat Saja</option>
@@ -151,14 +176,6 @@
                     </div>
                 </div>
 
-                <div class="editor-meta">
-                    <div style="display: flex; gap: 8px; align-items: center; flex: 1; min-width: 200px;">
-                        <select id="note-category" style="flex: 1;"></select>
-                        <button class="tool-btn" onclick="openCategoryModal()" title="Kelola Kategori" style="background: #eee;"><i class="fa-solid fa-plus"></i></button>
-                    </div>
-                    <input type="text" id="note-tags" placeholder="Tambahkan tag (koma)..." style="flex: 1;">
-                </div>
-
                 <div class="format-toolbar" id="format-toolbar">
                     <button type="button" onclick="insertFormat('bold')" title="Bold"><i class="fa-solid fa-bold"></i></button>
                     <button type="button" onclick="insertFormat('italic')" title="Italic"><i class="fa-solid fa-italic"></i></button>
@@ -174,7 +191,8 @@
                 <textarea id="note-input" placeholder="Ketik catatanmu di sini... Dukung format Markdown untuk kodingan!"></textarea>
                 <div id="note-preview" class="markdown-body" style="display: none;"></div>
 
-                <div id="admin-comments-section" style="display: none; padding: 15px 25px; border-top: 1px dashed #ddd; background: #fdfdfd; max-height: 250px; overflow-y: auto;">
+                <!-- 🔥 PERUBAHAN KOMENTAR BISA DITARIK/RESIZABLE: Perhatikan style resize: vertical; 🔥 -->
+                <div id="admin-comments-section" style="display: none; padding: 15px 25px; border-top: 1px solid #ddd; background: #fdfdfd; height: 160px; min-height: 110px; max-height: 50vh; resize: vertical; overflow: auto;">
                     <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #555; font-weight: 700;"><i class="fa-regular fa-comments"></i> Komentar Publik</h4>
                     <div id="admin-comments-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;"></div>
                     
@@ -197,6 +215,9 @@
         </div>
     </div>
 
+    <!-- =========================================================
+         4. ALL MODALS DIALOG SYSTEMS
+         ========================================================= -->
     <div id="modal-delete" class="modal" style="display: none; justify-content: center; align-items: center; z-index: 3000;">
         <div class="modal-content" style="width: 320px; background: white; border-radius: 12px; padding: 20px; text-align: left; animation: popIn 0.2s ease-out;">
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
@@ -249,13 +270,16 @@
 
     <div id="toast" class="toast">Aksi Berhasil!</div>
 
+    <!-- SCRIPTS PARSER MARKDOWN & HIGHLIGHT KODING -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
     
+    <!-- CORE FIREBASE SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
+    <!-- LOGIC ENGINE -->
     <script src="assets/js/notes.js"></script>
 </body>
 </html>
