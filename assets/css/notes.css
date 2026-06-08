@@ -752,3 +752,24 @@ input[readonly]:focus, select[disabled]:focus { box-shadow: none !important; }
 }
 .toast.show { visibility: visible; animation: popUp 0.3s forwards; }
 @keyframes popUp { from { bottom: 65px; opacity: 0; } to { bottom: 85px; opacity: 1; } }
+
+/* =========================================
+   SHARE PERMISSION - COMMENT BUBBLE
+   ========================================= */
+.comment-item {
+    background: #f1f5f9;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.4;
+    border-left: 3px solid var(--primary);
+}
+.comment-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    font-weight: 700;
+    color: #64748b;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
