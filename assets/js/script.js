@@ -1,17 +1,113 @@
 // ==========================================
-// 1. DATABASE REGISTRY (SKEMA SQL MASA DEPAN)
+// 0. FIREBASE AUTH & GATEWAY SYSTEM
+// ==========================================
+const firebaseConfig = {
+    apiKey: "AIzaSyCkUQXBYeMyQuB9X2HleubBDKuV3YpzVRg",
+    authDomain: "taufik-internal.firebaseapp.com",
+    projectId: "taufik-internal",
+    storageBucket: "taufik-internal.firebasestorage.app",
+    messagingSenderId: "212857824811",
+    appId: "1:212857824811:web:15ba9d4d7edeae4afeec6e"
+};
+
+// Inisialisasi Firebase
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const auth = firebase.auth();
+
+// Pantau Sesi Login (Otomatis jalan saat halaman dibuka)
+auth.onAuthStateChanged((user) => {
+    const loginOverlay = document.getElementById('login-overlay');
+    if (user) {
+        // Jika sudah login, hilangkan layar penutup
+        loginOverlay.style.opacity = '0';
+        setTimeout(() => loginOverlay.style.display = 'none', 500);
+    } else {
+        // Jika belum login, paksa munculkan layar penutup
+        loginOverlay.style.display = 'flex';
+        loginOverlay.style.opacity = '1';
+    }
+});
+
+// Fungsi Eksekusi Login
+window.processLogin = function() {
+    const email = document.getElementById('login-email').value;
+    const pass = document.getElementById('login-pass').value;
+    const btn = document.getElementById('btn-login');
+    
+    if(!email || !pass) {
+        showModal('warning', 'Input Kosong', 'Harap isi email dan password.', false);
+        return;
+    }
+
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memproses...';
+    btn.disabled = true;
+
+    auth.signInWithEmailAndPassword(email, pass)
+        .then((userCredential) => {
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Berhasil';
+            // Layar akan otomatis hilang berkat onAuthStateChanged
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Login System';
+                btn.disabled = false;
+                document.getElementById('login-pass').value = ''; // bersihkan password
+            }, 1000);
+        })
+        .catch((error) => {
+            btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Login System';
+            btn.disabled = false;
+            showModal('error', 'Akses Ditolak', 'Email atau password salah!', false);
+        });
+}
+
+// Fungsi Lupa Password
+window.resetPassword = function() {
+    const email = document.getElementById('login-email').value;
+    
+    if(!email) {
+        showModal('warning', 'Email Kosong', 'Ketik email lo dulu di kolom atas, baru klik Lupa Password.', false);
+        return;
+    }
+
+    auth.sendPasswordResetEmail(email)
+        .then(() => {
+            showModal('success', 'Email Terkirim', 'Link reset password udah dikirim. Silakan cek Inbox atau folder Spam email lo!', false);
+        })
+        .catch((error) => {
+            let msg = 'Terjadi kesalahan sistem.';
+            if(error.code === 'auth/user-not-found') msg = 'Email tidak terdaftar di sistem.';
+            else if(error.code === 'auth/invalid-email') msg = 'Format email tidak valid.';
+            
+            showModal('error', 'Gagal Reset', msg, false);
+        });
+}
+
+// Fungsi Logout
+window.processLogout = async function() {
+    const isConfirmed = await showModal('warning', 'Konfirmasi', 'Yakin ingin keluar dari Taufik OS?', true);
+    if(isConfirmed) {
+        auth.signOut().then(() => {
+            showToast && typeof showToast === 'function' ? showToast('Berhasil Logout') : null;
+        }).catch((error) => {
+            showModal('error', 'Error', 'Gagal logout.', false);
+        });
+    }
+}
+
+
+// ==========================================
+// 1. DATABASE REGISTRY (SKEMA LOKAL LAMA)
 // ==========================================
 const OS_TABLES = [
-    'jo_db_v47',                // Milik halaman: project-tracker.html
-    'taufik_finance_db',        // Milik halaman: finance.html
-    'taufik_notes_db_v1',       // Milik halaman: notes.html
-    'taufik_crm_v2',            // Milik halaman: client-crm.html
-    'taufik_assets_library_v1', // Milik halaman: lib.html
-    'taufik_core_db'            // Milik halaman: command-center.html
+    'jo_db_v47',                
+    'taufik_finance_db',        
+    'taufik_notes_db_v1',       
+    'taufik_crm_v2',            
+    'taufik_assets_library_v1', 
+    'taufik_core_db'            
 ];
 
 // ==========================================
-// 2. DATABASE SERVICE (SQL / API READY)
+// 2. DATABASE SERVICE (LOKAL - Akan diganti Firestore pelan-pelan)
 // ==========================================
 const DB = {
     load: async function(tableName) {
@@ -61,12 +157,50 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// 4. MASTER OS BACKUP SYSTEM (UPDATED)
+// 4. CUSTOM MODAL ENGINE
+// ==========================================
+function showModal(type, title, message, showCancel = true) {
+    return new Promise((resolve) => {
+        const overlay = document.getElementById('os-modal');
+        const titleEl = document.getElementById('modal-title');
+        const messageEl = document.getElementById('modal-message');
+        const iconEl = document.getElementById('modal-icon');
+        const btnCancel = document.getElementById('modal-cancel');
+        const btnConfirm = document.getElementById('modal-confirm');
+
+        titleEl.textContent = title;
+        messageEl.innerHTML = message.replace(/\n/g, '<br>');
+
+        iconEl.className = `modal-icon ${type}`;
+        if (type === 'warning') iconEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+        if (type === 'success') iconEl.innerHTML = '<i class="fa-solid fa-check"></i>';
+        if (type === 'error') iconEl.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+
+        btnCancel.style.display = showCancel ? 'block' : 'none';
+        btnConfirm.textContent = showCancel ? 'Lanjutkan' : 'Oke';
+
+        overlay.classList.add('active');
+
+        const cleanup = () => {
+            overlay.classList.remove('active');
+            btnConfirm.removeEventListener('click', onConfirm);
+            btnCancel.removeEventListener('click', onCancel);
+        };
+
+        const onConfirm = () => { cleanup(); resolve(true); };
+        const onCancel = () => { cleanup(); resolve(false); };
+
+        btnConfirm.addEventListener('click', onConfirm);
+        btnCancel.addEventListener('click', onCancel);
+    });
+}
+
+// ==========================================
+// 5. MASTER OS BACKUP SYSTEM (LOKAL)
 // ==========================================
 async function downloadMasterBackup() {
     try {
         let dbDump = {};
-
         for (let table of OS_TABLES) {
             dbDump[table] = await DB.load(table);
         }
@@ -90,72 +224,15 @@ async function downloadMasterBackup() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        // Munculkan notifikasi sukses menggunakan Custom Modal
-        await showModal(
-            'success', 
-            'Backup Berhasil', 
-            'Seluruh database sistem (6 Tabel) berhasil di-backup dan diunduh. Simpan file tersebut di tempat yang aman.', 
-            false
-        );
-
+        await showModal('success', 'Backup Berhasil', 'Seluruh database sistem lokal berhasil di-backup.', false);
     } catch (error) {
-        // Jika terjadi error saat proses backup
-        await showModal(
-            'error', 
-            'Backup Gagal', 
-            'Terjadi kesalahan saat memproses data backup. Silakan coba lagi.', 
-            false
-        );
+        await showModal('error', 'Backup Gagal', 'Terjadi kesalahan saat memproses data backup.', false);
         console.error("Backup Error: ", error);
     }
 }
 
 // ==========================================
-// 5. CUSTOM MODAL ENGINE
-// ==========================================
-function showModal(type, title, message, showCancel = true) {
-    return new Promise((resolve) => {
-        const overlay = document.getElementById('os-modal');
-        const titleEl = document.getElementById('modal-title');
-        const messageEl = document.getElementById('modal-message');
-        const iconEl = document.getElementById('modal-icon');
-        const btnCancel = document.getElementById('modal-cancel');
-        const btnConfirm = document.getElementById('modal-confirm');
-
-        // Setup Teks & HTML
-        titleEl.textContent = title;
-        messageEl.innerHTML = message.replace(/\n/g, '<br>');
-
-        // Setup Icon berdasarkan tipe
-        iconEl.className = `modal-icon ${type}`;
-        if (type === 'warning') iconEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
-        if (type === 'success') iconEl.innerHTML = '<i class="fa-solid fa-check"></i>';
-        if (type === 'error') iconEl.innerHTML = '<i class="fa-solid fa-xmark"></i>';
-
-        // Setup Tombol
-        btnCancel.style.display = showCancel ? 'block' : 'none';
-        btnConfirm.textContent = showCancel ? 'Lanjutkan' : 'Oke';
-
-        // Tampilkan Modal
-        overlay.classList.add('active');
-
-        // Fungsi Cleanup & Resolve
-        const cleanup = () => {
-            overlay.classList.remove('active');
-            btnConfirm.removeEventListener('click', onConfirm);
-            btnCancel.removeEventListener('click', onCancel);
-        };
-
-        const onConfirm = () => { cleanup(); resolve(true); };
-        const onCancel = () => { cleanup(); resolve(false); };
-
-        btnConfirm.addEventListener('click', onConfirm);
-        btnCancel.addEventListener('click', onCancel);
-    });
-}
-
-// ==========================================
-// 6. MASTER OS RESTORE SYSTEM (UPDATED)
+// 6. MASTER OS RESTORE SYSTEM (LOKAL)
 // ==========================================
 async function restoreMasterBackup(inputElement) {
     const file = inputElement.files[0];
@@ -167,7 +244,6 @@ async function restoreMasterBackup(inputElement) {
             const content = JSON.parse(e.target.result);
 
             if (content.app_name === "TAUFIK_FREELANCE_OS") {
-                // Menggunakan Custom Modal pengganti confirm()
                 const isConfirmed = await showModal(
                     'warning',
                     'Peringatan Sistem!',
@@ -180,13 +256,7 @@ async function restoreMasterBackup(inputElement) {
                         await DB.save(tableName, content.data[tableName]);
                     }
                     
-                    // Menggunakan Custom Modal pengganti alert()
-                    await showModal(
-                        'success', 
-                        'Restore Berhasil', 
-                        'Master Data berhasil dipulihkan! Seluruh sistem telah sinkron.', 
-                        false
-                    );
+                    await showModal('success', 'Restore Berhasil', 'Master Data berhasil dipulihkan!', false);
                     location.reload(); 
                 }
             } else {
