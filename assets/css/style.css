@@ -319,3 +319,61 @@ main { max-width: 1100px; margin: 0 auto; }
     flex: 1; 
     padding: 14px; /* Dibuat sedikit lebih tebal untuk tombol modal */
 }
+
+/* =========================================================
+   LOGIN & AUTH SYSTEM UI
+   ========================================================= */
+.login-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: var(--bg-color);
+    background-image: radial-gradient(circle at 15% 0%, rgba(187, 213, 232, 0.4) 0%, transparent 40%), radial-gradient(circle at 85% 100%, rgba(122, 158, 191, 0.15) 0%, transparent 40%);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 10000; 
+    transition: opacity 0.5s ease;
+}
+
+.login-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px 30px;
+    text-align: center;
+    width: 90%; max-width: 350px;
+    box-shadow: var(--card-shadow);
+}
+
+.login-card h2 { font-size: 1.4rem; color: var(--text-main); margin-bottom: 5px; font-weight: 800; }
+.login-card p { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 25px; }
+
+.login-input {
+    width: 100%; padding: 12px 15px; margin-bottom: 15px;
+    border: 1px solid var(--border); border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem; outline: none;
+    transition: var(--transition);
+}
+.login-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(69, 109, 145, 0.1); }
+
+.forgot-pass-link {
+    font-size: 0.8rem;
+    color: var(--text-sub);
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+}
+.forgot-pass-link:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+.btn-admin.danger-btn {
+    background: rgba(249, 107, 107, 0.1);
+    color: var(--danger);
+    border: 1.5px solid rgba(249, 107, 107, 0.3);
+}
+.btn-admin.danger-btn:hover {
+    background: var(--danger);
+    color: white;
+    border-color: var(--danger);
+    box-shadow: 0 8px 20px rgba(249, 107, 107, 0.35);
+}
