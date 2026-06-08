@@ -43,7 +43,7 @@
                 
                 <input type="text" id="share-title-input" placeholder="Judul Catatan..." style="width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 8px; font-weight: 800; font-size: 16px; font-family: inherit; outline: none;">
                 
-                <div class="format-toolbar" style="border: 1px solid #ddd; border-bottom: none; border-radius: 8px 8px 0 0; padding: 8px 15px; background: #fafafa; display: flex;">
+                <div class="format-toolbar" style="border: 1px solid #ddd; border-bottom: none; border-radius: 8px 8px 0 0; padding: 8px 15px; background: #fafafa; display: flex; flex-wrap: wrap; gap: 5px;">
                     <button type="button" onclick="insertShareFormat('bold')" title="Bold"><i class="fa-solid fa-bold"></i></button>
                     <button type="button" onclick="insertShareFormat('italic')" title="Italic"><i class="fa-solid fa-italic"></i></button>
                     <button type="button" onclick="insertShareFormat('strike')" title="Strikethrough"><i class="fa-solid fa-strikethrough"></i></button>
@@ -66,7 +66,8 @@
             <div id="share-comments-section" style="display: none; margin-top: 40px; padding-top: 30px; border-top: 1px solid #eee; text-align: left;">
                 <h4 style="margin-bottom: 15px; font-weight: 700; font-size: 15px; color: #333;"><i class="fa-regular fa-comments"></i> Komentar Diskusi</h4>
                 <div id="share-comments-list" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; max-height: 250px; overflow-y: auto; padding-right: 5px;"></div>
-                <div style="display: flex; gap: 8px;">
+                
+                <div class="comment-input-wrapper">
                     <input type="text" id="share-comment-author" placeholder="Nama Anda..." style="width: 110px; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; font-family: inherit; outline: none;">
                     <input type="text" id="share-comment-input" placeholder="Tulis masukan atau komentar di sini..." style="flex: 1; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; font-family: inherit; outline: none;">
                     <button class="btn btn-sm" onclick="submitSharedComment()">Kirim</button>
@@ -176,7 +177,8 @@
                 <div id="admin-comments-section" style="display: none; padding: 15px 25px; border-top: 1px dashed #ddd; background: #fdfdfd; max-height: 250px; overflow-y: auto;">
                     <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #555; font-weight: 700;"><i class="fa-regular fa-comments"></i> Komentar Publik</h4>
                     <div id="admin-comments-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;"></div>
-                    <div style="display: flex; gap: 8px;">
+                    
+                    <div class="comment-input-wrapper">
                         <input type="text" id="admin-comment-input" placeholder="Balas sebagai Admin..." style="flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; font-family: inherit; outline: none;">
                         <button class="btn btn-sm" onclick="submitAdminComment()">Balas</button>
                     </div>
