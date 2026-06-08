@@ -1,6 +1,6 @@
 /**
- * TAUFIK SYSTEM - SMART NOTES ENGINE v5.0 (CLOUD EDITION)
- * + Firebase Firestore Integration, Realtime Sync, Cloud Share Mode, Gateway Security
+ * TAUFIK SYSTEM - SMART NOTES ENGINE v5.5 (ADVANCED SHARE EDITION)
+ * + Firebase Firestore Sync, Gateway Auth, Realtime Public Comments, Shared Editor
  */
 
 // 1. FIREBASE CONFIGURATION (TAUFIK INTERNAL INDUK)
@@ -13,12 +13,11 @@ const firebaseConfig = {
     appId: "1:212857824811:web:15ba9d4d7edeae4afeec6e"
 };
 
-// Inisialisasi Firebase
 if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// 2. STATE & LOCAL STORAGE (Hanya untuk Kategori Custom)
+// 2. STATE ENGINE
 const DB = {
     load: function(t) { return JSON.parse(localStorage.getItem(t)) || null; },
     save: function(t, d) { localStorage.setItem(t, JSON.stringify(d)); }
@@ -31,8 +30,9 @@ let autoSaveTimer = null;
 let isPreviewMode = false;
 let draggedNoteId = null;
 let categoryToDelete = null; 
+let activeShareId = null; // Khusus tracking mode share publik
+let commentListener = null; // Menghindari penumpukan data snapshot
 
-// === MANAJEMEN KATEGORI ===
 const defaultCategories = [
     { id: 'work', label: '💼 Pekerjaan' },
     { id: 'code', label: '💻 Koding & Snippet' },
@@ -42,11 +42,8 @@ const defaultCategories = [
 ];
 let customCategories = DB.load('taufik_categories_v1') || [];
 
-function getAllCategories() {
-    return [...defaultCategories, ...customCategories];
-}
+function getAllCategories() { return [...defaultCategories, ...customCategories]; }
 
-// Set up Highlight.js & Marked.js
 if (typeof marked !== 'undefined' && typeof hljs !== 'undefined') {
     marked.setOptions({
         highlight: function(code, lang) {
@@ -60,46 +57,39 @@ if (typeof marked !== 'undefined' && typeof hljs !== 'undefined') {
 
 function escapeHTML(str) {
     if (!str) return '';
-    return str.replace(/[&<>'"]/g, 
-        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-    );
+    return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
 }
 
-// 3. LOGIKA INISIALISASI & SATPAM GATEWAY
+// 3. LOGIKA INISIALISASI & GATEWAY SATPAM
 document.addEventListener('DOMContentLoaded', () => {
-    // Cek Mode Share
     const urlParams = new URLSearchParams(window.location.search);
     const shareId = urlParams.get('share');
     
     if (shareId) {
-        // Jika link share, bypass sistem satpam (langsung tampilkan mode baca)
+        // BYPASS GATEWAY: Jika bawa link share, langsung muat sistem pembaca umum
         initShareMode(shareId);
         return; 
     }
 
-    // SATPAM UTAMA: Jalankan pengecekan auth Firebase
+    // SATPAM INTERNAL (UNTUK ADMIN)
     auth.onAuthStateChanged((user) => {
         if (!user) {
-            // Jika tidak bawa parameter share DAN belum login, tendang balik ke index.html
             window.location.href = 'index.html';
         } else {
-            // Jika user valid (sudah login), jalankan sistem notes utama
             renderCategoryDropdown();
             renderSidebarCategories();
 
-            // REALTIME SYNC DENGAN FIREBASE DATA CATATAN
+            // REALTIME DATABASE SYNC
             db.collection("notes").onSnapshot((snapshot) => {
                 notesData = [];
-                snapshot.forEach((doc) => {
-                    notesData.push(doc.data());
-                });
+                snapshot.forEach((doc) => { notesData.push(doc.data()); });
                 renderNotesList();
             }, (error) => {
-                console.error("Error fetching notes: ", error);
-                showToast("Gagal mengambil data dari server.");
+                console.error(error);
+                showToast("Gagal menyinkronkan server.");
             });
 
-            // Auto-cleanup arsip lama yang sudah lebih dari 30 hari
+            // Cleanup sampah otomatis > 30 Hari
             const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
             const now = Date.now();
             db.collection("notes").where("isArchived", "==", true).get().then((snapshot) => {
@@ -117,14 +107,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Event Listener Editor Inputs
     const editorInputs = ['note-title', 'note-input', 'note-category', 'note-tags', 'note-color'];
     editorInputs.forEach(id => {
         const el = document.getElementById(id);
         if(el) el.addEventListener('input', triggerAutoSave);
     });
 
-    // Validasi Modal Hapus Catatan
     const deleteInput = document.getElementById('delete-confirm-input');
     if (deleteInput) {
         deleteInput.addEventListener('input', function(e) {
@@ -137,7 +125,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Tutup dropdown kebab menu
     window.addEventListener('click', function(e) {
         if (!e.target.closest('.kebab-wrapper')) {
             document.querySelectorAll('.kebab-dropdown').forEach(d => d.classList.remove('show'));
@@ -146,279 +133,130 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// RENDER KATEGORI (SIDEBAR & DROPDOWN)
+// OPERASI KELOLA CATEGORY
 // ==========================================
 function renderCategoryDropdown() {
     const select = document.getElementById('note-category');
-    if(!select) return;
-    select.innerHTML = '';
+    if(!select) return; select.innerHTML = '';
     getAllCategories().forEach(cat => {
         const opt = document.createElement('option');
-        opt.value = cat.id;
-        opt.innerText = cat.label;
-        select.appendChild(opt);
+        opt.value = cat.id; opt.innerText = cat.label; select.appendChild(opt);
     });
 }
-
 function renderSidebarCategories() {
     const container = document.getElementById('custom-categories-container');
-    if(!container) return;
-    container.innerHTML = '';
+    if(!container) return; container.innerHTML = '';
     if (customCategories.length > 0) {
         container.innerHTML = `<div class="menu-section-title" style="margin-top: 15px;">Kategori Custom</div>`;
         customCategories.forEach(cat => {
             const item = document.createElement('div');
             item.className = 'menu-item';
             if(currentFilter === cat.id) item.classList.add('active');
-            
             item.onclick = function() { filterNotes(cat.id, this); };
             item.innerHTML = `<i class="fa-solid fa-folder"></i> <span>${cat.label.replace('📁 ', '')}</span>`;
             container.appendChild(item);
         });
     }
 }
-
-// ==========================================
-// LOGIKA KELOLA KATEGORI
-// ==========================================
-window.openCategoryModal = function() {
-    document.getElementById('modal-category').style.display = 'flex';
-    renderCategoryManager();
-}
-window.closeCategoryModal = function() {
-    document.getElementById('modal-category').style.display = 'none';
-}
+window.openCategoryModal = function() { document.getElementById('modal-category').style.display = 'flex'; renderCategoryManager(); }
+window.closeCategoryModal = function() { document.getElementById('modal-category').style.display = 'none'; }
 window.addCategory = function() {
-    const input = document.getElementById('new-category-input');
-    const val = input.value.trim();
-    if(!val) return;
-    
-    const newCat = { id: 'cat_' + Date.now(), label: '📁 ' + val };
-    customCategories.push(newCat);
-    DB.save('taufik_categories_v1', customCategories);
-    
-    input.value = '';
-    renderCategoryManager();
-    renderCategoryDropdown();
-    renderSidebarCategories();
-    showToast("Kategori berhasil ditambah");
+    const input = document.getElementById('new-category-input'); const val = input.value.trim(); if(!val) return;
+    const newCat = { id: 'cat_' + Date.now(), label: '📁 ' + val }; customCategories.push(newCat);
+    DB.save('taufik_categories_v1', customCategories); input.value = '';
+    renderCategoryManager(); renderCategoryDropdown(); renderSidebarCategories(); showToast("Kategori ditambah");
 }
-
-window.deleteCategory = function(id) {
-    categoryToDelete = id;
-    document.getElementById('modal-delete-category').style.display = 'flex';
-}
-
-window.closeDeleteCategoryModal = function() {
-    document.getElementById('modal-delete-category').style.display = 'none';
-    categoryToDelete = null;
-}
-
+window.deleteCategory = function(id) { categoryToDelete = id; document.getElementById('modal-delete-category').style.display = 'flex'; }
+window.closeDeleteCategoryModal = function() { document.getElementById('modal-delete-category').style.display = 'none'; categoryToDelete = null; }
 window.processDeleteCategory = function() {
     if(!categoryToDelete) return;
-
     customCategories = customCategories.filter(c => c.id !== categoryToDelete);
     DB.save('taufik_categories_v1', customCategories);
-    
     db.collection("notes").where("category", "==", categoryToDelete).get().then((snapshot) => {
-        const batch = db.batch();
-        snapshot.forEach((doc) => {
-            batch.update(doc.ref, { category: 'misc' });
-        });
-        batch.commit();
+        const batch = db.batch(); snapshot.forEach((doc) => { batch.update(doc.ref, { category: 'misc' }); }); batch.commit();
     });
-    
-    if(currentFilter === categoryToDelete) {
-        filterNotes('all', document.querySelectorAll('.sidebar .menu-item')[0]);
-    }
-    
-    renderCategoryManager();
-    renderCategoryDropdown();
-    renderSidebarCategories();
-    showToast("Kategori berhasil dihapus");
-    closeDeleteCategoryModal();
+    if(currentFilter === categoryToDelete) filterNotes('all', document.querySelectorAll('.sidebar .menu-item')[0]);
+    renderCategoryManager(); renderCategoryDropdown(); renderSidebarCategories(); showToast("Kategori dihapus"); closeDeleteCategoryModal();
 }
-
 function renderCategoryManager() {
-    const list = document.getElementById('category-list');
-    if(!list) return;
-    list.innerHTML = '';
-    defaultCategories.forEach(cat => {
-        list.innerHTML += `<div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f5f5f5; border-radius: 6px;"><span style="font-size: 13px; color: #666;">${cat.label}</span><span style="font-size: 10px; font-weight: bold; color: #aaa; text-transform: uppercase;">Default</span></div>`;
-    });
-    customCategories.forEach(cat => {
-        list.innerHTML += `<div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #fff; border: 1px solid #ddd; border-radius: 6px;"><span style="font-size: 13px;">${cat.label}</span><button onclick="deleteCategory('${cat.id}')" style="background: none; border: none; color: var(--danger); cursor: pointer;"><i class="fa-solid fa-trash"></i></button></div>`;
-    });
+    const list = document.getElementById('category-list'); if(!list) return; list.innerHTML = '';
+    defaultCategories.forEach(cat => { list.innerHTML += `<div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f5f5f5; border-radius: 6px;"><span style="font-size: 13px; color: #666;">${cat.label}</span><span style="font-size: 10px; font-weight: bold; color: #aaa; text-transform: uppercase;">Default</span></div>`; });
+    customCategories.forEach(cat => { list.innerHTML += `<div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #fff; border: 1px solid #ddd; border-radius: 6px;"><span style="font-size: 13px;">${cat.label}</span><button onclick="deleteCategory('${cat.id}')" style="background: none; border: none; color: var(--danger); cursor: pointer;"><i class="fa-solid fa-trash"></i></button></div>`; });
 }
-
-function getCategoryLabel(catId) {
-    const allCats = getAllCategories();
-    const found = allCats.find(c => c.id === catId);
-    return found ? found.label : '📦 Lainnya';
-}
+function getCategoryLabel(catId) { const allCats = getAllCategories(); const found = allCats.find(c => c.id === catId); return found ? found.label : '📦 Lainnya'; }
 
 // ==========================================
-// RENDER & FILTER CATATAN
+// RENDER & FILTER CATATAN VIEW LIST
 // ==========================================
-window.filterNotes = function(filter, element) {
-    currentFilter = filter;
-    document.querySelectorAll('.sidebar .menu-item').forEach(m => m.classList.remove('active'));
-    if(element) element.classList.add('active');
-    closeEditor();
-    renderNotesList();
-}
-
+window.filterNotes = function(filter, element) { currentFilter = filter; document.querySelectorAll('.sidebar .menu-item').forEach(m => m.classList.remove('active')); if(element) element.classList.add('active'); closeEditor(); renderNotesList(); }
 window.searchNotes = function() { renderNotesList(); }
-
 function renderNotesList() {
-    const listPanel = document.getElementById('notes-list');
-    if(!listPanel) return;
-    const searchVal = document.getElementById('searchNote').value.toLowerCase();
-    listPanel.innerHTML = '';
+    const listPanel = document.getElementById('notes-list'); if(!listPanel) return;
+    const searchVal = document.getElementById('searchNote').value.toLowerCase(); listPanel.innerHTML = '';
 
     let filtered = notesData.filter(n => {
-        if (currentFilter === 'archive') { if (!n.isArchived) return false; } 
-        else { if (n.isArchived) return false; }
-
+        if (currentFilter === 'archive') { if (!n.isArchived) return false; } else { if (n.isArchived) return false; }
         let mTabFix = false;
         if (currentFilter === 'all' || currentFilter === 'archive') mTabFix = true;
         else if (currentFilter === 'pinned') mTabFix = n.isPinned === true;
         else mTabFix = n.category === currentFilter;
-
-        const mSearch = n.title.toLowerCase().includes(searchVal) || n.content.toLowerCase().includes(searchVal);
-        return mTabFix && mSearch;
+        return mTabFix && (n.title.toLowerCase().includes(searchVal) || n.content.toLowerCase().includes(searchVal));
     });
 
     filtered.sort((a, b) => {
-        if (a.isPinned && !b.isPinned) return -1;
-        if (!a.isPinned && b.isPinned) return 1;
-        const orderA = a.order || 0;
-        const orderB = b.order || 0;
-        if (orderA !== orderB) return orderA - orderB;
-        return new Date(b.created_at) - new Date(a.created_at);
+        if (a.isPinned && !b.isPinned) return -1; if (!a.isPinned && b.isPinned) return 1;
+        return (a.order || 0) - (b.order || 0) || new Date(b.created_at) - new Date(a.created_at);
     });
 
     if (filtered.length === 0) {
-        listPanel.innerHTML = `<div style="text-align:center; padding: 40px 20px; color:#aaa;"><i class="fa-solid fa-note-sticky" style="font-size:32px; margin-bottom:10px;"></i><p style="font-size:12px;">Tidak ada catatan.</p></div>`;
-        return;
+        listPanel.innerHTML = `<div style="text-align:center; padding: 40px 20px; color:#aaa;"><i class="fa-solid fa-note-sticky" style="font-size:32px; margin-bottom:10px;"></i><p style="font-size:12px;">Tidak ada catatan.</p></div>`; return;
     }
 
     filtered.forEach((n, index) => {
         const dateStr = new Date(n.created_at).toLocaleDateString('id-ID', { day:'numeric', month:'short' });
-        let rawPreview = n.content.replace(/[#*`_>]/g, '').substring(0, 60);
-        const previewText = escapeHTML(rawPreview) + '...'; 
-        
-        const pinClass = n.isPinned ? 'is-pinned' : '';
-        const activeClass = (n.id === activeNoteId) ? 'active' : '';
+        const previewText = escapeHTML(n.content.replace(/[#*`_>]/g, '').substring(0, 60)) + '...'; 
         const cardBorder = n.color && n.color !== '#ffffff' ? `border-left-color: ${n.color};` : '';
 
         const card = document.createElement('div');
-        card.className = `note-card-item ${pinClass} ${activeClass}`;
-        card.style = cardBorder;
-        
-        card.draggable = true;
-        card.dataset.id = n.id;
-        card.dataset.index = index;
-        card.dataset.ispinned = n.isPinned;
-        
-        card.addEventListener('dragstart', handleDragStart);
-        card.addEventListener('dragover', handleDragOver);
-        card.addEventListener('dragleave', handleDragLeave);
-        card.addEventListener('drop', handleDrop);
+        card.className = `note-card-item ${n.isPinned ? 'is-pinned' : ''} ${n.id === activeNoteId ? 'active' : ''}`;
+        card.style = cardBorder; card.draggable = true; card.dataset.id = n.id;
+        card.addEventListener('dragstart', handleDragStart); card.addEventListener('dragover', handleDragOver); card.addEventListener('dragleave', handleDragLeave); card.addEventListener('drop', handleDrop);
 
-        card.onclick = (e) => {
-            if(e.target.closest('.kebab-wrapper')) return;
-            openNoteInEditor(n.id);
-        };
-
-        let archiveNotice = n.isArchived ? `<div style="font-size:9px; color:var(--danger); margin-top:5px;">Arsip</div>` : '';
-
+        card.onclick = (e) => { if(!e.target.closest('.kebab-wrapper')) openNoteInEditor(n.id); };
         card.innerHTML = `
             <div class="kebab-wrapper">
                 <button class="kebab-btn" onclick="toggleKebab(event, '${n.id}')"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-                <div class="kebab-dropdown" id="kebab-${n.id}">
-                    <div class="kebab-item" onclick="quickDelete(event, '${n.id}')"><i class="fa-solid fa-trash"></i> Hapus</div>
-                </div>
+                <div class="kebab-dropdown" id="kebab-${n.id}"><div class="kebab-item" onclick="quickDelete(event, '${n.id}')"><i class="fa-solid fa-trash"></i> Hapus</div></div>
             </div>
             <h4 class="nc-title" style="${n.isArchived ? 'text-decoration: line-through; opacity:0.6;' : ''}">${escapeHTML(n.title) || 'Tanpa Judul'}</h4>
             <p class="nc-preview">${previewText}</p>
-            <div class="nc-meta">
-                <span>${dateStr}</span>
-                <span>${getCategoryLabel(n.category)}</span>
-            </div>
-            ${archiveNotice}
+            <div class="nc-meta"><span>${dateStr}</span><span>${getCategoryLabel(n.category)}</span></div>
+            ${n.isArchived ? '<div style="font-size:9px; color:var(--danger); margin-top:5px;">Arsip</div>' : ''}
         `;
         listPanel.appendChild(card);
     });
 }
 
-// ==========================================
-// DRAG AND DROP URUTAN CATATAN
-// ==========================================
-function handleDragStart(e) {
-    draggedNoteId = this.dataset.id;
-    e.dataTransfer.effectAllowed = 'move';
-    setTimeout(() => this.classList.add('dragging'), 0);
-}
-function handleDragOver(e) {
-    e.preventDefault();
-    this.classList.add('drag-over');
-    e.dataTransfer.dropEffect = 'move';
-}
-function handleDragLeave(e) {
-    this.classList.remove('drag-over');
-}
+function handleDragStart(e) { draggedNoteId = this.dataset.id; e.dataTransfer.effectAllowed = 'move'; setTimeout(() => this.classList.add('dragging'), 0); }
+function handleDragOver(e) { e.preventDefault(); this.classList.add('drag-over'); }
+function handleDragLeave() { this.classList.remove('drag-over'); }
 function handleDrop(e) {
-    e.preventDefault();
-    this.classList.remove('drag-over');
-    document.querySelectorAll('.note-card-item').forEach(c => c.classList.remove('dragging'));
-
-    const targetId = this.dataset.id;
-    if (draggedNoteId === targetId) return;
-
-    const dragIndex = notesData.findIndex(n => n.id === draggedNoteId);
-    const targetIndex = notesData.findIndex(n => n.id === targetId);
-
-    if (notesData[dragIndex].isPinned !== notesData[targetIndex].isPinned) {
-        showToast("Urutan Pin dan Non-Pin dipisah!");
-        return;
-    }
-
-    const draggedItem = notesData.splice(dragIndex, 1)[0];
-    notesData.splice(targetIndex, 0, draggedItem);
-    
-    const batch = db.batch();
-    notesData.forEach((note, idx) => { 
-        note.order = idx; 
-        const ref = db.collection("notes").doc(note.id);
-        batch.update(ref, { order: idx });
-    });
-    batch.commit();
+    e.preventDefault(); this.classList.remove('drag-over'); document.querySelectorAll('.note-card-item').forEach(c => c.classList.remove('dragging'));
+    const targetId = this.dataset.id; if (draggedNoteId === targetId) return;
+    const dragIdx = notesData.findIndex(n => n.id === draggedNoteId); const targetIdx = notesData.findIndex(n => n.id === targetId);
+    if (notesData[dragIdx].isPinned !== notesData[targetIdx].isPinned) { showToast("Grup Pin dipisah!"); return; }
+    const draggedItem = notesData.splice(dragIdx, 1)[0]; notesData.splice(targetIdx, 0, draggedItem);
+    const batch = db.batch(); notesData.forEach((note, idx) => { note.order = idx; batch.update(db.collection("notes").doc(note.id), { order: idx }); }); batch.commit();
 }
-
-window.toggleKebab = function(e, id) {
-    e.stopPropagation();
-    document.querySelectorAll('.kebab-dropdown').forEach(d => { if(d.id !== `kebab-${id}`) d.classList.remove('show'); });
-    document.getElementById(`kebab-${id}`).classList.toggle('show');
-}
-window.quickDelete = function(e, id) {
-    e.stopPropagation();
-    activeNoteId = id; 
-    deleteCurrentNote();
-    document.getElementById(`kebab-${id}`).classList.remove('show');
-}
+window.toggleKebab = function(e, id) { e.stopPropagation(); document.querySelectorAll('.kebab-dropdown').forEach(d => { if(d.id !== `kebab-${id}`) d.classList.remove('show'); }); document.getElementById(`kebab-${id}`).classList.toggle('show'); }
+window.quickDelete = function(e, id) { e.stopPropagation(); activeNoteId = id; deleteCurrentNote(); document.getElementById(`kebab-${id}`).classList.remove('show'); }
 
 // ==========================================
-// TOOLBAR FORMAT MARKDOWN
+// EDITOR ACTIONS & AUTOMATIC WORKPLACE
 // ==========================================
 window.insertFormat = function(type) {
-    const textarea = document.getElementById('note-input');
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-    const selectedText = text.substring(start, end);
+    const textarea = document.getElementById('note-input'); const start = textarea.selectionStart; const end = textarea.selectionEnd; const text = textarea.value; const selectedText = text.substring(start, end);
     let before = '', after = '', fallback = '';
-
     switch(type) {
         case 'bold': before = '**'; after = '**'; fallback = 'Teks tebal'; break;
         case 'italic': before = '*'; after = '*'; fallback = 'Teks miring'; break;
@@ -428,326 +266,233 @@ window.insertFormat = function(type) {
         case 'ul': before = '\n- '; fallback = 'List item'; break;
         case 'quote': before = '\n> '; fallback = 'Kutipan'; break;
     }
-
-    const insertText = selectedText || fallback;
-    textarea.value = text.substring(0, start) + before + insertText + after + text.substring(end);
-    textarea.focus();
-    textarea.selectionStart = start + before.length;
-    textarea.selectionEnd = textarea.selectionStart + insertText.length;
-    triggerAutoSave();
+    const insertText = selectedText || fallback; textarea.value = text.substring(0, start) + before + insertText + after + text.substring(end);
+    textarea.focus(); textarea.selectionStart = start + before.length; textarea.selectionEnd = textarea.selectionStart + insertText.length; triggerAutoSave();
 }
 
-// ==========================================
-// MANAJEMEN EDITOR BACA & SIMPAN
-// ==========================================
 window.createNewNote = function() {
-    activeNoteId = null; 
-    document.getElementById('note-title').value = '';
-    document.getElementById('note-input').value = '';
-    
-    let defaultCat = 'idea';
-    const foundCat = getAllCategories().find(c => c.id === currentFilter);
-    if(foundCat) defaultCat = foundCat.id;
-    
-    document.getElementById('note-category').value = defaultCat;
+    activeNoteId = null; document.getElementById('note-title').value = ''; document.getElementById('note-input').value = '';
+    document.getElementById('note-category').value = getAllCategories().find(c => c.id === currentFilter) ? currentFilter : 'idea';
     document.getElementById('note-color').value = '#ffffff';
-    
-    const pinBtn = document.getElementById('btn-pin');
-    pinBtn.dataset.pinned = "false";
-    pinBtn.style.color = '#888';
+    document.getElementById('btn-pin').dataset.pinned = "false"; document.getElementById('btn-pin').style.color = '#888';
     
     document.getElementById('btn-share').innerHTML = '<i class="fa-solid fa-lock"></i>';
     document.getElementById('btn-share').style.color = '#888';
+    document.getElementById('share-permission-select').style.display = 'none';
     document.getElementById('btn-restore').style.display = 'none';
-
-    document.getElementById('empty-editor-state').style.display = 'none';
-    document.getElementById('note-editor').style.display = 'flex';
-    
-    enableEditMode();
-    document.body.classList.add('editor-open');
-    document.getElementById('note-title').focus();
-    renderNotesList();
+    document.getElementById('empty-editor-state').style.display = 'none'; document.getElementById('note-editor').style.display = 'flex';
+    enableEditMode(); document.body.classList.add('editor-open'); document.getElementById('note-title').focus(); renderNotesList();
 }
 
 window.openNoteInEditor = function(id) {
-    const note = notesData.find(n => n.id === id);
-    if (!note) return;
-    activeNoteId = id;
-
-    document.getElementById('note-title').value = note.title;
-    document.getElementById('note-input').value = note.content;
-    document.getElementById('note-category').value = note.category;
-    document.getElementById('note-tags').value = (note.tags || []).join(', ');
+    const note = notesData.find(n => n.id === id); if (!note) return; activeNoteId = id;
+    document.getElementById('note-title').value = note.title; document.getElementById('note-input').value = note.content;
+    document.getElementById('note-category').value = note.category; document.getElementById('note-tags').value = (note.tags || []).join(', ');
     document.getElementById('note-color').value = note.color || '#ffffff';
     
-    const pinBtn = document.getElementById('btn-pin');
-    pinBtn.dataset.pinned = note.isPinned ? "true" : "false";
-    pinBtn.style.color = note.isPinned ? 'var(--warning)' : '#888';
+    const pinBtn = document.getElementById('btn-pin'); pinBtn.dataset.pinned = note.isPinned ? "true" : "false"; pinBtn.style.color = note.isPinned ? 'var(--warning)' : '#888';
     
     const shareBtn = document.getElementById('btn-share');
+    const permSelect = document.getElementById('share-permission-select');
     if(note.isShared) {
-        shareBtn.innerHTML = '<i class="fa-solid fa-unlock"></i>';
-        shareBtn.style.color = 'var(--primary)';
+        shareBtn.innerHTML = '<i class="fa-solid fa-unlock"></i>'; shareBtn.style.color = 'var(--primary)';
+        permSelect.value = note.shareMode || 'view'; permSelect.style.display = 'inline-block';
     } else {
-        shareBtn.innerHTML = '<i class="fa-solid fa-lock"></i>';
-        shareBtn.style.color = '#888';
+        shareBtn.innerHTML = '<i class="fa-solid fa-lock"></i>'; shareBtn.style.color = '#888';
+        permSelect.style.display = 'none';
     }
 
     if (note.isArchived) {
-        document.getElementById('btn-restore').style.display = 'inline-block';
-        document.getElementById('btn-pin').style.display = 'none';
-        document.getElementById('btn-toggle-view').style.display = 'none';
-        document.getElementById('format-toolbar').style.display = 'none';
+        document.getElementById('btn-restore').style.display = 'inline-block'; document.getElementById('btn-pin').style.display = 'none'; document.getElementById('btn-toggle-view').style.display = 'none'; document.getElementById('format-toolbar').style.display = 'none';
     } else {
-        document.getElementById('btn-restore').style.display = 'none';
-        document.getElementById('btn-pin').style.display = 'inline-block';
-        document.getElementById('btn-toggle-view').style.display = 'inline-block';
-        document.getElementById('format-toolbar').style.display = 'flex';
+        document.getElementById('btn-restore').style.display = 'none'; document.getElementById('btn-pin').style.display = 'inline-block'; document.getElementById('btn-toggle-view').style.display = 'inline-block'; document.getElementById('format-toolbar').style.display = 'flex';
     }
-
-    document.getElementById('empty-editor-state').style.display = 'none';
-    document.getElementById('note-editor').style.display = 'flex';
-    
-    enablePreviewMode();
-    document.getElementById('save-status').innerText = note.isArchived ? 'Mode Sampah (Read-Only)' : 'Mode Baca.';
-    document.body.classList.add('editor-open');
-    renderNotesList();
+    document.getElementById('empty-editor-state').style.display = 'none'; document.getElementById('note-editor').style.display = 'flex';
+    enablePreviewMode(); document.body.classList.add('editor-open'); renderNotesList();
 }
 
-window.closeEditor = function() {
-    document.body.classList.remove('editor-open');
-    activeNoteId = null;
-    document.getElementById('note-editor').style.display = 'none';
-    document.getElementById('empty-editor-state').style.display = 'flex';
-    renderNotesList();
-}
-
-function triggerAutoSave() {
-    if (isPreviewMode) return; 
-    const note = notesData.find(n => n.id === activeNoteId);
-    if (note && note.isArchived) return; 
-    
-    document.getElementById('save-status').innerText = 'Mengetik...';
-    clearTimeout(autoSaveTimer);
-    autoSaveTimer = setTimeout(() => { saveNote(true); }, 1000); 
-}
+window.closeEditor = function() { document.body.classList.remove('editor-open'); activeNoteId = null; document.getElementById('note-editor').style.display = 'none'; document.getElementById('empty-editor-state').style.display = 'flex'; renderNotesList(); }
+function triggerAutoSave() { if (isPreviewMode || (notesData.find(n => n.id === activeNoteId) && notesData.find(n => n.id === activeNoteId).isArchived)) return; document.getElementById('save-status').innerText = 'Mengetik...'; clearTimeout(autoSaveTimer); autoSaveTimer = setTimeout(() => { saveNote(true); }, 1000); }
 
 function saveNote(isAutoSave = false) {
-    const title = document.getElementById('note-title').value.trim();
-    const content = document.getElementById('note-input').value;
-    if (!title && !content) return;
-
-    const category = document.getElementById('note-category').value;
-    const color = document.getElementById('note-color').value;
-    const tagsInput = document.getElementById('note-tags').value;
-    const tags = tagsInput ? tagsInput.split(',').map(t => t.trim().toLowerCase()).filter(t => t !== '') : [];
-    const isPinned = document.getElementById('btn-pin').dataset.pinned === "true";
+    const title = document.getElementById('note-title').value.trim(); const content = document.getElementById('note-input').value; if (!title && !content) return;
+    const category = document.getElementById('note-category').value; const color = document.getElementById('note-color').value; const tagsInput = document.getElementById('note-tags').value;
+    const tags = tagsInput ? tagsInput.split(',').map(t => t.trim().toLowerCase()).filter(t => t !== '') : []; const isPinned = document.getElementById('btn-pin').dataset.pinned === "true";
     
     if (activeNoteId) {
-        db.collection("notes").doc(activeNoteId).update({
-            title: title || 'Tanpa Judul',
-            content: content,
-            category: category,
-            tags: tags,
-            color: color,
-            isPinned: isPinned
-        });
+        db.collection("notes").doc(activeNoteId).update({ title: title || 'Tanpa Judul', content: content, category: category, tags: tags, color: color, isPinned: isPinned });
     } else {
-        const newId = 'NOTE-' + Date.now();
-        activeNoteId = newId; 
-        
-        const newNote = {
-            id: newId,
-            title: title || 'Tanpa Judul',
-            content: content,
-            category: category,
-            tags: tags,
-            color: color,
-            isPinned: isPinned,
-            isArchived: false,
-            isShared: false,
-            order: 0,
-            created_at: new Date().toISOString()
-        };
+        const newId = 'NOTE-' + Date.now(); activeNoteId = newId; 
+        const newNote = { id: newId, title: title || 'Tanpa Judul', content: content, category: category, tags: tags, color: color, isPinned: isPinned, isArchived: false, isShared: false, shareMode: 'view', order: 0, created_at: new Date().toISOString() };
         db.collection("notes").doc(newId).set(newNote);
     }
     document.getElementById('save-status').innerText = 'Tersimpan otomatis.';
 }
 
-// ==========================================
-// HAPUS & DIKEMBALIKAN (RESTORE) CATATAN
-// ==========================================
 window.deleteCurrentNote = function() {
-    if (!activeNoteId) return;
-    const note = notesData.find(n => n.id === activeNoteId);
-    
-    document.getElementById('delete-confirm-input').value = '';
-    const btnConfirm = document.getElementById('btn-confirm-delete');
-    btnConfirm.disabled = true; btnConfirm.style.opacity = '0.5'; btnConfirm.style.cursor = 'not-allowed';
-
-    if (note.isArchived) {
-        document.getElementById('delete-modal-text').innerHTML = 'Catatan ini akan <strong>dihapus permanen</strong>. Ketik <strong>YAKIN</strong> untuk konfirmasi.';
-    } else {
-        document.getElementById('delete-modal-text').innerHTML = 'Catatan pindah ke Sampah (dihapus dlm 30 hari). Ketik <strong>YAKIN</strong> untuk konfirmasi.';
-    }
-    document.getElementById('modal-delete').style.display = 'flex';
-    document.getElementById('delete-confirm-input').focus();
+    if (!activeNoteId) return; const note = notesData.find(n => n.id === activeNoteId); document.getElementById('delete-confirm-input').value = '';
+    document.getElementById('btn-confirm-delete').disabled = true; document.getElementById('btn-confirm-delete').style.opacity = '0.5';
+    document.getElementById('delete-modal-text').innerHTML = note.isArchived ? 'Catatan ini akan <strong>dihapus permanen</strong>. Ketik <strong>YAKIN</strong>.' : 'Catatan pindah ke Sampah. Ketik <strong>YAKIN</strong>.';
+    document.getElementById('modal-delete').style.display = 'flex'; document.getElementById('delete-confirm-input').focus();
 }
-
 window.closeDeleteModal = function() { document.getElementById('modal-delete').style.display = 'none'; }
-
 window.processDelete = function() {
-    const noteIndex = notesData.findIndex(n => n.id === activeNoteId);
-    if (noteIndex === -1) return;
-
-    if (notesData[noteIndex].isArchived) {
-        db.collection("notes").doc(activeNoteId).delete().then(() => {
-            showToast('Catatan dihapus permanen.');
-            closeDeleteModal();
-            closeEditor(); 
-        });
-    } else {
-        db.collection("notes").doc(activeNoteId).update({
-            isArchived: true,
-            archived_at: new Date().toISOString(),
-            isPinned: false
-        }).then(() => {
-            showToast('Catatan dipindah ke Sampah.');
-            closeDeleteModal();
-            closeEditor(); 
-        });
-    }
+    const note = notesData.find(n => n.id === activeNoteId); if (!note) return;
+    if (note.isArchived) { db.collection("notes").doc(activeNoteId).delete().then(() => { showToast('Dihapus permanen.'); closeDeleteModal(); closeEditor(); }); } 
+    else { db.collection("notes").doc(activeNoteId).update({ isArchived: true, archived_at: new Date().toISOString(), isPinned: false }).then(() => { showToast('Masuk Sampah.'); closeDeleteModal(); closeEditor(); }); }
 }
-
-window.restoreNote = function() {
-    db.collection("notes").doc(activeNoteId).update({
-        isArchived: false,
-        archived_at: firebase.firestore.FieldValue.delete()
-    }).then(() => {
-        closeEditor();
-        showToast('Catatan berhasil dikembalikan.');
-    });
-}
+window.restoreNote = function() { db.collection("notes").doc(activeNoteId).update({ isArchived: false, archived_at: firebase.firestore.FieldValue.delete() }).then(() => { closeEditor(); showToast('Catatan dipulihkan.'); }); }
 
 // ==========================================
-// SHARE MODE (PUBLIC LINK VIEW)
+// OPERASI ADVANCED WORK PERMISSION ADAPTIVE
 // ==========================================
 window.toggleShare = function() {
     if(!activeNoteId) return;
     const note = notesData.find(n => n.id === activeNoteId);
     const newShareStatus = !note.isShared;
-    
+    const currentMode = note.shareMode || 'view';
+
     db.collection("notes").doc(activeNoteId).update({
-        isShared: newShareStatus
+        isShared: newShareStatus,
+        shareMode: currentMode
     }).then(() => {
         const shareBtn = document.getElementById('btn-share');
+        const permSelect = document.getElementById('share-permission-select');
+        
         if(newShareStatus) {
-            shareBtn.innerHTML = '<i class="fa-solid fa-unlock"></i>';
-            shareBtn.style.color = 'var(--primary)';
+            shareBtn.innerHTML = '<i class="fa-solid fa-unlock"></i>'; shareBtn.style.color = 'var(--primary)';
+            permSelect.style.display = 'inline-block';
+            
+            let txtMap = { 'view': 'Lihat Saja', 'comment': 'Bisa Komentar', 'edit': 'Bisa Mengedit Bersama' };
+            document.getElementById('share-info-text').innerText = `Status: ${txtMap[currentMode]}. Tautan disalin ke papan klip!`;
+            
             const shareURL = window.location.origin + window.location.pathname + '?share=' + activeNoteId;
-            navigator.clipboard.writeText(shareURL).then(() => {
-                document.getElementById('modal-share-info').style.display = 'flex';
-            });
+            navigator.clipboard.writeText(shareURL).then(() => { document.getElementById('modal-share-info').style.display = 'flex'; });
         } else {
-            shareBtn.innerHTML = '<i class="fa-solid fa-lock"></i>';
-            shareBtn.style.color = '#888';
-            showToast('Catatan Private');
+            shareBtn.innerHTML = '<i class="fa-solid fa-lock"></i>'; shareBtn.style.color = '#888';
+            permSelect.style.display = 'none'; showToast('Catatan dikunci (Private)');
         }
     });
 }
 
+window.updateSharePermission = function() {
+    if(!activeNoteId) return;
+    const nextMode = document.getElementById('share-permission-select').value;
+    db.collection("notes").doc(activeNoteId).update({ shareMode: nextMode }).then(() => {
+        showToast(`Hak akses diubah ke: ${nextMode.toUpperCase()}`);
+    });
+}
+
+// ==========================================
+// SHARE MODE - INTERACTIVE CLIENT VIEW CODE
+// ==========================================
 window.initShareMode = function(id) {
+    activeShareId = id;
     document.getElementById('app-sidebar').style.display = 'none';
     document.getElementById('app-main').style.display = 'none';
     document.body.style.background = '#f8f9fa';
-    const overlay = document.getElementById('share-view-overlay');
-    overlay.style.display = 'block';
+    document.getElementById('share-view-overlay').style.display = 'block';
 
     db.collection("notes").doc(id).get().then((doc) => {
         if (doc.exists && doc.data().isShared) {
             const note = doc.data();
+            const mode = note.shareMode || 'view';
+            
             document.getElementById('share-title').innerText = escapeHTML(note.title) || 'Catatan';
-            if (typeof marked !== 'undefined') { 
-                document.getElementById('share-content').innerHTML = marked.parse(note.content || ''); 
-            } else { 
-                document.getElementById('share-content').innerText = note.content; 
+            
+            // Atur Mode UI Pengunjung Sesuai Hak Akses
+            if (mode === 'edit') {
+                document.getElementById('share-content').style.display = 'none';
+                document.getElementById('share-edit-area').style.display = 'flex';
+                document.getElementById('share-note-input').value = note.content || '';
+                document.getElementById('share-comments-section').style.display = 'none';
+                document.getElementById('share-footer-status').innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Mode Kolaborasi Aktif (Bisa Mengedit)';
+            } else if (mode === 'comment') {
+                document.getElementById('share-content').style.display = 'block';
+                document.getElementById('share-content').innerHTML = typeof marked !== 'undefined' ? marked.parse(note.content || '') : note.content;
+                document.getElementById('share-edit-area').style.display = 'none';
+                document.getElementById('share-comments-section').style.display = 'block';
+                document.getElementById('share-footer-status').innerHTML = '<i class="fa-regular fa-comment-dots"></i> Mode Interaktif (Bisa Berkomentar)';
+                loadCommentsRealtime(id);
+            } else {
+                // View Mode
+                document.getElementById('share-content').style.display = 'block';
+                document.getElementById('share-content').innerHTML = typeof marked !== 'undefined' ? marked.parse(note.content || '') : note.content;
+                document.getElementById('share-edit-area').style.display = 'none';
+                document.getElementById('share-comments-section').style.display = 'none';
+                document.getElementById('share-footer-status').innerHTML = '<i class="fa-solid fa-eye"></i> Catatan Read-Only (Lihat Saja)';
             }
         } else {
-            document.getElementById('share-title').innerText = "Terkunci / Tidak Ditemukan";
-            document.getElementById('share-content').innerHTML = "<p>Catatan ini diatur sebagai private atau telah dihapus.</p>";
+            document.getElementById('share-title').innerText = "Akses Terkunci / Kadaluarsa";
+            document.getElementById('share-content').innerHTML = "<p>Pemilik telah mematikan akses publik untuk tautan ini.</p>";
         }
-    }).catch((error) => {
-        document.getElementById('share-title').innerText = "Error Sistem";
-        document.getElementById('share-content').innerHTML = "<p>Gagal mengambil catatan dari server.</p>";
+    });
+}
+
+// Fitur Tambahan: Simpan Editan Pengunjung (Mode Kolaborasi)
+window.saveSharedEdit = function() {
+    if(!activeShareId) return;
+    const nextContent = document.getElementById('share-note-input').value;
+    db.collection("notes").doc(activeShareId).update({ content: nextContent }).then(() => {
+        alert("Catatan berhasil diperbarui!");
+    }).catch(err => {
+        alert("Gagal memperbarui catatan.");
+    });
+}
+
+// Fitur Tambahan: Kirim Komentar Pengunjung
+window.submitSharedComment = function() {
+    if(!activeShareId) return;
+    const author = document.getElementById('share-comment-author').value.trim() || 'Anonymous';
+    const msg = document.getElementById('share-comment-input').value.trim();
+    if(!msg) return;
+
+    db.collection("notes").doc(activeShareId).collection("comments").add({
+        author: author,
+        message: msg,
+        created_at: new Date().toISOString()
+    }).then(() => {
+        document.getElementById('share-comment-input').value = '';
+    });
+}
+
+function loadCommentsRealtime(id) {
+    if(commentListener) commentListener(); // matikan duplikasi listener lama
+    commentListener = db.collection("notes").doc(id).collection("comments").orderBy("created_at", "asc").onSnapshot((snapshot) => {
+        const box = document.getElementById('share-comments-list');
+        if(!box) return; box.innerHTML = '';
+        if(snapshot.empty) { box.innerHTML = '<p style="font-size:11px; color:#aaa; font-style:italic;">Belum ada komentar.</p>'; return; }
+        
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const dateStr = new Date(data.created_at).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) + ' - ' + new Date(data.created_at).toLocaleDateString('id-ID', {day:'numeric', month:'short'});
+            box.innerHTML += `
+                <div class="comment-item">
+                    <div class="comment-meta"><span>👤 ${escapeHTML(data.author)}</span><span>${dateStr}</span></div>
+                    <div style="color:#333;">${escapeHTML(data.message)}</div>
+                </div>
+            `;
+        });
+        box.scrollTop = box.scrollHeight; // Auto scroll kebawah
     });
 }
 
 // ==========================================
-// TOGGLE PIN & VIEW/EDIT MODE
+// UTILITY WINDOW RE-RENDER TOGGLE VIEW
 // ==========================================
-window.togglePin = function() {
-    const pinBtn = document.getElementById('btn-pin');
-    const isCurrentlyPinned = pinBtn.dataset.pinned === "true";
-    
-    pinBtn.dataset.pinned = isCurrentlyPinned ? "false" : "true";
-    pinBtn.style.color = isCurrentlyPinned ? '#888' : 'var(--warning)';
-    
-    saveNote(true); 
-}
-
-window.toggleViewMode = function() {
-    if (isPreviewMode) enableEditMode();
-    else { saveNote(); enablePreviewMode(); }
-}
-
+window.togglePin = function() { const pinBtn = document.getElementById('btn-pin'); const isCurrentlyPinned = pinBtn.dataset.pinned === "true"; pinBtn.dataset.pinned = isCurrentlyPinned ? "false" : "true"; pinBtn.style.color = isCurrentlyPinned ? '#888' : 'var(--warning)'; saveNote(true); }
+window.toggleViewMode = function() { if (isPreviewMode) enableEditMode(); else { saveNote(); enablePreviewMode(); } }
 window.enablePreviewMode = function() {
-    const inputArea = document.getElementById('note-input');
-    const previewArea = document.getElementById('note-preview');
-    const btnToggle = document.getElementById('btn-toggle-view');
-
-    if (typeof marked !== 'undefined') { previewArea.innerHTML = marked.parse(inputArea.value || '*Catatan kosong*'); } 
-    else { previewArea.innerHTML = "<p><em>Gagal memuat parser.</em></p>"; }
-    
-    inputArea.style.display = 'none';
-    document.getElementById('format-toolbar').style.display = 'none';
-    previewArea.style.display = 'block';
-    
-    document.getElementById('note-title').readOnly = true;
-    document.getElementById('note-tags').readOnly = true;
-    document.getElementById('note-category').disabled = true;
-    document.getElementById('note-color').disabled = true;
-    
-    btnToggle.innerHTML = '<i class="fa-solid fa-pen"></i> Edit Catatan';
-    
-    const note = notesData.find(n => n.id === activeNoteId);
-    document.getElementById('save-status').innerText = note && note.isArchived ? 'Sampah (Read-Only)' : 'Mode Baca.';
-    isPreviewMode = true;
+    const inputArea = document.getElementById('note-input'); const previewArea = document.getElementById('note-preview'); const btnToggle = document.getElementById('btn-toggle-view');
+    if (typeof marked !== 'undefined') { previewArea.innerHTML = marked.parse(inputArea.value || '*Catatan kosong*'); } else { previewArea.innerHTML = "<p><em>Gagal memuat parser.</em></p>"; }
+    inputArea.style.display = 'none'; document.getElementById('format-toolbar').style.display = 'none'; previewArea.style.display = 'block';
+    document.getElementById('note-title').readOnly = true; document.getElementById('note-tags').readOnly = true; document.getElementById('note-category').disabled = true; document.getElementById('note-color').disabled = true;
+    btnToggle.innerHTML = '<i class="fa-solid fa-pen"></i> Edit Catatan'; isPreviewMode = true;
 }
-
 window.enableEditMode = function() {
-    const inputArea = document.getElementById('note-input');
-    const previewArea = document.getElementById('note-preview');
-    const btnToggle = document.getElementById('btn-toggle-view');
-
-    inputArea.style.display = 'block';
-    document.getElementById('format-toolbar').style.display = 'flex';
-    previewArea.style.display = 'none';
-    
-    document.getElementById('note-title').readOnly = false;
-    document.getElementById('note-tags').readOnly = false;
-    document.getElementById('note-category').disabled = false;
-    document.getElementById('note-color').disabled = false;
-    
-    btnToggle.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Simpan Catatan';
-    
-    document.getElementById('save-status').innerText = 'Mode Edit.';
-    isPreviewMode = false;
+    const inputArea = document.getElementById('note-input'); const previewArea = document.getElementById('note-preview'); const btnToggle = document.getElementById('btn-toggle-view');
+    inputArea.style.display = 'block'; document.getElementById('format-toolbar').style.display = 'flex'; previewArea.style.display = 'none';
+    document.getElementById('note-title').readOnly = false; document.getElementById('note-tags').readOnly = false; document.getElementById('note-category').disabled = false; document.getElementById('note-color').disabled = false;
+    btnToggle.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Simpan Catatan'; isPreviewMode = false;
 }
-
-function showToast(message) {
-    const toast = document.getElementById("toast");
-    if(!toast) return;
-    toast.innerText = message;
-    toast.className = "toast show";
-    setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
-}
+function showToast(message) { const toast = document.getElementById("toast"); if(!toast) return; toast.innerText = message; toast.className = "toast show"; setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000); }
