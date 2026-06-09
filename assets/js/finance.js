@@ -1,5 +1,9 @@
-const DB_FINANCE_KEY = 'taufik_finance_db';
-const APP_PWD_HASH = "QVQyNDAxMDQ="; // Base64 untuk "AT240104"
+// Import Firestore SDK (V9 Modular)
+import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+// Inisialisasi Database dari App Firebase Global
+const db = getFirestore(window.firebaseApp);
+const FINANCE_DOC_REF = doc(db, "finance", "main_data");
 
 let financeData = { accounts: [], transactions: [], categories: {} };
 
@@ -19,10 +23,8 @@ const DEFAULT_CATEGORIES = {
 let charts = {}; 
 let currentFilterMode = 'bulan'; 
 let currentRefDate = new Date();
-
 let rangeStart = new Date();
 let rangeEnd = new Date();
-
 let breadcrumbs = [{ level: 'dashboard', label: 'Dashboard', filterData: {} }];
 let globalSearchQuery = '';
 
@@ -31,41 +33,30 @@ window.globalCatTotalsIn = {};
 window.globalCatTotalsOut = {};
 window.lastFilteredTransactions = [];
 
+// ==========================================
+// 1. INIT APP & FIREBASE SYNC CLOUD
+// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    if (sessionStorage.getItem('finance_auth_session') === 'true') {
-        initApp();
-    } else {
-        document.getElementById('auth-screen').style.display = 'flex';
-        document.getElementById('app-wrapper').style.display = 'none';
-        document.getElementById('auth-password').focus();
-    }
+    initApp();
 });
 
-function checkAuth() {
-    const pwd = document.getElementById('auth-password').value;
-    if (btoa(pwd) === APP_PWD_HASH) {
-        sessionStorage.setItem('finance_auth_session', 'true');
-        document.getElementById('auth-error').style.display = 'none';
-        initApp();
-    } else {
-        document.getElementById('auth-error').style.display = 'block';
-    }
-}
-
 function initApp() {
-    document.getElementById('auth-screen').style.display = 'none';
+    // Karena login via index.html, kita langsung tampilkan wrapper
     document.getElementById('app-wrapper').style.display = 'flex';
+    
+    // Load data langsung dari Firestore Cloud
     loadData();
+    
     updateDateNavigatorUI();
     switchView('dashboard');
     
-    // FIX TANGGAL: Gunakan format lokal YYYY-MM-DD
     const today = new Date();
     const localDate = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
     
     document.getElementById('tx-date').value = localDate;
     document.getElementById('tf-date').value = localDate;
 
+    // Cek parameter URL untuk aksi otomatis
     const urlParams = new URLSearchParams(window.location.search);
     const actionVal = urlParams.get('action');
     if (actionVal === 'income') {
@@ -80,23 +71,31 @@ function initApp() {
     }
 }
 
+// FUNGSI LOAD REAL-TIME DARI FIRESTORE
 function loadData() {
-    const raw = localStorage.getItem(DB_FINANCE_KEY);
-    let parsed = null;
-    try { 
-        if(raw) parsed = JSON.parse(raw); 
-    } catch(e) {}
-
-    if (!parsed || !parsed.transactions) {
-        financeData = { accounts: [...DEFAULT_ACCOUNTS], transactions: [], categories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)) };
-        saveData();
-    } else { 
-        financeData = parsed; 
-    }
+    onSnapshot(FINANCE_DOC_REF, (docSnap) => {
+        if (docSnap.exists()) {
+            financeData = docSnap.data();
+        } else {
+            // Kalau database kosong, buat default dan push ke Cloud
+            financeData = { accounts: [...DEFAULT_ACCOUNTS], transactions: [], categories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)) };
+            saveData();
+        }
+        refreshActiveView();
+    }, (error) => {
+        console.error("Gagal menarik data dari Cloud:", error);
+        showToast("Gagal sinkronisasi data dengan Cloud!", "error");
+    });
 }
 
-function saveData() { 
-    localStorage.setItem(DB_FINANCE_KEY, JSON.stringify(financeData)); 
+// FUNGSI SAVE KE FIRESTORE
+async function saveData() {
+    try {
+        await setDoc(FINANCE_DOC_REF, financeData);
+    } catch (e) {
+        console.error("Gagal menyimpan data:", e);
+        showToast("Gagal menyimpan ke Cloud!", "error");
+    }
 }
 
 function parseLocalDate(dateString) {
@@ -479,7 +478,6 @@ function openDetailView(filterKey, filterValue, label) {
     document.getElementById('filter-subcat').value = 'ALL'; 
     document.getElementById('filter-acc').value = 'ALL';
     
-    // Reset view-mode ke default setiap buka halaman detail baru
     if(document.getElementById('view-mode')) {
         document.getElementById('view-mode').value = 'detail';
     }
@@ -578,7 +576,7 @@ function applyFilters() {
 }
 
 // ==========================================
-// RENDERING TABEL DETAIL & REKAP (DIPERBAIKI)
+// RENDERING TABEL DETAIL & REKAP
 // ==========================================
 function renderDetailTable(filtered) {
     const tbody = document.getElementById('detail-table-body'); 
@@ -710,7 +708,6 @@ function renderDetailTable(filtered) {
     window.globalCatTotalsOut = catTotalsOut; 
     window.lastFilteredTransactions = filtered;
 
-    // === INI FUNGSI TOP 5 & TOMBOL OVERLAY YANG DIKEMBALIKAN ===
     let htmlHTML = '';
     const renderTop5List = (dataObj, title, colorVar, bgVar, borderColor) => {
         let catsArr = Object.entries(dataObj).sort((a,b) => b[1].total - a[1].total);
@@ -752,7 +749,6 @@ function renderDetailTable(filtered) {
                 </button>
             </div>
         `;
-        // Top 5 hanya muncul di mode detail agar tidak menumpuk saat mode rekap aktif
         if (viewMode === 'detail') {
             summaryContainer.style.display = 'block';
             catList.innerHTML = htmlHTML;
@@ -762,7 +758,6 @@ function renderDetailTable(filtered) {
     } else {
         summaryContainer.style.display = 'none';
     }
-    // ============================================================
     
     document.getElementById('dt-count').innerText = viewMode === 'detail' ? filtered.length : Object.keys(aggregateData).length; 
     document.getElementById('dt-in').innerText = formatRp(totalIn); 
@@ -774,7 +769,7 @@ function renderDetailTable(filtered) {
 }
 
 // ==========================================
-// FUNGSI UNTUK OVERLAY FULL DETAIL KATEGORI (2-LEVEL ACCORDION)
+// FUNGSI UNTUK OVERLAY FULL DETAIL KATEGORI
 // ==========================================
 function openFullCategoryView() {
     document.getElementById('full-category-overlay').style.display = 'flex';
@@ -1005,18 +1000,18 @@ function exportTransactionToCSV() {
     const viewMode = viewModeEl ? viewModeEl.value : 'detail';
     if(window.lastFilteredTransactions.length === 0) return showToast("Tidak ada data untuk di-export.", "warning");
     
-    let csvContent = "";
+    let csvContent = "data:text/csv;charset=utf-8,";
     let filtered = window.lastFilteredTransactions.sort((a,b) => b.amount - a.amount);
 
     if (viewMode === 'detail') {
-        csvContent = "data:text/csv;charset=utf-8,Tanggal,Judul,Kategori,Sub Kategori,Tipe,Aset,Akun,Nominal,Catatan\n";
+        csvContent += "Tanggal,Judul,Kategori,Sub Kategori,Tipe,Aset,Akun,Nominal,Catatan\n";
         filtered.forEach(tx => {
             const acc = financeData.accounts.find(a => a.id === tx.accountId);
             csvContent += `${tx.date},"${tx.title}","${tx.category}","${tx.subcategory||''}","${tx.type}","${tx.assetType}","${acc?acc.name:''}",${tx.amount},"${tx.notes||''}"\n`;
         });
     } else {
         let headTitle = viewMode === 'category' ? 'Kategori Utama' : 'Kategori > Jenis (Sub)';
-        csvContent = `data:text/csv;charset=utf-8,${headTitle},Total Pemasukan,Total Pengeluaran,Bersih (Net)\n`;
+        csvContent += `${headTitle},Total Pemasukan,Total Pengeluaran,Bersih (Net)\n`;
         
         let aggregateData = {};
         filtered.forEach(tx => {
@@ -1484,9 +1479,6 @@ window.onclick = function(event) {
     if (event.target.classList.contains('modal')) closeModal(event.target.id); 
 }
 
-// ==========================================
-// TOAST NOTIFICATION SYSTEM
-// ==========================================
 function showToast(msg, type = 'success') {
     const container = document.getElementById('toast-container');
     if (!container) return;
@@ -1498,3 +1490,46 @@ function showToast(msg, type = 'success') {
     
     setTimeout(() => { toast.remove(); }, 3000);
 }
+
+// ==========================================
+// MENGHUBUNGKAN FUNGSI KE GLOBAL WINDOW (KARENA TYPE="MODULE")
+// ==========================================
+window.initApp = initApp;
+window.switchView = switchView;
+window.handleSearch = handleSearch;
+window.changeDateOffset = changeDateOffset;
+window.openDatePicker = openDatePicker;
+window.applyPickedDate = applyPickedDate;
+window.setPeriodFilter = setPeriodFilter;
+window.openDetailView = openDetailView;
+window.renderPieChart = renderPieChart;
+window.openAssetBreakdown = openAssetBreakdown;
+window.exportTransactionToPDF = exportTransactionToPDF;
+window.exportTransactionToCSV = exportTransactionToCSV;
+window.applyFilters = applyFilters;
+window.populateFilterSubCat = populateFilterSubCat;
+window.openAccountModal = openAccountModal;
+window.toggleTransferForm = toggleTransferForm;
+window.saveTransfer = saveTransfer;
+window.closeFullCategoryView = closeFullCategoryView;
+window.switchFullCatTab = switchFullCatTab;
+window.autoCalculateSplit = autoCalculateSplit;
+window.toggleTitipanFields = toggleTitipanFields;
+window.addAccountRow = addAccountRow;
+window.openCategoryManager = openCategoryManager;
+window.populateSubCategoryTx = populateSubCategoryTx;
+window.addNewParentCategory = addNewParentCategory;
+window.addNewSubCategory = addNewSubCategory;
+window.closeModal = closeModal;
+window.saveTransaction = saveTransaction;
+window.applyCustomRange = applyCustomRange;
+window.renderCategoryManager = renderCategoryManager;
+window.saveAccount = saveAccount;
+window.deleteTransaction = deleteTransaction;
+window.deleteSubCategory = deleteSubCategory;
+window.deleteCategory = deleteCategory;
+window.editAccount = editAccount;
+window.deleteAccount = deleteAccount;
+window.openFullCategoryView = openFullCategoryView;
+window.navigateBreadcrumb = navigateBreadcrumb;
+window.openTransactionModal = openTransactionModal;
