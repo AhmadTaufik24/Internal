@@ -1,8 +1,10 @@
-// Import Firestore SDK (V9 Modular)
+// Import Firestore SDK (V9 Modular) & Auth
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
-// Inisialisasi Database dari App Firebase Global
+// Inisialisasi Database & Auth dari App Firebase Global
 const db = getFirestore(window.firebaseApp);
+const auth = getAuth(window.firebaseApp); // <-- Inisialisasi Auth
 const FINANCE_DOC_REF = doc(db, "finance", "main_data");
 
 let financeData = { accounts: [], transactions: [], categories: {} };
@@ -34,10 +36,19 @@ window.globalCatTotalsOut = {};
 window.lastFilteredTransactions = [];
 
 // ==========================================
-// 1. INIT APP & FIREBASE SYNC CLOUD
+// 1. INIT APP & FIREBASE SYNC CLOUD (DENGAN SATPAM AUTH)
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    initApp();
+    // Cek status login user
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            // Kalau udah login, izinkan aplikasi jalan
+            initApp();
+        } else {
+            // Kalau belum login, tendang balik ke halaman utama
+            window.location.replace("../index.html"); 
+        }
+    });
 });
 
 function initApp() {
