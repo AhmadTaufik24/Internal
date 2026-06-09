@@ -1,9 +1,12 @@
 // Import Firestore SDK (V9 Modular) & Auth
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 
 // Inisialisasi Database & Auth dari App Firebase Global
 const db = getFirestore(window.firebaseApp);
+const auth = getAuth(window.firebaseApp); // <-- Inisialisasi Auth
 const FINANCE_DOC_REF = doc(db, "finance", "main_data");
+
 let financeData = { accounts: [], transactions: [], categories: {} };
 
 const DEFAULT_ACCOUNTS = [
@@ -33,19 +36,19 @@ window.globalCatTotalsOut = {};
 window.lastFilteredTransactions = [];
 
 // ==========================================
-// 1. INIT APP & CEK LOGIN SESSION
+// 1. INIT APP & FIREBASE SYNC CLOUD (DENGAN SATPAM AUTH)
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    // SATPAM: Cek token persis seperti di notes.html
-    const authToken = sessionStorage.getItem('taufik_os_auth') || localStorage.getItem('taufik_os_auth');
-    
-    // Sesuaikan value "AT240104" atau "true" dengan yang diset di index.html lo
-    if (authToken === 'valid' || authToken === 'true' || authToken === 'AT240104') { 
-        initApp();
-    } else {
-        // Belum login, tendang ke halaman utama
-        window.location.replace("../index.html"); 
-    }
+    // Cek status login user
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            // Kalau udah login, izinkan aplikasi jalan
+            initApp();
+        } else {
+            // Kalau belum login, tendang balik ke halaman utama
+            window.location.replace("../index.html"); 
+        }
+    });
 });
 
 function initApp() {
