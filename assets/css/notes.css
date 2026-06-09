@@ -1069,3 +1069,8 @@ input[readonly]:focus, select[disabled]:focus {
     from { bottom: 65px; opacity: 0; } 
     to { bottom: 85px; opacity: 1; } 
 }
+/* Paksa semua link panjang agar turun ke bawah (Responsive Mobile) */
+a {
+    word-break: break-all !important;
+    overflow-wrap: break-word !important;
+}
