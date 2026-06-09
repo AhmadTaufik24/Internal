@@ -17,18 +17,7 @@
 </head>
 <body>
 
-    <div id="auth-screen" style="display: flex; height: 100vh; width: 100vw; justify-content: center; align-items: center; background: var(--body-bg); position: fixed; top: 0; left: 0; z-index: 9999;">
-        <div class="list-card" style="width: 350px; text-align: center; padding: 40px 30px;">
-            <div style="font-size: 45px; margin-bottom: 10px;">🔒</div>
-            <h2 style="margin: 0 0 5px 0; color: var(--text-color);">Restricted Access</h2>
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 25px;">Masukkan sandi keamanan untuk mengakses modul Finance.</p>
-            <input type="password" id="auth-password" placeholder="••••••••" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--navbar-border); text-align: center; letter-spacing: 5px; font-weight: bold; margin-bottom: 15px;" onkeypress="if(event.key === 'Enter') checkAuth()">
-            <button class="btn btn-masuk" style="width: 100%; padding: 12px; font-size: 14px;" onclick="checkAuth()">Buka Akses</button>
-            <div id="auth-error" style="color: var(--danger); font-size: 11px; margin-top: 15px; font-weight: bold; display: none;">❌ Katasandi tidak valid!</div>
-        </div>
-    </div>
-
-    <div id="app-wrapper" style="display: none; height: 100vh; width: 100vw;">
+    <div id="app-wrapper" style="display: flex; height: 100vh; width: 100vw;">
         
         <div class="sidebar">
             <div class="logo" style="margin-bottom: 30px; font-weight: 800; font-size: 20px;">FINANCE</div>
@@ -281,7 +270,6 @@
 
     <div id="full-category-overlay" style="display: none; position: fixed; top: 0; right: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 3000; justify-content: flex-end;" onclick="if(event.target === this) closeFullCategoryView()">
         <div id="full-category-panel" style="width: 100%; max-width: 550px; background: var(--body-bg); height: 100%; overflow-y: auto; box-shadow: -5px 0 25px rgba(0,0,0,0.1); padding: 30px; animation: slideInRight 0.3s ease;">
-            
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2 style="margin: 0; font-size: 20px;">📑 Laporan Detail</h2>
                 <span class="clickable text-danger" style="font-weight: bold; font-size: 12px; background: var(--danger-bg); padding: 6px 12px; border-radius: 8px; cursor: pointer;" onclick="closeFullCategoryView()">✖ Tutup</span>
@@ -293,10 +281,8 @@
             </div>
 
             <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 15px; text-align: center;">Klik pada nama kategori untuk melihat rincian jenis dan transaksinya.</p>
-            
             <div id="full-category-content-expense" style="display: block;"></div>
             <div id="full-category-content-income" style="display: none;"></div>
-            
         </div>
     </div>
 
@@ -304,7 +290,7 @@
         <div class="modal-content">
             <h3 id="tx-modal-title">Catat Transaksi</h3>
             <input type="hidden" id="tx-base-type">
-            <div class="form-group"><label>Judul Transaksi</label><input type="text" id="tx-title" placeholder="Contoh: Beli Kopi..."></div>
+            <div class="form-group"><label>Judul Transaksi</label><input type="text" id="tx-title" placeholder="Contoh: Beli Bahan Mie Ayam..."></div>
             <div style="display: flex; gap: 15px;">
                 <div class="form-group" style="flex: 1;"><label>Total Nominal (Rp)</label><input type="number" id="tx-amount" oninput="autoCalculateSplit()"></div>
                 <div class="form-group" style="flex: 1;"><label>Tanggal</label><input type="date" id="tx-date"></div>
@@ -398,6 +384,27 @@
 
     <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
 
-    <script src="assets/js/finance.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        
+        // Konfigurasi Firebase Project lo
+        const firebaseConfig = {
+            apiKey: "AIzaSyD_c7JbusltCEJA7GWMsEfkQBH1JeDkyks",
+            authDomain: "taufik-finance-os.firebaseapp.com",
+            projectId: "taufik-finance-os",
+            storageBucket: "taufik-finance-os.firebasestorage.app",
+            messagingSenderId: "174224689321",
+            appId: "1:174224689321:web:2675091e7e534418fdc1b8"
+        };
+
+        // Inisialisasi Aplikasi Firebase Global Window scope agar terbaca oleh finance.js
+        window.firebaseApp = initializeApp(firebaseConfig);
+        
+        // Load berkas engine kodingan utama setelah Firebase di-booting
+        const script = document.createElement('script');
+        script.src = "assets/js/finance.js";
+        script.type = "module"; // Diubah ke type="module" agar bisa import firestore di dalam JS
+        document.body.appendChild(script);
+    </script>
 </body>
 </html>
