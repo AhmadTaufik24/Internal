@@ -1,6 +1,6 @@
 /**
  * TAUFIK SYSTEM - FINANCE ENGINE
- * FIXED: Sync Firebase v8 to match index.html & notes.html
+ * FIXED: Auth flow, Spread Operator on Exports, and Multi-user Document ID
  */
 
 // ==========================================
@@ -18,7 +18,9 @@ const firebaseConfig = {
 if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const db = firebase.firestore();
 const auth = firebase.auth();
-const FINANCE_DOC_REF = db.collection("finance").doc("main_data");
+
+// FIX 3: Deklarasi referensi dokumen, isinya diatur saat user login
+let FINANCE_DOC_REF;
 
 let financeData = { accounts: [], transactions: [], categories: {} };
 
@@ -54,9 +56,11 @@ window.lastFilteredTransactions = [];
 document.addEventListener('DOMContentLoaded', () => {
     auth.onAuthStateChanged((user) => {
         if (user) {
+            // FIX 3: Gunakan UID user sebagai nama dokumen
+            FINANCE_DOC_REF = db.collection("finance").doc(user.uid);
             initApp();
         } else {
-            // FIXED PATH: Tidak pakai ../ lagi agar tidak error di Github Pages
+            // FIX 1: Tendang ke halaman login (index.html) jika belum login
             window.location.replace("index.html"); 
         }
     });
@@ -906,7 +910,8 @@ function exportTransactionToPDF() {
         return showToast("Tidak ada data untuk di-export.", "warning"); 
     }
     
-    let filtered = window.lastFilteredTransactions.sort((a,b) => new Date(a.date) - new Date(b.date)); 
+    // FIX 2: Clone array menggunakan [... ] agar tidak mutate array original
+    let filtered = [...window.lastFilteredTransactions].sort((a,b) => new Date(a.date) - new Date(b.date)); 
     let tableData = [];
     let totalIn = 0; let totalOut = 0;
     let aggregateData = {};
@@ -1011,7 +1016,8 @@ function exportTransactionToCSV() {
     if(window.lastFilteredTransactions.length === 0) return showToast("Tidak ada data untuk di-export.", "warning");
     
     let csvContent = "data:text/csv;charset=utf-8,";
-    let filtered = window.lastFilteredTransactions.sort((a,b) => b.amount - a.amount);
+    // FIX 2: Clone array menggunakan [... ] agar tidak mutate array original
+    let filtered = [...window.lastFilteredTransactions].sort((a,b) => b.amount - a.amount);
 
     if (viewMode === 'detail') {
         csvContent += "Tanggal,Judul,Kategori,Sub Kategori,Tipe,Aset,Akun,Nominal,Catatan\n";
