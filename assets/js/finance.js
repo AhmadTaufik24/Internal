@@ -1597,3 +1597,29 @@ function migrasiDataLokalKeFirestore() {
 
 // Daftarkan ke window agar bisa dipanggil manual dari Console
 window.migrasiDataLokalKeFirestore = migrasiDataLokalKeFirestore;
+
+// ==========================================
+// FUNGSI SEMENTARA UNTUK MEMPERBAIKI DATA LAMA
+// ==========================================
+window.perbaikiDataLama = async function() {
+    let jumlahDiperbaiki = 0;
+
+    // Cek dan tambahkan assetType jika belum ada
+    financeData.transactions.forEach(tx => {
+        if (!tx.assetType) {
+            tx.assetType = 'real';
+            jumlahDiperbaiki++;
+        }
+    });
+
+    // Jika ada data yang diubah, simpan ke Firestore
+    if (jumlahDiperbaiki > 0) {
+        await saveData();
+        refreshActiveView();
+        console.log(`Sukses! ${jumlahDiperbaiki} transaksi lama berhasil diperbaiki.`);
+        showToast(`${jumlahDiperbaiki} data lama dimunculkan!`, "success");
+    } else {
+        console.log("Semua data sudah aman, tidak ada yang perlu diperbaiki.");
+        showToast("Semua data sudah memiliki format yang benar.", "info");
+    }
+};
