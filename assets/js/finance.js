@@ -1544,3 +1544,56 @@ window.deleteAccount = deleteAccount;
 window.openFullCategoryView = openFullCategoryView;
 window.navigateBreadcrumb = navigateBreadcrumb;
 window.openTransactionModal = openTransactionModal;
+// ==========================================
+// FUNGSI SEMENTARA UNTUK MIGRASI DATA LOKAL
+// ==========================================
+function migrasiDataLokalKeFirestore() {
+    // Ganti 'NAMA_KEY_LOKAL_KAMU' dengan key yang dulu kamu pakai di localStorage
+    // Misalnya: 'financeData', 'dataKeuangan', dll.
+    const dataLokal = localStorage.getItem('NAMA_KEY_LOKAL_KAMU');
+
+    if (!dataLokal) {
+        console.warn("Data lokal tidak ditemukan di browser ini.");
+        showToast("Data lokal tidak ditemukan.", "warning");
+        return;
+    }
+
+    try {
+        const dataLama = JSON.parse(dataLokal);
+
+        // 1. Gabungkan Array Transaksi
+        if (dataLama.transactions && dataLama.transactions.length > 0) {
+            // Menggabungkan transaksi lama ke array transaksi baru
+            financeData.transactions = [...financeData.transactions, ...dataLama.transactions];
+        }
+
+        // 2. Gabungkan Akun (Pengecekan Duplikat berdasarkan ID)
+        if (dataLama.accounts && dataLama.accounts.length > 0) {
+            dataLama.accounts.forEach(akunLama => {
+                const sudahAda = financeData.accounts.find(a => a.id === akunLama.id);
+                if (!sudahAda) {
+                    financeData.accounts.push(akunLama);
+                }
+            });
+        }
+
+        // 3. Simpan ke Firestore menggunakan fungsi bawaanmu
+        saveData();
+        
+        // 4. Refresh tampilan agar data lama langsung muncul di tabel
+        refreshActiveView();
+        
+        console.log("Sukses! Data lokal berhasil digabung ke Cloud.");
+        showToast("Migrasi data lokal berhasil!", "success");
+
+        // Opsional: Hapus data lokal setelah sukses
+        // localStorage.removeItem('NAMA_KEY_LOKAL_KAMU');
+
+    } catch (e) {
+        console.error("Gagal membaca data lokal:", e);
+        showToast("Terjadi kesalahan saat migrasi.", "error");
+    }
+}
+
+// Daftarkan ke window agar bisa dipanggil manual dari Console
+window.migrasiDataLokalKeFirestore = migrasiDataLokalKeFirestore;
