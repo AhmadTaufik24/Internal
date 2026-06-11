@@ -468,14 +468,21 @@ function renderPieChart() {
         }
     });
 
-    if(charts.pie) charts.pie.destroy();
-    const ctxPie = document.getElementById('expensePieChart');
     charts.pie = new Chart(ctxPie.getContext('2d'), {
-        type: 'doughnut',
-        data: { labels: labels.length ? labels : ['Belum ada data'], datasets: [{ data: dataVals.length ? dataVals : [1], backgroundColor: dataVals.length ? bgColors : ['#ecf0f1'], borderWidth: 0, cutout: '65%' }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10 } } }, onClick: (evt, item) => { if (item.length && dataVals.length) { let rawLbl = labels[item[0].index].replace('(+) ','').replace('(-) ',''); openDetailView('category', rawLbl, 'Kategori: ' + rawLbl); } } }
-    });
-}
+    type: 'doughnut',
+    data: { /* ... data kamu ... */ },
+    options: { 
+        responsive: true, 
+        maintainAspectRatio: false, // PENTING: Harus false
+        plugins: { 
+            legend: { 
+                position: window.innerWidth < 768 ? 'bottom' : 'right', // Pindah ke bawah kalau di HP
+                labels: { boxWidth: 10 } 
+            } 
+        },
+        onClick: (evt, item) => { /* ... */ }
+    }
+});
 
 // ==========================================
 // 6. VIEW, SEARCH & FILTERS (DETAIL TRANSAKSI)
