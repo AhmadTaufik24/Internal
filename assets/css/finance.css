@@ -281,3 +281,82 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bod
         transform: translateX(120%); 
     } 
 }
+
+/*ini tambahan*/
+
+.hamburger-btn {
+    display: none; /* Sembunyikan di tampilan desktop */
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-bottom: 15px;
+    font-weight: 800;
+}
+
+@media (max-width: 768px) {
+    #app-wrapper {
+        flex-direction: column;
+    }
+
+    /* Sidebar disembunyikan di luar layar */
+    .sidebar {
+        position: fixed;
+        left: -100%; 
+        top: 0;
+        height: 100vh;
+        width: 260px;
+        z-index: 1001;
+        transition: left 0.3s ease;
+        box-shadow: 5px 0 15px rgba(0,0,0,0.1);
+    }
+
+    /* Class ini akan ditambahkan lewat JS saat tombol ditekan */
+    .sidebar.active-mobile {
+        left: 0; 
+    }
+
+    .hamburger-btn {
+        display: inline-block;
+    }
+
+    /* Ubah layout grid menjadi tumpuk ke bawah (1 kolom) */
+    .stats-grid-3, 
+    .content-grid-main > div,
+    .filter-grid {
+        grid-template-columns: 1fr !important;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .dash-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    #detail-summary {
+        flex-direction: column;
+        gap: 15px !important;
+    }
+
+    #detail-summary > div {
+        border-left: none !important;
+        padding-left: 0 !important;
+        border-bottom: 1px solid var(--navbar-border);
+        padding-bottom: 10px;
+    }
+
+    /* Pastikan tabel aman dan bisa di-scroll ke kanan-kiri */
+    .list-card, .transfer-box {
+        width: 100%;
+        overflow-x: auto;
+    }
+    
+    .finance-table, .mini-table {
+        min-width: 600px; /* Paksa lebar minimum agar teks tidak hancur */
+    }
+}
