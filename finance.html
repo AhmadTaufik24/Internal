@@ -19,8 +19,6 @@
 
     <div id="app-wrapper" style="display: flex; height: 100vh; width: 100vw;">
         
-        <div id="mobile-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000;" onclick="toggleSidebar()"></div>
-
         <div class="sidebar">
             <div class="logo" style="margin-bottom: 30px; font-weight: 800; font-size: 20px;">FINANCE</div>
             
@@ -47,8 +45,6 @@
         </div>
 
         <div class="main">
-            <button id="mobile-menu-btn" class="hamburger-btn" onclick="toggleSidebar()">☰ Menu</button>
-
             <div id="dashboard-header-area">
                 <div class="dash-header">
                     <div>
@@ -386,7 +382,7 @@
         </div>
     </div>
 
-  <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
+    <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
