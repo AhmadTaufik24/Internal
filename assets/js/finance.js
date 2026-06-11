@@ -1,11 +1,24 @@
-// Import Firestore SDK (V9 Modular) & Auth
-import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+/**
+ * TAUFIK SYSTEM - FINANCE ENGINE
+ * FIXED: Sync Firebase v8 to match index.html & notes.html
+ */
 
-// Inisialisasi Database & Auth dari App Firebase Global
-const db = getFirestore(window.firebaseApp);
-const auth = getAuth(window.firebaseApp); // <-- Inisialisasi Auth
-const FINANCE_DOC_REF = doc(db, "finance", "main_data");
+// ==========================================
+// 1. FIREBASE CONFIGURATION & INIT
+// ==========================================
+const firebaseConfig = {
+    apiKey: "AIzaSyCkUQXBYeMyQuB9X2HleubBDKuV3YpzVRg",
+    authDomain: "taufik-internal.firebaseapp.com",
+    projectId: "taufik-internal",
+    storageBucket: "taufik-internal.firebasestorage.app",
+    messagingSenderId: "212857824811",
+    appId: "1:212857824811:web:15ba9d4d7edeae4afeec6e"
+};
+
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const db = firebase.firestore();
+const auth = firebase.auth();
+const FINANCE_DOC_REF = db.collection("finance").doc("main_data");
 
 let financeData = { accounts: [], transactions: [], categories: {} };
 
@@ -36,28 +49,22 @@ window.globalCatTotalsOut = {};
 window.lastFilteredTransactions = [];
 
 // ==========================================
-// 1. INIT APP & FIREBASE SYNC CLOUD (DENGAN SATPAM AUTH)
+// 2. CHECK AUTH & GATEWAY
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Cek status login user
-    onAuthStateChanged(auth, (user) => {
+    auth.onAuthStateChanged((user) => {
         if (user) {
-            // Kalau udah login, izinkan aplikasi jalan
             initApp();
         } else {
-            // Kalau belum login, tendang balik ke halaman utama
-            window.location.replace("../index.html"); 
+            // FIXED PATH: Tidak pakai ../ lagi agar tidak error di Github Pages
+            window.location.replace("index.html"); 
         }
     });
 });
 
 function initApp() {
-    // Karena login via index.html, kita langsung tampilkan wrapper
     document.getElementById('app-wrapper').style.display = 'flex';
-    
-    // Load data langsung dari Firestore Cloud
     loadData();
-    
     updateDateNavigatorUI();
     switchView('dashboard');
     
@@ -67,7 +74,6 @@ function initApp() {
     document.getElementById('tx-date').value = localDate;
     document.getElementById('tf-date').value = localDate;
 
-    // Cek parameter URL untuk aksi otomatis
     const urlParams = new URLSearchParams(window.location.search);
     const actionVal = urlParams.get('action');
     if (actionVal === 'income') {
@@ -82,13 +88,14 @@ function initApp() {
     }
 }
 
-// FUNGSI LOAD REAL-TIME DARI FIRESTORE
+// ==========================================
+// 3. DATABASE SERVICES (FIREBASE V8)
+// ==========================================
 function loadData() {
-    onSnapshot(FINANCE_DOC_REF, (docSnap) => {
-        if (docSnap.exists()) {
+    FINANCE_DOC_REF.onSnapshot((docSnap) => {
+        if (docSnap.exists) {
             financeData = docSnap.data();
         } else {
-            // Kalau database kosong, buat default dan push ke Cloud
             financeData = { accounts: [...DEFAULT_ACCOUNTS], transactions: [], categories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)) };
             saveData();
         }
@@ -99,10 +106,9 @@ function loadData() {
     });
 }
 
-// FUNGSI SAVE KE FIRESTORE
 async function saveData() {
     try {
-        await setDoc(FINANCE_DOC_REF, financeData);
+        await FINANCE_DOC_REF.set(financeData);
     } catch (e) {
         console.error("Gagal menyimpan data:", e);
         showToast("Gagal menyimpan ke Cloud!", "error");
@@ -117,7 +123,7 @@ function parseLocalDate(dateString) {
 }
 
 // ==========================================
-// 2. NAVIGASI, FILTER & KALENDER
+// 4. NAVIGASI, FILTER & KALENDER
 // ==========================================
 function getWeekRange(date) {
     const d = new Date(date);
@@ -285,7 +291,7 @@ function getAccountBalance(accountId) {
 }
 
 // ==========================================
-// 3. KALKULASI & RENDER DASHBOARD UTAMA
+// 5. KALKULASI & RENDER DASHBOARD UTAMA
 // ==========================================
 function renderDashboard() {
     document.getElementById('page-main-title').innerText = "Dashboard Real";
@@ -460,7 +466,7 @@ function renderPieChart() {
 }
 
 // ==========================================
-// 4. VIEW, SEARCH & FILTERS (DETAIL TRANSAKSI)
+// 6. VIEW, SEARCH & FILTERS (DETAIL TRANSAKSI)
 // ==========================================
 function switchView(view) {
     document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
@@ -587,7 +593,7 @@ function applyFilters() {
 }
 
 // ==========================================
-// RENDERING TABEL DETAIL & REKAP
+// 7. RENDERING TABEL DETAIL & REKAP
 // ==========================================
 function renderDetailTable(filtered) {
     const tbody = document.getElementById('detail-table-body'); 
@@ -780,17 +786,10 @@ function renderDetailTable(filtered) {
 }
 
 // ==========================================
-// FUNGSI UNTUK OVERLAY FULL DETAIL KATEGORI
+// 8. FUNGSI UNTUK OVERLAY FULL DETAIL KATEGORI
 // ==========================================
-function openFullCategoryView() {
-    document.getElementById('full-category-overlay').style.display = 'flex';
-    renderFullCategoryContent();
-}
-
-function closeFullCategoryView() {
-    document.getElementById('full-category-overlay').style.display = 'none';
-}
-
+function openFullCategoryView() { document.getElementById('full-category-overlay').style.display = 'flex'; renderFullCategoryContent(); }
+function closeFullCategoryView() { document.getElementById('full-category-overlay').style.display = 'none'; }
 function switchFullCatTab(tab) {
     document.getElementById('tab-full-expense').classList.remove('active');
     document.getElementById('tab-full-income').classList.remove('active');
@@ -890,7 +889,7 @@ function renderFullCategoryContent() {
 }
 
 // ==========================================
-// FITUR EXPORT PDF & CSV 
+// 9. FITUR EXPORT PDF & CSV 
 // ==========================================
 function exportTransactionToPDF() {
     if (!window.jspdf || !window.jspdf.jsPDF) { 
@@ -1045,7 +1044,7 @@ function exportTransactionToCSV() {
 }
 
 // ==========================================
-// 5. TRANSACTION MODAL (AUTO SPLIT ACCOUNT)
+// 10. TRANSACTION MODAL (AUTO SPLIT ACCOUNT)
 // ==========================================
 function openTransactionModal(baseType) { 
     document.getElementById('tx-base-type').value = baseType; 
@@ -1266,7 +1265,7 @@ function deleteTransaction(id) {
 }
 
 // ==========================================
-// MANAJEMEN KATEGORI
+// 11. MANAJEMEN KATEGORI
 // ==========================================
 function openCategoryManager() { 
     document.getElementById('modal-category-manager').style.display = 'flex'; 
@@ -1311,7 +1310,7 @@ function deleteSubCategory(type, catName, subIdx) {
 }
 
 // ==========================================
-// 6. ACCOUNTS & TRANSFER
+// 12. ACCOUNTS & TRANSFER
 // ==========================================
 function openAssetBreakdown() { 
     const assets = calculateAssets(); 
@@ -1472,6 +1471,9 @@ function saveTransfer() {
     refreshActiveView(); 
 }
 
+// ==========================================
+// 13. UTILITY & HELPERS
+// ==========================================
 function formatRp(n) { 
     return new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', minimumFractionDigits:0 }).format(n); 
 }
@@ -1501,47 +1503,3 @@ function showToast(msg, type = 'success') {
     
     setTimeout(() => { toast.remove(); }, 3000);
 }
-
-// ==========================================
-// MENGHUBUNGKAN FUNGSI KE GLOBAL WINDOW (KARENA TYPE="MODULE")
-// ==========================================
-window.initApp = initApp;
-window.switchView = switchView;
-window.handleSearch = handleSearch;
-window.changeDateOffset = changeDateOffset;
-window.openDatePicker = openDatePicker;
-window.applyPickedDate = applyPickedDate;
-window.setPeriodFilter = setPeriodFilter;
-window.openDetailView = openDetailView;
-window.renderPieChart = renderPieChart;
-window.openAssetBreakdown = openAssetBreakdown;
-window.exportTransactionToPDF = exportTransactionToPDF;
-window.exportTransactionToCSV = exportTransactionToCSV;
-window.applyFilters = applyFilters;
-window.populateFilterSubCat = populateFilterSubCat;
-window.openAccountModal = openAccountModal;
-window.toggleTransferForm = toggleTransferForm;
-window.saveTransfer = saveTransfer;
-window.closeFullCategoryView = closeFullCategoryView;
-window.switchFullCatTab = switchFullCatTab;
-window.autoCalculateSplit = autoCalculateSplit;
-window.toggleTitipanFields = toggleTitipanFields;
-window.addAccountRow = addAccountRow;
-window.openCategoryManager = openCategoryManager;
-window.populateSubCategoryTx = populateSubCategoryTx;
-window.addNewParentCategory = addNewParentCategory;
-window.addNewSubCategory = addNewSubCategory;
-window.closeModal = closeModal;
-window.saveTransaction = saveTransaction;
-window.applyCustomRange = applyCustomRange;
-window.renderCategoryManager = renderCategoryManager;
-window.saveAccount = saveAccount;
-window.deleteTransaction = deleteTransaction;
-window.deleteSubCategory = deleteSubCategory;
-window.deleteCategory = deleteCategory;
-window.editAccount = editAccount;
-window.deleteAccount = deleteAccount;
-window.openFullCategoryView = openFullCategoryView;
-window.navigateBreadcrumb = navigateBreadcrumb;
-window.openTransactionModal = openTransactionModal;
-
