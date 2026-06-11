@@ -314,7 +314,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bod
         width: 100%; 
         flex: 1; 
         overflow-y: auto; 
-        padding: 20px 20px 80px 20px; /* Padding bawah 80px biar gak ketutup menu bawah */
+        padding: 20px 20px 100px 20px; /* Padding bawah 80px biar gak ketutup menu bawah */
     }
 
     /* 4. Grid & Table Fix */
