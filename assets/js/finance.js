@@ -56,11 +56,20 @@ window.lastFilteredTransactions = [];
 document.addEventListener('DOMContentLoaded', () => {
     auth.onAuthStateChanged((user) => {
         if (user) {
-            // FIX 3: Gunakan UID user sebagai nama dokumen
-            FINANCE_DOC_REF = db.collection("finance").doc(user.uid);
+            // Tulis email utama kamu di sini biar dapet jalur VIP
+            const emailAdmin = "ahtasteriz@gmail.com"; 
+
+            if (user.email === emailAdmin) {
+                // JALUR VIP: Baca data lama yang sudah ada di "main_data"
+                FINANCE_DOC_REF = db.collection("finance").doc("main_data");
+            } else {
+                // JALUR UMUM: Buat wadah baru untuk akun yang baru daftar
+                FINANCE_DOC_REF = db.collection("finance").doc(user.uid);
+            }
+            
             initApp();
         } else {
-            // FIX 1: Tendang ke halaman login (index.html) jika belum login
+            // Tendang ke halaman login (index.html) jika belum login
             window.location.replace("index.html"); 
         }
     });
@@ -91,7 +100,6 @@ function initApp() {
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 }
-
 // ==========================================
 // 3. DATABASE SERVICES (FIREBASE V8)
 // ==========================================
