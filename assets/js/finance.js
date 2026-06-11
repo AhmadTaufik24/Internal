@@ -1550,7 +1550,7 @@ window.openTransactionModal = openTransactionModal;
 function migrasiDataLokalKeFirestore() {
     // Ganti 'NAMA_KEY_LOKAL_KAMU' dengan key yang dulu kamu pakai di localStorage
     // Misalnya: 'financeData', 'dataKeuangan', dll.
-    const dataLokal = localStorage.getItem('NAMA_KEY_LOKAL_KAMU');
+    const dataLokal = localStorage.getItem('taufik_finance_db');
 
     if (!dataLokal) {
         console.warn("Data lokal tidak ditemukan di browser ini.");
