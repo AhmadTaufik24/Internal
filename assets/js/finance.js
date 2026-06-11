@@ -1509,3 +1509,30 @@ function showToast(msg, type = 'success') {
     
     setTimeout(() => { toast.remove(); }, 3000);
 }
+
+// ==========================================
+// 14. MOBILE RESPONSIVENESS
+// ==========================================
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('mobile-overlay');
+    
+    // Toggle class untuk memunculkan/menyembunyikan sidebar
+    sidebar.classList.toggle('active-mobile');
+    
+    // Atur overlay gelap di belakangnya
+    if (sidebar.classList.contains('active-mobile')) {
+        overlay.style.display = 'block';
+    } else {
+        overlay.style.display = 'none';
+    }
+}
+
+// Opsional: Tutup sidebar otomatis saat menu diklik di mode HP
+document.querySelectorAll('.sidebar .menu-item').forEach(item => {
+    item.addEventListener('click', () => {
+        if (window.innerWidth <= 768) {
+            toggleSidebar();
+        }
+    });
+});
