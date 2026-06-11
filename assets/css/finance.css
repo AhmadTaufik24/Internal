@@ -331,3 +331,15 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bod
         min-width: 600px; /* Biar tabel tetep bisa di-scroll samping */
     }
 }
+
+/* Pastikan canvas tidak melebihi lebar card di HP */
+.chart-card {
+    position: relative;
+    width: 100%;
+}
+
+canvas {
+    max-width: 100% !important;
+    max-height: 300px !important; /* Batasi tingginya di HP */
+    width: 100% !important;
+}
