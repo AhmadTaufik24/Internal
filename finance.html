@@ -382,29 +382,13 @@
         </div>
     </div>
 
-    <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
+  <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        
-        // KONFIGURASI FIREBASE TAUFIK-INTERNAL (SESUAI DENGAN INDEX.HTML)
-        const firebaseConfig = {
-            apiKey: "AIzaSyCkUQXBYeMyQuB9X2HleubBDKuV3YpzVRg",
-            authDomain: "taufik-internal.firebaseapp.com",
-            projectId: "taufik-internal",
-            storageBucket: "taufik-internal.firebasestorage.app",
-            messagingSenderId: "212857824811",
-            appId: "1:212857824811:web:15ba9d4d7edeae4afeec6e"
-        };
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
-        // Inisialisasi Aplikasi Firebase Global Window scope agar terbaca oleh finance.js
-        window.firebaseApp = initializeApp(firebaseConfig);
-        
-        // Load berkas engine kodingan utama setelah Firebase di-booting
-        const script = document.createElement('script');
-        script.src = "assets/js/finance.js";
-        script.type = "module"; // Diubah ke type="module" agar bisa import firestore di dalam JS
-        document.body.appendChild(script);
-    </script>
+    <script src="assets/js/finance.js"></script>
 </body>
 </html>
+
