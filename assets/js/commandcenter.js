@@ -1,14 +1,17 @@
 // ==========================================
-// 1. SYSTEM CONFIG & DATABASE REGISTRY
+// 1. SYSTEM CONFIG & FIREBASE INIT
 // ==========================================
-const DB_KEYS = {
-    projects: 'jo_db_v47',
-    finance: 'taufik_finance_db',
-    crm: 'taufik_crm_v2',
-    notes: 'taufik_notes_db_v1',
-    assets: 'taufik_assets_library_v1',
-    events: 'taufik_events_v2' 
+const firebaseConfig = {
+    apiKey: "AIzaSyCkUQXBYeMyQuB9X2HleubBDKuV3YpzVRg",
+    authDomain: "taufik-internal.firebaseapp.com",
+    projectId: "taufik-internal",
+    storageBucket: "taufik-internal.firebasestorage.app",
+    messagingSenderId: "212857824811",
+    appId: "1:212857824811:web:15ba9d4d7edeae4afeec6e"
 };
+
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const db = firebase.firestore(); // Panggil Firestore API
 
 let OS_DATA = { projects: [], finance: { transactions: [], accounts: [] }, crm: [], notes: [], assets: [], events: [] };
 
@@ -32,11 +35,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     updateClock();
     setInterval(updateClock, 1000);
-    bootSystem();
+    bootSystem(); // Sekarang ini memanggil proses Async Cloud
 });
 
-function bootSystem() {
-    pullAllData();
+// Jadikan Async karena akan download data dari awan
+async function bootSystem() {
+    await pullAllData(); 
     renderCalendarWidget(); 
     renderDynamicBriefing(); 
     renderTopKPIs();
@@ -46,26 +50,44 @@ function bootSystem() {
     renderPinnedNotes();
 }
 
-function pullAllData() {
-    OS_DATA.projects = JSON.parse(localStorage.getItem(DB_KEYS.projects)) || [];
-    OS_DATA.crm = JSON.parse(localStorage.getItem(DB_KEYS.crm)) || [];
-    OS_DATA.notes = JSON.parse(localStorage.getItem(DB_KEYS.notes)) || [];
-    OS_DATA.assets = JSON.parse(localStorage.getItem(DB_KEYS.assets)) || [];
-    OS_DATA.events = JSON.parse(localStorage.getItem(DB_KEYS.events)) || [];
-    
-    OS_DATA.events = OS_DATA.events.map(ev => {
-        if(ev.date && !ev.startDate) {
-            ev.startDate = ev.date;
-            ev.endDate = ev.date;
-        }
-        return ev;
-    });
+// [UPDATED] Tarik data dari Firestore, bukan localStorage
+async function pullAllData() {
+    try {
+        // 1. Projects
+        const projSnap = await db.collection('projects').get();
+        OS_DATA.projects = projSnap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+        
+        // 2. CRM
+        const crmSnap = await db.collection('crm').get();
+        OS_DATA.crm = crmSnap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+        
+        // 3. Notes
+        const notesSnap = await db.collection('notes').get();
+        OS_DATA.notes = notesSnap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+        
+        // 4. Assets
+        const assetsSnap = await db.collection('assets').get();
+        OS_DATA.assets = assetsSnap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+        
+        // 5. Events
+        const eventsSnap = await db.collection('events').get();
+        OS_DATA.events = eventsSnap.docs.map(doc => {
+            let ev = {id: doc.id, ...doc.data()};
+            if(ev.date && !ev.startDate) {
+                ev.startDate = ev.date;
+                ev.endDate = ev.date;
+            }
+            return ev;
+        });
 
-    let rawFin = JSON.parse(localStorage.getItem(DB_KEYS.finance));
-    if (rawFin) {
-        OS_DATA.finance = Array.isArray(rawFin) ? { transactions: rawFin, accounts: [] } : rawFin;
+        // 6. Finance
+        const finSnap = await db.collection('finance').get();
+        OS_DATA.finance.transactions = finSnap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+        OS_DATA.finance.accounts = []; // Sesuaikan kalau kamu punya tabel accounts sendiri
+        
+    } catch(err) {
+        console.error("Gagal menarik data dari Firestore:", err);
     }
-    if (!OS_DATA.finance.transactions) OS_DATA.finance.transactions = [];
 }
 
 // ==========================================
@@ -218,14 +240,18 @@ function renderActionInbox() {
     });
 }
 
-function markDone(id) {
+// [UPDATED] Update ke Firestore
+async function markDone(id) {
     if(confirm("Tandai project ini selesai & sudah dibayar? (Akan dipindah ke History)")) {
-        const idx = OS_DATA.projects.findIndex(j => j.id === id);
-        if(idx > -1) {
-            OS_DATA.projects[idx].stage = 'archive';
-            OS_DATA.projects[idx].archivedDate = new Date().toISOString();
-            localStorage.setItem(DB_KEYS.projects, JSON.stringify(OS_DATA.projects));
+        try {
+            await db.collection('projects').doc(id).update({
+                stage: 'archive',
+                archivedDate: new Date().toISOString()
+            });
             bootSystem(); 
+        } catch(err) {
+            console.error("Gagal update project:", err);
+            alert("Gagal koneksi ke server!");
         }
     }
 }
@@ -529,7 +555,6 @@ function openEventDetail(id) {
     
     document.getElementById('det-ev-title').innerText = ev.title;
     
-    // Tampilkan rentang jika tanggal beda, atau tanggal tunggal jika sama
     if (ev.startDate === ev.endDate) {
         document.getElementById('det-ev-date').innerText = formatDate(ev.startDate);
     } else {
@@ -560,17 +585,21 @@ function editAcara(id) {
     document.getElementById('event-modal').style.display = 'flex';
 }
 
-function deleteAcara(id) {
+// [UPDATED] Menghapus acara dari Cloud
+async function deleteAcara(id) {
     if(confirm('Yakin ingin menghapus acara ini secara permanen?')) {
-        OS_DATA.events = OS_DATA.events.filter(e => e.id !== id);
-        localStorage.setItem(DB_KEYS.events, JSON.stringify(OS_DATA.events));
-        closeModal('modal-event-detail');
-        bootSystem(); // Refresh UI
+        try {
+            await db.collection('events').doc(id).delete();
+            closeModal('modal-event-detail');
+            bootSystem(); 
+        } catch(err) {
+            console.error("Gagal hapus acara:", err);
+        }
     }
 }
 
 function tambahAcaraManual() {
-    document.getElementById('evt-id').value = ''; // Kosongkan ID (Tanda Create Baru)
+    document.getElementById('evt-id').value = ''; // Kosongkan ID
     document.getElementById('evt-title').value = '';
     document.getElementById('evt-start').value = new Date().toISOString().split('T')[0];
     document.getElementById('evt-end').value = new Date().toISOString().split('T')[0];
@@ -584,8 +613,9 @@ function closeAcaraModal() {
     document.getElementById('event-modal').style.display = 'none';
 }
 
-function simpanAcara() {
-    const id = document.getElementById('evt-id').value;
+// [UPDATED] Menyimpan acara ke Cloud
+async function simpanAcara() {
+    let id = document.getElementById('evt-id').value;
     const title = document.getElementById('evt-title').value.trim();
     const startDate = document.getElementById('evt-start').value;
     const endDate = document.getElementById('evt-end').value;
@@ -602,32 +632,25 @@ function simpanAcara() {
         return;
     }
 
-    if (id) {
-        // PROSES UPDATE/EDIT
-        const idx = OS_DATA.events.findIndex(e => e.id === id);
-        if (idx > -1) {
-            OS_DATA.events[idx].title = title;
-            OS_DATA.events[idx].startDate = startDate;
-            OS_DATA.events[idx].endDate = endDate;
-            OS_DATA.events[idx].desc = desc;
-            OS_DATA.events[idx].reminder = reminder;
-        }
-    } else {
-        // PROSES CREATE BARU
-        OS_DATA.events.push({
-            id: 'EVT-' + Date.now(),
+    if (!id) id = 'EVT-' + Date.now(); // Buat ID baru jika belum ada
+
+    try {
+        await db.collection('events').doc(id).set({
+            id: id,
             title: title,
             startDate: startDate,
             endDate: endDate,
             desc: desc,
             reminder: reminder,
             createdAt: new Date().toISOString()
-        });
+        }, { merge: true });
+
+        closeAcaraModal();
+        bootSystem(); 
+    } catch(err) {
+        console.error("Gagal simpan acara:", err);
+        alert("Gagal menyimpan ke cloud!");
     }
-    
-    localStorage.setItem(DB_KEYS.events, JSON.stringify(OS_DATA.events));
-    closeAcaraModal();
-    bootSystem(); 
 }
 
 // ==========================================
@@ -656,7 +679,7 @@ function renderPinnedNotes() {
 }
 
 // ==========================================
-// 10. OMNI-COMMAND PALETTE 
+// 10. OMNI-COMMAND PALETTE (UPDATED TO CLOUD)
 // ==========================================
 function handleOmniCommand(event) {
     const input = event.target.value;
@@ -690,7 +713,7 @@ function handleOmniCommand(event) {
     dropdown.style.display = 'block';
 }
 
-function handleActionCommand(text, key) {
+async function handleActionCommand(text, key) {
     const dropdown = document.getElementById('omni-dropdown');
     const parts = text.trim().split(' ');
     const cmd = parts[0].toLowerCase();
@@ -710,13 +733,26 @@ function handleActionCommand(text, key) {
             </div>`;
             
         if(key === 'Enter' && amount > 0 && title !== '...') {
-            OS_DATA.finance.transactions.push({
-                id: 'TX-CMD-' + Date.now(), date: new Date().toISOString().split('T')[0],
-                title: title, type: cmd === '>out' ? 'expense' : 'income', category: 'Lainnya',
-                accountId: OS_DATA.finance.accounts[0]?.id || 'ACC-1', assetType: 'real', amount: amount, notes: 'Via OmniCommand', createdAt: new Date().toISOString()
-            });
-            localStorage.setItem(DB_KEYS.finance, JSON.stringify(OS_DATA.finance));
-            finishCommand();
+            const txId = 'TX-CMD-' + Date.now();
+            const txData = {
+                id: txId, 
+                date: new Date().toISOString().split('T')[0],
+                title: title, 
+                type: cmd === '>out' ? 'expense' : 'income', 
+                category: 'Lainnya',
+                accountId: OS_DATA.finance.accounts[0]?.id || 'ACC-1', 
+                assetType: 'real', 
+                amount: amount, 
+                notes: 'Via OmniCommand', 
+                createdAt: new Date().toISOString()
+            };
+            
+            try {
+                await db.collection('finance').doc(txId).set(txData);
+                finishCommand();
+            } catch(err) {
+                console.error("Gagal simpan transaksi:", err);
+            }
         }
     } 
     else if (cmd === '>job') {
@@ -729,13 +765,27 @@ function handleActionCommand(text, key) {
             </div>`;
             
         if(key === 'Enter' && title !== '...') {
-            OS_DATA.projects.push({
-                id: Date.now().toString(), category: 'General', type: 'Lainnya', title: title, clientName: 'Internal',
-                batchID: 'CMD-' + Math.random().toString(36).substring(2,5).toUpperCase(), stage: 'scheduling', manualPrice: 0,
-                data: { deadline: new Date().toISOString().split('T')[0] }, history: [], createdAt: new Date().toISOString()
-            });
-            localStorage.setItem(DB_KEYS.projects, JSON.stringify(OS_DATA.projects));
-            finishCommand();
+            const jobId = Date.now().toString();
+            const jobData = {
+                id: jobId, 
+                category: 'General', 
+                type: 'Lainnya', 
+                title: title, 
+                clientName: 'Internal',
+                batchID: 'CMD-' + Math.random().toString(36).substring(2,5).toUpperCase(), 
+                stage: 'scheduling', 
+                manualPrice: 0,
+                data: { deadline: new Date().toISOString().split('T')[0] }, 
+                history: [], 
+                createdAt: new Date().toISOString()
+            };
+            
+            try {
+                await db.collection('projects').doc(jobId).set(jobData);
+                finishCommand();
+            } catch(err) {
+                console.error("Gagal buat job:", err);
+            }
         }
     }
     else {
@@ -773,7 +823,7 @@ document.addEventListener('click', (e) => {
 });
 
 // ==========================================
-// 11. ZEN FOCUS MODE DENGAN SELECT JOB
+// 11. ZEN FOCUS MODE
 // ==========================================
 let zenTimer = null;
 let zenTimeLeft = 25 * 60; 
@@ -785,7 +835,6 @@ function enterZenMode() {
     const selectEl = document.getElementById('zen-task-select');
     selectEl.innerHTML = '<option value="">Pekerjaan Umum / Bebas</option>';
     
-    // Ambil list job yang sedang aktif
     const activeJobs = OS_DATA.projects.filter(j => !['archive', 'done', 'upload'].includes(j.stage));
     
     activeJobs.forEach(j => {
@@ -795,7 +844,6 @@ function enterZenMode() {
         selectEl.appendChild(opt);
     });
 
-    // Prioritaskan yang lagi di stage 'progress'
     const progressJob = activeJobs.find(j => j.stage === 'progress');
     if (progressJob) {
         selectEl.value = progressJob.id;
