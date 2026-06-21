@@ -1,9 +1,23 @@
-const DB = window.DB || {
-    load: function(t) { return JSON.parse(localStorage.getItem(t)) || []; },
-    save: function(t, d) { localStorage.setItem(t, JSON.stringify(d)); }
+// ==========================================
+// 1. FIREBASE CONFIGURATION
+// ==========================================
+const firebaseConfig = {
+    apiKey: "AIzaSyCkUQXBYeMyQuB9X2HleubBDKuV3YpzVRg",
+    authDomain: "taufik-internal.firebaseapp.com",
+    projectId: "taufik-internal",
+    storageBucket: "taufik-internal.firebasestorage.app",
+    messagingSenderId: "212857824811",
+    appId: "1:212857824811:web:15ba9d4d7edeae4afeec6e"
 };
 
-const TABLE = 'taufik_assets_library_v1';
+// Inisialisasi Firebase
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const db = firebase.firestore();
+const auth = firebase.auth(); // Kalau butuh auth kedepannya
+
+// ==========================================
+// 2. APP STATE & CONFIG
+// ==========================================
 let libraryAssets = [];
 let currentTab = 'all';
 
@@ -18,11 +32,52 @@ const CAT_CONFIG = {
     'misc': { icon: 'fa-box-open', color: '#bdc3c7', label: 'Lain-lain' }
 };
 
+// ==========================================
+// 3. INITIALIZATION & SYNC
+// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    libraryAssets = DB.load(TABLE);
-    renderAssets();
+    // 1. Jalankan Migrasi Data dari LocalStorage ke Firestore (Jika Ada)
+    migrateLocalDataToFirestore();
+
+    // 2. Realtime Listener ke Firestore (Collection: 'assets')
+    db.collection("assets").onSnapshot((snapshot) => {
+        libraryAssets = [];
+        snapshot.forEach((doc) => { 
+            libraryAssets.push(doc.data()); 
+        });
+        renderAssets();
+    }, (error) => {
+        console.error("Gagal sinkronisasi data:", error);
+        showToast("Gagal menyinkronkan dengan server.");
+    });
 });
 
+// Fungsi untuk memindah data dari LocalStorage laptop kamu ke Firestore
+function migrateLocalDataToFirestore() {
+    const TABLE = 'taufik_assets_library_v1';
+    const localData = JSON.parse(localStorage.getItem(TABLE)) || [];
+    
+    if (localData.length > 0) {
+        const batch = db.batch();
+        localData.forEach(asset => {
+            const docRef = db.collection("assets").doc(asset.id);
+            batch.set(docRef, asset);
+        });
+        
+        batch.commit().then(() => {
+            console.log("Migrasi data lokal ke Firestore berhasil!");
+            showToast("Data laptop berhasil dipindah ke Cloud!");
+            // Hapus data lokal agar tidak di-migrasi berulang-ulang
+            localStorage.removeItem(TABLE);
+        }).catch(err => {
+            console.error("Gagal migrasi data:", err);
+        });
+    }
+}
+
+// ==========================================
+// 4. UI LOGIC & RENDER
+// ==========================================
 function switchTab(t, el) {
     currentTab = t;
     document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
@@ -68,6 +123,9 @@ function renderAssets() {
     });
 }
 
+// ==========================================
+// 5. CRUD OPERATIONS TO FIRESTORE
+// ==========================================
 function openAssetModal() {
     document.getElementById('asset-id').value = '';
     document.getElementById('asset-name').value = '';
@@ -80,7 +138,7 @@ function openAssetModal() {
 function closeAssetModal() { document.getElementById('modal-asset').style.display = 'none'; }
 
 function saveAsset() {
-    const id = document.getElementById('asset-id').value;
+    const idInput = document.getElementById('asset-id').value;
     const name = document.getElementById('asset-name').value;
     const url = document.getElementById('asset-url').value;
     if (!name || !url) return alert('Nama & Link wajib diisi!');
@@ -91,24 +149,29 @@ function saveAsset() {
         name, url, tags,
         category: document.getElementById('asset-category').value,
         description: document.getElementById('asset-desc').value,
-        created_at: new Date().toISOString()
+        updated_at: new Date().toISOString()
     };
 
-    if (id) {
-        const i = libraryAssets.findIndex(x => x.id === id);
-        libraryAssets[i] = { ...libraryAssets[i], ...data };
-    } else {
-        data.id = 'AST-' + Date.now();
-        libraryAssets.push(data);
+    let id = idInput;
+    if (!id) {
+        id = 'AST-' + Date.now();
+        data.id = id;
+        data.created_at = new Date().toISOString();
     }
 
-    DB.save(TABLE, libraryAssets);
-    closeAssetModal();
-    renderAssets();
+    // Simpan/Update ke Firestore
+    db.collection("assets").doc(id).set(data, { merge: true }).then(() => {
+        closeAssetModal();
+        showToast("Aset berhasil disimpan!");
+    }).catch(err => {
+        console.error("Gagal menyimpan:", err);
+        alert("Gagal menyimpan aset ke Cloud.");
+    });
 }
 
 function editAsset(id) {
     const a = libraryAssets.find(x => x.id === id);
+    if(!a) return;
     document.getElementById('asset-id').value = a.id;
     document.getElementById('asset-name').value = a.name;
     document.getElementById('asset-category').value = a.category;
@@ -119,19 +182,29 @@ function editAsset(id) {
 }
 
 function deleteAsset(id) {
-    if (confirm('Hapus aset ini?')) {
-        libraryAssets = libraryAssets.filter(x => x.id !== id);
-        DB.save(TABLE, libraryAssets);
-        renderAssets();
+    if (confirm('Hapus aset ini secara permanen dari Cloud?')) {
+        db.collection("assets").doc(id).delete().then(() => {
+            showToast("Aset berhasil dihapus!");
+        }).catch(err => {
+            console.error("Gagal menghapus:", err);
+        });
     }
 }
 
+// ==========================================
+// 6. UTILITIES
+// ==========================================
 function copyUrl(u) {
     navigator.clipboard.writeText(decodeURIComponent(u)).then(() => {
-        const t = document.getElementById('toast');
-        t.className = 'toast show';
-        setTimeout(() => t.className = 'toast', 2000);
+        showToast("Link berhasil dicopy!");
     });
+}
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.innerText = msg;
+    t.className = 'toast show';
+    setTimeout(() => t.className = 'toast', 2000);
 }
 
 window.onclick = (e) => { if (e.target.id === 'modal-asset') closeAssetModal(); };
