@@ -1,8 +1,23 @@
 // ==========================================
-// 1. DATABASE & SETUP
+// 1. FIREBASE CONFIGURATION & DB SETUP
 // ==========================================
-const DB_JO_KEY = 'jo_db_v47';
-const DB_CLIENT_KEY = 'taufik_crm_v2'; // UBAH INI (Sesuaikan dengan script.js)
+const firebaseConfig = {
+    apiKey: "AIzaSyCkUQXBYeMyQuB9X2HleubBDKuV3YpzVRg",
+    authDomain: "taufik-internal.firebaseapp.com",
+    projectId: "taufik-internal",
+    storageBucket: "taufik-internal.firebasestorage.app",
+    messagingSenderId: "212857824811",
+    appId: "1:212857824811:web:15ba9d4d7edeae4afeec6e"
+};
+
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const db = firebase.firestore();
+
+// ==========================================
+// 2. STATE & CONFIG
+// ==========================================
+const DB_JO_KEY = 'jo_db_v47'; 
+const DB_CLIENT_KEY = 'taufik_crm_v2'; 
 const VIP_THRESHOLD = 15000000;
 
 const JOB_TYPES = {
@@ -25,39 +40,67 @@ let currentView = 'clients';
 let bqList = [];
 let bqIndex = 0;
 
-// Fungsi Sembunyikan Suffix di UI CRM
 function cleanName(n) { return n ? n.replace(/\s\(\d{4}\)$/, '') : ''; }
 
 // ==========================================
-// 2. INIT & EVENT LISTENERS
+// 3. INIT & SYNC FIRESTORE
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
+    // Jalankan migrasi jika masih ada data klien di localStorage
+    migrateClientsToFirestore();
+
+    // Setup listener Firestore untuk Data Klien
+    db.collection("clients").onSnapshot((snapshot) => {
+        clients = [];
+        snapshot.forEach((doc) => clients.push(doc.data()));
+        
+        // Refresh UI setiap ada perubahan dari server
+        renderClientList();
+        populateDashboardFilters();
+        if (currentView === 'dashboard') renderDashboard();
+        
+        // Jika sedang buka detail klien, update detailnya
+        if (currentSelectedClient) {
+            const updatedClient = clients.find(c => c.id === currentSelectedClient.id);
+            if (updatedClient) openClientDetail(updatedClient.id);
+        }
+    });
+
     jobOrders = JSON.parse(localStorage.getItem(DB_JO_KEY)) || [];
-    clients = JSON.parse(localStorage.getItem(DB_CLIENT_KEY)) || [];
     
-    // CEK APAKAH ADA PARAMETER URL
     const urlParams = new URLSearchParams(window.location.search);
     const searchQ = urlParams.get('search');
     const actionQ = urlParams.get('action');
     
     switchView('clients');
-    populateDashboardFilters();
 
-    // Skenario 1: Buka CRM dan auto-search klien
     if (searchQ) {
         document.getElementById('searchClient').value = searchQ;
         searchClients(); 
         window.history.replaceState({}, document.title, window.location.pathname); 
     }
     
-    // Skenario 2: Akses Cepat dari Command Center (+ Klien Baru)
     if (actionQ === 'new') {
         setTimeout(() => { openAddClientModal(); }, 300);
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 });
 
-// TUTUP MODAL JIKA KLIK DI LUAR CARD / PANEL
+function migrateClientsToFirestore() {
+    const localData = JSON.parse(localStorage.getItem(DB_CLIENT_KEY)) || [];
+    if (localData.length > 0) {
+        const batch = db.batch();
+        localData.forEach(client => {
+            const docRef = db.collection("clients").doc(client.id);
+            batch.set(docRef, client);
+        });
+        batch.commit().then(() => {
+            console.log("Migrasi CRM ke Firestore berhasil!");
+            localStorage.removeItem(DB_CLIENT_KEY);
+        });
+    }
+}
+
 window.onclick = function(event) {
     if (event.target.classList.contains('modal')) {
         if (event.target.id === 'modal-client-detail') {
@@ -68,10 +111,8 @@ window.onclick = function(event) {
     }
 }
 
-function saveClientsDB() { localStorage.setItem(DB_CLIENT_KEY, JSON.stringify(clients)); }
-
 // ==========================================
-// 3. CORE CALCULATION LOGIC
+// 4. CORE CALCULATION LOGIC
 // ==========================================
 function calculateJobPrice(jo) {
     if (jo.type === 'Adjust' || jo.category === 'General' || jo.manualPrice > 0) return jo.manualPrice || 0; 
@@ -102,7 +143,7 @@ function formatRp(n) { return new Intl.NumberFormat('id-ID', { style:'currency',
 function formatDate(s) { return s ? new Date(s).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'}) : '-'; }
 
 // ==========================================
-// 4. NAVIGATION & RENDER VIEWS
+// 5. NAVIGATION & RENDER VIEWS
 // ==========================================
 function switchView(viewName) {
     if (viewName === 'dashboard') {
@@ -113,7 +154,6 @@ function switchView(viewName) {
         }
     }
 
-    // MEMUAT ULANG DATA AGAR SYNC REAL-TIME JIKA ADA JO YG DIHAPUS DI TRACKER
     jobOrders = JSON.parse(localStorage.getItem(DB_JO_KEY)) || [];
 
     currentView = viewName;
@@ -178,7 +218,6 @@ function renderClientList(searchTerm = '') {
         
         const vipBadge = client.isVIP ? `<span class="badge bg-warning" style="margin-left: 5px; font-size:10px;">VIP</span>` : '';
 
-        // Gunakan cleanName agar 4 digit tidak muncul di list
         card.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
                 <h4 style="margin: 0; font-size: 16px;">${cleanName(client.name)} ${vipBadge}</h4>
@@ -197,7 +236,7 @@ function renderClientList(searchTerm = '') {
 function searchClients() { renderClientList(document.getElementById('searchClient').value.toLowerCase()); }
 
 // ==========================================
-// 5. CLIENT DETAIL (MODAL SLIDE-IN) & EDIT
+// 6. CLIENT DETAIL (MODAL SLIDE-IN) & EDIT
 // ==========================================
 function closeClientDetail() {
     document.getElementById('modal-client-detail').style.display = 'none';
@@ -288,10 +327,11 @@ function toggleEditMode() {
 }
 
 // ==========================================
-// 6. DASHBOARD ANALYTICS
+// 7. DASHBOARD ANALYTICS
 // ==========================================
 function populateDashboardFilters() {
     const sel = document.getElementById('dash-client-filter');
+    sel.innerHTML = '<option value="ALL">Semua Klien</option>';
     clients.sort((a,b)=>a.name.localeCompare(b.name)).forEach(c => {
         sel.add(new Option(cleanName(c.name), c.name)); 
     });
@@ -359,7 +399,7 @@ function renderDashboard() {
 }
 
 // ==========================================
-// 7. CRUD ACTIONS
+// 8. CRUD ACTIONS (FIRESTORE)
 // ==========================================
 function openAddClientModal() {
     ['add-name','add-phone','add-company','add-email','add-address','add-notes'].forEach(id => document.getElementById(id).value = '');
@@ -392,40 +432,49 @@ function saveClient() {
         createdAt: new Date().toISOString()
     };
     
-    clients.push(newClient); 
-    saveClientsDB();
-    closeModal('modal-add-client'); 
-    switchView('clients'); 
-    openClientDetail(newClient.id);
-    populateDashboardFilters();
+    db.collection("clients").doc(newClient.id).set(newClient).then(() => {
+        closeModal('modal-add-client'); 
+        switchView('clients'); 
+        openClientDetail(newClient.id);
+    }).catch(err => {
+        alert("Gagal menambahkan klien ke Cloud.");
+        console.error(err);
+    });
 }
 
 function updateClient() {
     const id = document.getElementById('edit-id').value;
-    const idx = clients.findIndex(c => c.id === id);
-    if(idx === -1) return;
+    const updatedData = {
+        name: document.getElementById('edit-name').value.trim(),
+        phone: document.getElementById('edit-phone').value.trim(),
+        company: document.getElementById('edit-company').value.trim(),
+        email: document.getElementById('edit-email').value.trim(),
+        address: document.getElementById('edit-address').value.trim(),
+        notes: document.getElementById('edit-notes').value.trim()
+    };
 
-    clients[idx].name = document.getElementById('edit-name').value.trim();
-    clients[idx].phone = document.getElementById('edit-phone').value.trim();
-    clients[idx].company = document.getElementById('edit-company').value.trim();
-    clients[idx].email = document.getElementById('edit-email').value.trim();
-    clients[idx].address = document.getElementById('edit-address').value.trim();
-    clients[idx].notes = document.getElementById('edit-notes').value.trim();
-
-    saveClientsDB(); toggleEditMode();
-    currentSelectedClient = clients[idx]; openClientDetail(id);
-    populateDashboardFilters(); renderClientList();
+    db.collection("clients").doc(id).update(updatedData).then(() => {
+        toggleEditMode();
+    }).catch(err => {
+        alert("Gagal menyimpan perubahan ke Cloud.");
+        console.error(err);
+    });
 }
 
 function deleteClient() {
     if(!currentSelectedClient) return;
-    if(!confirm(`Hapus ${currentSelectedClient.name} dari CRM? (History job tetap aman)`)) return;
-    clients = clients.filter(c => c.id !== currentSelectedClient.id);
-    saveClientsDB(); closeClientDetail(); populateDashboardFilters(); renderClientList();
+    if(!confirm(`Hapus ${currentSelectedClient.name} dari CRM secara permanen? (History job tetap aman)`)) return;
+    
+    db.collection("clients").doc(currentSelectedClient.id).delete().then(() => {
+        closeClientDetail();
+    }).catch(err => {
+        alert("Gagal menghapus klien.");
+        console.error(err);
+    });
 }
 
 // ==========================================
-// 8. BROADCAST QUEUE SYSTEM
+// 9. BROADCAST QUEUE SYSTEM
 // ==========================================
 function chatWhatsApp() {
     if(!currentSelectedClient || !currentSelectedClient.phone) return;
@@ -495,7 +544,7 @@ function sendNextBroadcast() {
 }
 
 // ==========================================
-// 9. INTEGRASI CRM KE PROJECT TRACKER
+// 10. INTEGRASI CRM KE PROJECT TRACKER
 // ==========================================
 function buatJODariCRM() {
     if(!currentSelectedClient) return;
