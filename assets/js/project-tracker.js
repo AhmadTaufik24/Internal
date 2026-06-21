@@ -1,11 +1,19 @@
 // ==========================================
-// 1. DATABASE WRAPPER & KONFIGURASI
+// 1. FIREBASE CONFIGURATION & DB SETUP
 // ==========================================
-const DB = {
-    load: function(tableName) { return JSON.parse(localStorage.getItem(tableName)) || []; },
-    save: function(tableName, data) { localStorage.setItem(tableName, JSON.stringify(data)); }
+const firebaseConfig = {
+    apiKey: "AIzaSyCkUQXBYeMyQuB9X2HleubBDKuV3YpzVRg",
+    authDomain: "taufik-internal.firebaseapp.com",
+    projectId: "taufik-internal",
+    storageBucket: "taufik-internal.firebasestorage.app",
+    messagingSenderId: "212857824811",
+    appId: "1:212857824811:web:15ba9d4d7edeae4afeec6e"
 };
-function saveData() { DB.save('jo_db_v47', jobOrders); }
+
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const db = firebase.firestore();
+
+const DB_JO_KEY = 'jo_db_v47';
 
 const JOB_TYPES = {
     'FKKF': { label: 'Freelance Konten Feed', cat: 'Content', price: 50000 },
@@ -35,12 +43,49 @@ let cachedClients = [];
 
 function cleanName(n) { return n ? n.replace(/\s\(\d{4}\)$/, '') : ''; }
 
+// ==========================================
+// DB HELPERS
+// ==========================================
+function updateCloudJO(joId) {
+    const jo = jobOrders.find(j => j.id === joId);
+    if(jo) db.collection("jobOrders").doc(jo.id.toString()).set(jo).catch(console.error);
+}
+
+function saveBatchJOs(josArray) {
+    const batch = db.batch();
+    josArray.forEach(j => {
+        const ref = db.collection("jobOrders").doc(j.id.toString());
+        batch.set(ref, j);
+    });
+    batch.commit().catch(console.error);
+}
+
 // =======================================================
-// PENANGKAP URL DARI CLIENT CRM & COMMAND CENTER
+// INIT, MIGRATION & REAL-TIME LISTENERS
 // =======================================================
 document.addEventListener('DOMContentLoaded', () => { 
-    jobOrders = DB.load('jo_db_v47');
-    renderBoard(); updateLifetimeIncome(); 
+    migrateJOToFirestore();
+
+    // Listener Real-time JO
+    db.collection("jobOrders").onSnapshot((snapshot) => {
+        jobOrders = [];
+        snapshot.forEach((doc) => jobOrders.push(doc.data()));
+        
+        renderBoard(); 
+        updateLifetimeIncome(); 
+        
+        const activeSalaryView = document.getElementById('view-salary').style.display !== 'none';
+        const activeHistoryView = document.getElementById('view-done').style.display !== 'none';
+        if(activeSalaryView || activeHistoryView) {
+            renderSalaryTable(window.currentViewType, window.currentCategory);
+        }
+    });
+
+    // Listener Real-time Clients
+    db.collection("clients").onSnapshot((snapshot) => {
+        cachedClients = [];
+        snapshot.forEach((doc) => cachedClients.push(doc.data()));
+    });
 
     const urlParams = new URLSearchParams(window.location.search);
     
@@ -68,11 +113,26 @@ document.addEventListener('DOMContentLoaded', () => {
             if(document.getElementById('man-client-email')) document.getElementById('man-client-email').value = cEmail;
             if(document.getElementById('man-client-company')) document.getElementById('man-client-company').value = cCompany;
             if(document.getElementById('man-client-address')) document.getElementById('man-client-address').value = cAddress;
-        }, 150);
+        }, 300); // Timeout lebih aman untuk memastikan data cachedClients sudah ditarik
         
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 });
+
+function migrateJOToFirestore() {
+    const localJOs = JSON.parse(localStorage.getItem(DB_JO_KEY)) || [];
+    if (localJOs.length > 0) {
+        const batch = db.batch();
+        localJOs.forEach(jo => {
+            const docRef = db.collection("jobOrders").doc(jo.id.toString());
+            batch.set(docRef, jo);
+        });
+        batch.commit().then(() => {
+            console.log("Migrasi JO Tracker ke Cloud berhasil!");
+            localStorage.removeItem(DB_JO_KEY);
+        });
+    }
+}
 
 // ==========================================
 // 2. CORE: RENDER BOARD & CARD
@@ -105,7 +165,6 @@ function renderBoard() {
         let statusHTML = jo.statusText ? `<span class="status-text" style="color:${jo.statusText.includes('Revisi')?'#e74c3c':'#f39c12'}">${jo.statusText}</span>` : '';
         const displayTitle = getJobDisplayName(jo);
 
-        // --- UPDATE: Tampilkan Harga Kalau Kategori General ---
         let nominalHTML = '';
         if (jo.category === 'General') {
             nominalHTML = `<div style="font-size:11px; font-weight:800; color:var(--success); margin-top:5px;">💰 ${formatRp(jo.manualPrice || 0)}</div>`;
@@ -162,8 +221,7 @@ function showJobDetail(id) {
     document.getElementById('view-deadline').innerText = formatDate(jo.data.deadline);
     document.getElementById('view-status').innerText = jo.statusText || '-';
     
-    const clientsDb = JSON.parse(localStorage.getItem('taufik_crm_v2')) || [];
-    const clientInfo = clientsDb.find(c => c.name.toLowerCase() === (jo.clientName || '').toLowerCase());
+    const clientInfo = cachedClients.find(c => c.name.toLowerCase() === (jo.clientName || '').toLowerCase());
     
     if (clientInfo) {
         document.getElementById('det-client-phone').innerText = clientInfo.phone || '-';
@@ -200,7 +258,6 @@ function showJobDetail(id) {
     const editSlideInp = document.getElementById('edit-slides');
     if(editSlideInp) editSlideInp.value = jo.slides || 1;
 
-    // --- UPDATE: Tampilkan / Sembunyikan Form Edit Nominal Berdasarkan Kategori ---
     const editNominalGrp = document.getElementById('edit-nominal-group');
     if (editNominalGrp) {
         if (jo.category === 'General') {
@@ -239,7 +296,6 @@ function saveJobDetail() {
         jo.slides = parseInt(editSlideInp.value) || 1;
     }
 
-    // --- UPDATE: Simpan Harga Khusus General ---
     const editNominalInp = document.getElementById('edit-nominal');
     if(editNominalInp && jo.category === 'General') {
         jo.manualPrice = parseInt(editNominalInp.value) || 0;
@@ -248,7 +304,8 @@ function saveJobDetail() {
     const oldHex = jo.batchID ? jo.batchID.split('-')[0] : null;
     jo.batchID = generateBatchCode(jo.type, cleanName(jo.clientName), oldHex);
 
-    saveData(); renderBoard(); toggleEditMode(); showJobDetail(id);
+    updateCloudJO(jo.id);
+    renderBoard(); toggleEditMode(); showJobDetail(id);
 }
 
 // ==========================================
@@ -290,7 +347,6 @@ function toggleManualTypes() {
 }
 
 function populateClientSelect() {
-    cachedClients = JSON.parse(localStorage.getItem('taufik_crm_v2')) || [];
     cachedClients.sort((a,b) => a.name.localeCompare(b.name));
     renderClientDropdown();
 }
@@ -428,14 +484,14 @@ function saveManualJob() {
     if(c === 'General') j.manualPrice = parseInt(document.getElementById('man-price').value) || 0;
     
     jobOrders.push(j); 
-    saveData(); 
+    db.collection("jobOrders").doc(j.id.toString()).set(j).catch(console.error);
 
-    let clientsDb = JSON.parse(localStorage.getItem('taufik_crm_v2')) || [];
-    let existingClient = clientsDb.find(client => client.name.toLowerCase() === cl.toLowerCase());
+    // Sync CRM Client
+    let existingClient = cachedClients.find(client => client.name.toLowerCase() === cl.toLowerCase());
     
     if(!existingClient) {
         const isContent = c === 'Content' || ['FKKF','FKKR','FKKS','Feed','Reels','Story'].includes(typeCode);
-        clientsDb.push({
+        const newClient = {
             id: 'CL-' + Date.now() + Math.random().toString(36).substring(2,6).toUpperCase(),
             name: cl,
             phone: phoneVal,
@@ -444,15 +500,15 @@ function saveManualJob() {
             company: companyVal || (isContent ? "Dihidang" : ""), 
             notes: "Auto-imported dari form pembuatan JO Tracker",
             createdAt: new Date().toISOString()
-        });
-        localStorage.setItem('taufik_crm_v2', JSON.stringify(clientsDb));
+        };
+        db.collection("clients").doc(newClient.id).set(newClient);
     } else if (phoneVal || emailVal || companyVal || addressVal) {
         let isUpdated = false;
         if(phoneVal && !existingClient.phone) { existingClient.phone = phoneVal; isUpdated = true; }
         if(emailVal && !existingClient.email) { existingClient.email = emailVal; isUpdated = true; }
         if(companyVal && !existingClient.company) { existingClient.company = companyVal; isUpdated = true; }
         if(addressVal && !existingClient.address) { existingClient.address = addressVal; isUpdated = true; }
-        if(isUpdated) localStorage.setItem('taufik_crm_v2', JSON.stringify(clientsDb));
+        if(isUpdated) db.collection("clients").doc(existingClient.id).set(existingClient);
     }
 
     closeModal('modal-manual'); 
@@ -508,14 +564,14 @@ function savePreparing() {
         alertBox.className = 'ui-alert success';
         alertBox.innerHTML = `<strong>✅ Siap Dikerjakan!</strong> Semua checklist selesai. Job masuk ke On Progress.`;
         alertBox.style.display = 'flex';
-        saveData(); renderBoard();
+        updateCloudJO(jo.id); renderBoard();
         setTimeout(() => closeModal('modal-prep'), 1500); 
     } else {
         jo.stage = 'preparing';
         alertBox.className = 'ui-alert warning';
         alertBox.innerHTML = `<strong>⚠️ Progress Tersimpan.</strong> Centang kedua checklist di atas jika ingin lanjut ke On Progress.`;
         alertBox.style.display = 'flex';
-        saveData(); renderBoard();
+        updateCloudJO(jo.id); renderBoard();
     }
 }
 
@@ -531,7 +587,7 @@ function saveProgress() {
     if(!link) return alert("WAJIB ISI LINK QC INTERNAL!"); 
     jo.data.internalLink = link; 
     jo.stage = 'internal'; jo.statusText = 'QC Internal'; 
-    saveData(); closeModal('modal-prog'); renderBoard(); 
+    updateCloudJO(jo.id); closeModal('modal-prog'); renderBoard(); 
 }
 
 function openInternalRev(id) {
@@ -547,7 +603,7 @@ function saveInternalRev() {
     jo.history.push({ date: new Date().toLocaleString('id-ID'), msg: `REVISI INTERNAL: ${note}`, type: 'internal', voided: false });
     
     jo.stage = 'progress'; jo.statusText = 'Revisi Internal'; 
-    saveData(); closeModal('modal-internal-rev'); renderBoard();
+    updateCloudJO(jo.id); closeModal('modal-internal-rev'); renderBoard();
 }
 
 function openSendClient(id) {
@@ -562,7 +618,7 @@ function saveSendClient() {
     if(!link) return alert("Link Review Klien wajib diisi sebelum dikirim!");
     jo.data.clientLink = link;
     jo.stage = 'review'; jo.statusText = 'Menunggu Review Klien'; 
-    saveData(); closeModal('modal-send-client'); renderBoard();
+    updateCloudJO(jo.id); closeModal('modal-send-client'); renderBoard();
 }
 
 function openRev(id) { document.getElementById('rev-id').value = id; document.getElementById('rev-notes-client').value = ''; document.getElementById('modal-rev').style.display = 'flex'; }
@@ -576,9 +632,9 @@ function saveReview(dec) {
     } else { 
         if(note) jo.history.push({ date: new Date().toLocaleString('id-ID'), msg: `ACC NOTE: ${note}`, type: 'client', voided: false }); 
         jo.statusText = 'Approved ✅'; jo.stage = 'upload'; 
-    } saveData(); closeModal('modal-rev'); renderBoard(); 
+    } updateCloudJO(jo.id); closeModal('modal-rev'); renderBoard(); 
 }
-function delayUpload(id) { const jo = jobOrders.find(j => j.id === id); if(!jo.history) jo.history=[]; jo.history.push({ date: new Date().toLocaleString('id-ID'), msg: `STATUS: Upload Tertunda`, type: 'internal', voided: false }); jo.statusText = 'Upload Tertunda ⏳'; saveData(); renderBoard(); }
+function delayUpload(id) { const jo = jobOrders.find(j => j.id === id); if(!jo.history) jo.history=[]; jo.history.push({ date: new Date().toLocaleString('id-ID'), msg: `STATUS: Upload Tertunda`, type: 'internal', voided: false }); jo.statusText = 'Upload Tertunda ⏳'; updateCloudJO(jo.id); renderBoard(); }
 
 // ==========================================
 // 6. TARGET & WEEKLY 
@@ -587,8 +643,7 @@ function openTargetCalc() { document.getElementById('target-money').value=''; do
 function generateByTarget() {
     const target = parseInt(document.getElementById('target-money').value); if(!target) return alert("Isi target nominal!");
     
-    let clientsDb = JSON.parse(localStorage.getItem('taufik_crm_v2')) || [];
-    let targetDihidang = clientsDb.find(c => c.name.toLowerCase().includes('dihidang') && c.phone && String(c.phone).trim().length >= 4);
+    let targetDihidang = cachedClients.find(c => c.name.toLowerCase().includes('dihidang') && c.phone && String(c.phone).trim().length >= 4);
     const clientName = targetDihidang ? targetDihidang.name : "Dihidang";
 
     let current = 0; const newJobs = []; let counts = { feed1:0, feed2:0, feed4:0, reels:0, story:0 };
@@ -601,12 +656,15 @@ function generateByTarget() {
         else if (counts.story < MAX_CAPACITY.story && current < target) { newJobs.push(createJob('FKKS', `Story #${counts.story+1}`, generateBatchCode('FKKS', cleanName(clientName)), 1, clientName)); current += JOB_TYPES['FKKS'].price; counts.story++; added = true; }
         if (!added) break;
     }
-    if(confirm(`Membuat ${newJobs.length} Job untuk ${cleanName(clientName)}.\nTotal: Rp ${formatRp(current)}`)) { jobOrders = [...jobOrders, ...newJobs]; saveData(); closeModal('modal-target'); renderBoard(); }
+    if(confirm(`Membuat ${newJobs.length} Job untuk ${cleanName(clientName)}.\nTotal: Rp ${formatRp(current)}`)) { 
+        jobOrders = [...jobOrders, ...newJobs]; 
+        saveBatchJOs(newJobs);
+        closeModal('modal-target'); renderBoard(); 
+    }
 }
 
 function generateWeeklyTarget() {
-    let clientsDb = JSON.parse(localStorage.getItem('taufik_crm_v2')) || [];
-    let targetDihidang = clientsDb.find(c => c.name.toLowerCase().includes('dihidang') && c.phone && String(c.phone).trim().length >= 4);
+    let targetDihidang = cachedClients.find(c => c.name.toLowerCase().includes('dihidang') && c.phone && String(c.phone).trim().length >= 4);
     const clientName = targetDihidang ? targetDihidang.name : "Dihidang";
 
     if(!confirm(`Generate Paket Job Mingguan untuk ${cleanName(clientName)}?`)) return;
@@ -620,7 +678,10 @@ function generateWeeklyTarget() {
         createJob('FKKR', 'Reels #2', generateBatchCode('FKKR', cleanName(clientName)), 1, clientName)
     ];
     for(let i=1; i<=7; i++) jobs.push(createJob('FKKS', `Story #${i}`, generateBatchCode('FKKS', cleanName(clientName)), 1, clientName));
-    jobOrders = [...jobOrders, ...jobs]; saveData(); renderBoard();
+    
+    jobOrders = [...jobOrders, ...jobs]; 
+    saveBatchJOs(jobs);
+    renderBoard();
 }
 
 // ==========================================
@@ -697,8 +758,8 @@ window.onclick = function(event) {
     } 
 }
 
-function moveStage(id, s) { const j = jobOrders.find(x => x.id === id); if(j) { j.stage = s; saveData(); renderBoard(); } }
-function doArchive(id) { const j = jobOrders.find(x => x.id === id); j.stage = 'archive'; j.archivedDate = new Date().toISOString(); saveData(); renderBoard(); }
+function moveStage(id, s) { const j = jobOrders.find(x => x.id === id); if(j) { j.stage = s; updateCloudJO(id); renderBoard(); } }
+function doArchive(id) { const j = jobOrders.find(x => x.id === id); j.stage = 'archive'; j.archivedDate = new Date().toISOString(); updateCloudJO(id); renderBoard(); }
 function checkDeadline(dStr) { if(!dStr) return { text: 'No Date', bg: '', txt: '' }; const today = new Date(); today.setHours(0,0,0,0); const dl = new Date(dStr); dl.setHours(0,0,0,0); const diff = (dl - today) / (1000 * 60 * 60 * 24); if(diff < 0) return { text: 'OVERDUE', bg: 'bg-urgent', txt: 'txt-urgent' }; if(diff === 0) return { text: 'HARI INI', bg: 'bg-urgent', txt: 'txt-urgent' }; if(diff <= 3) return { text: `${diff} Hari Lagi`, bg: 'bg-warning', txt: 'txt-warning' }; return { text: formatDate(dStr), bg: 'bg-safe', txt: 'txt-safe' }; }
 
 function getPeriodPath(jo) { 
@@ -728,14 +789,14 @@ function getPeriod(dateObj) {
     }; 
 }
 
-function deleteJob(id, e) { if(e) e.stopPropagation(); if(confirm("Hapus Permanen?")) { jobOrders = jobOrders.filter(j => j.id !== id); saveData(); if(document.getElementById('view-board').style.display !== 'none') renderBoard(); else renderSalaryTable(window.currentViewType, window.currentCategory); } }
-function voidJob(id, e) { if(e) e.stopPropagation(); const jo = jobOrders.find(j => j.id === id); const idx = STAGE_FLOW.indexOf(jo.stage); if(confirm(`VOID Job ini?`)) { if(jo.type==='Adjust'){ deleteJob(id); return; } if(jo.stage === 'archive' || jo.stage === 'done') { jo.stage = 'upload'; jo.archivedDate = null; } else if (idx > 0) jo.stage = STAGE_FLOW[idx - 1]; else jo.statusText = 'VOIDED'; if(jo.stage !== 'review') jo.statusText = ''; saveData(); renderBoard(); } }
+function deleteJob(id, e) { if(e) e.stopPropagation(); if(confirm("Hapus Permanen?")) { jobOrders = jobOrders.filter(j => j.id !== id); db.collection("jobOrders").doc(id.toString()).delete(); if(document.getElementById('view-board').style.display !== 'none') renderBoard(); else renderSalaryTable(window.currentViewType, window.currentCategory); } }
+function voidJob(id, e) { if(e) e.stopPropagation(); const jo = jobOrders.find(j => j.id === id); const idx = STAGE_FLOW.indexOf(jo.stage); if(confirm(`VOID Job ini?`)) { if(jo.type==='Adjust'){ deleteJob(id); return; } if(jo.stage === 'archive' || jo.stage === 'done') { jo.stage = 'upload'; jo.archivedDate = null; } else if (idx > 0) jo.stage = STAGE_FLOW[idx - 1]; else jo.statusText = 'VOIDED'; if(jo.stage !== 'review') jo.statusText = ''; updateCloudJO(id); renderBoard(); } }
 
 let currentNoteId = null;
 function toggleVoidVisibility() { document.getElementById('detail-container').classList.toggle('show-voided-logs'); }
-function toggleVoidNote(jobId, logIndex) { const jo = jobOrders.find(j => j.id === jobId); if(jo) { jo.history[logIndex].voided = !jo.history[logIndex].voided; saveData(); renderHistoryLog(jo); } }
+function toggleVoidNote(jobId, logIndex) { const jo = jobOrders.find(j => j.id === jobId); if(jo) { jo.history[logIndex].voided = !jo.history[logIndex].voided; updateCloudJO(jo.id); renderHistoryLog(jo); } }
 function openQuickNote() { currentNoteId = document.getElementById('edit-id').value; document.getElementById('quick-note-text').value = ''; document.getElementById('modal-quick-note').style.display = 'flex'; }
-function saveQuickNote() { const txt = document.getElementById('quick-note-text').value; const type = document.getElementById('quick-note-type').value; const jo = jobOrders.find(j=>j.id === currentNoteId); if(jo && txt) { if(!jo.history) jo.history = []; jo.history.push({ date: new Date().toLocaleString('id-ID'), msg: txt, type: type, voided: false }); saveData(); renderHistoryLog(jo); closeModal('modal-quick-note'); } }
+function saveQuickNote() { const txt = document.getElementById('quick-note-text').value; const type = document.getElementById('quick-note-type').value; const jo = jobOrders.find(j=>j.id === currentNoteId); if(jo && txt) { if(!jo.history) jo.history = []; jo.history.push({ date: new Date().toLocaleString('id-ID'), msg: txt, type: type, voided: false }); updateCloudJO(jo.id); renderHistoryLog(jo); closeModal('modal-quick-note'); } }
 function renderHistoryLog(jo) { const c = document.getElementById('history-log-container'); c.innerHTML = ''; if(jo.history && jo.history.length > 0) { jo.history.forEach((h, i) => { c.innerHTML += `<div class="log-item ${h.type} ${h.voided?'voided':''}"><button class="btn-void-note" onclick="toggleVoidNote('${jo.id}', ${i})">${h.voided?'Unvoid':'✖'}</button><div class="log-meta"><span>${h.date}</span> <span>${h.type.toUpperCase()}</span></div><div class="log-content">${h.msg}</div></div>`; }); } else { c.innerHTML = '<div style="color:#aaa; text-align:center;">Belum ada catatan aktivitas.</div>'; } }
 
 function preparePDFContent(periodKey, categoryType, callback) { 
@@ -836,10 +897,50 @@ _Dengan menyimpan nomor ini, Kakak dapat terhubung langsung untuk diskusi projec
 }
 
 function exportProfessionalPDF(periodKey, categoryType) { preparePDFContent(periodKey, categoryType, (element, fileName) => { const opt = { margin: 15, filename: fileName, image: {type:'jpeg', quality:0.98}, html2canvas: {scale: 2, useCORS: true}, jsPDF: {unit:'mm', format:'a4', orientation: 'portrait'} }; html2pdf().set(opt).from(element).save().then(() => { document.getElementById('pdf-template-container').style.display='none'; }); }); }
+
 function openPeriodLink(key, cat) { document.getElementById('pl-period-key').value = key; document.getElementById('pl-category-key').value = cat; const items = jobOrders.filter(j => (j.stage==='archive' || j.stage==='done')); const exist = items.find(j => getPeriod(new Date(j.archivedDate)).key === key && j.category === cat && j.periodLink); document.getElementById('pl-link').value = exist ? exist.periodLink : ''; document.getElementById('modal-period-link').style.display = 'flex'; }
-function savePeriodLink() { const key = document.getElementById('pl-period-key').value; const cat = document.getElementById('pl-category-key').value; const link = document.getElementById('pl-link').value; if(!link) return alert("Link Cloud Wajib Diisi!"); jobOrders.forEach(jo => { if(jo.stage !== 'archive' && jo.stage !== 'done') return; const pDate = new Date(jo.archivedDate); if(getPeriod(pDate).key === key) { if(cat === 'Content' && jo.category === 'Content') jo.periodLink = link; else if(cat === 'General' && jo.category === 'General') jo.periodLink = link; } }); saveData(); closeModal('modal-period-link'); renderSalaryTable('salary', cat === 'Content' ? 'content' : 'general'); }
+
+function savePeriodLink() { 
+    const key = document.getElementById('pl-period-key').value; 
+    const cat = document.getElementById('pl-category-key').value; 
+    const link = document.getElementById('pl-link').value; 
+    if(!link) return alert("Link Cloud Wajib Diisi!"); 
+    
+    const updatedJobs = [];
+    jobOrders.forEach(jo => { 
+        if(jo.stage !== 'archive' && jo.stage !== 'done') return; 
+        const pDate = new Date(jo.archivedDate); 
+        if(getPeriod(pDate).key === key) { 
+            if(cat === 'Content' && jo.category === 'Content') { jo.periodLink = link; updatedJobs.push(jo); }
+            else if(cat === 'General' && jo.category === 'General') { jo.periodLink = link; updatedJobs.push(jo); }
+        } 
+    }); 
+    saveBatchJOs(updatedJobs);
+    closeModal('modal-period-link'); 
+    renderSalaryTable('salary', cat === 'Content' ? 'content' : 'general'); 
+}
+
 function openFinalize(k, c) { const items = jobOrders.filter(j => j.stage==='archive' && getPeriod(new Date(j.archivedDate)).key === k && j.category === c); if(items.length === 0) return alert("Data tidak ditemukan."); const hasLink = items.some(i => i.periodLink); if(!hasLink) return alert("Link Hasil belum diisi!"); document.getElementById('fin-period-key').value = k; document.getElementById('fin-category-key').value = c; const link = items.find(i => i.periodLink).periodLink; document.getElementById('fin-display-link').innerText = link; document.getElementById('fin-display-link').href = link; document.getElementById('check-cloud').checked = false; document.getElementById('check-master').checked = false; document.getElementById('modal-finalize').style.display = 'flex'; }
-function executeFinalize() { const k = document.getElementById('fin-period-key').value; const c = document.getElementById('fin-category-key').value; if(!document.getElementById('check-cloud').checked || !document.getElementById('check-master').checked) return alert("Wajib checklist!"); jobOrders.forEach(jo => { if(jo.stage !== 'archive') return; const d = new Date(jo.archivedDate); if(getPeriod(d).key === k && (jo.category===c || (c==='Content' && jo.category==='Content'))) { jo.stage = 'done'; } }); saveData(); closeModal('modal-finalize'); renderSalaryTable('salary', c.toLowerCase()); updateLifetimeIncome(); }
+
+function executeFinalize() { 
+    const k = document.getElementById('fin-period-key').value; 
+    const c = document.getElementById('fin-category-key').value; 
+    if(!document.getElementById('check-cloud').checked || !document.getElementById('check-master').checked) return alert("Wajib checklist!"); 
+    
+    const updatedJobs = [];
+    jobOrders.forEach(jo => { 
+        if(jo.stage !== 'archive') return; 
+        const d = new Date(jo.archivedDate); 
+        if(getPeriod(d).key === k && (jo.category===c || (c==='Content' && jo.category==='Content'))) { 
+            jo.stage = 'done'; 
+            updatedJobs.push(jo);
+        } 
+    }); 
+    saveBatchJOs(updatedJobs);
+    closeModal('modal-finalize'); 
+    renderSalaryTable('salary', c.toLowerCase()); 
+    updateLifetimeIncome(); 
+}
 
 function openAdjustModal() { document.getElementById('adj-title').value = ''; document.getElementById('adj-nominal').value = ''; document.getElementById('adj-date-range').value = ''; document.getElementById('adj-note').value = ''; document.getElementById('modal-adjust').style.display = 'flex'; }
 
@@ -852,8 +953,7 @@ function saveAdjustment() {
 
     if(!title || !nominal) return alert("Data tidak lengkap!"); 
 
-    let clientsDb = JSON.parse(localStorage.getItem('taufik_crm_v2')) || [];
-    let targetDihidang = clientsDb.find(c => c.name.toLowerCase().includes('dihidang') && c.phone && String(c.phone).trim().length >= 4);
+    let targetDihidang = cachedClients.find(c => c.name.toLowerCase().includes('dihidang') && c.phone && String(c.phone).trim().length >= 4);
     const assignedClient = targetDihidang ? targetDihidang.name : 'Internal';
 
     const adjJob = { 
@@ -870,7 +970,7 @@ function saveAdjustment() {
         statusText: 'Adjustment' 
     }; 
     jobOrders.push(adjJob); 
-    saveData(); 
+    db.collection("jobOrders").doc(adjJob.id.toString()).set(adjJob).catch(console.error);
     closeModal('modal-adjust'); 
     renderSalaryTable('salary', cat === 'Content' ? 'content' : 'general'); 
 }
@@ -912,7 +1012,7 @@ function saveMovePeriod() {
             jo.data.deadline = new Date(newDate).toLocaleDateString('id-ID');
         }
         
-        saveData();
+        updateCloudJO(jo.id);
         closeModal('modal-move-period');
         renderSalaryTable(window.currentViewType, window.currentCategory);
     }
