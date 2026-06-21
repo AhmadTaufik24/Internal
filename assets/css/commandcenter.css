@@ -22,20 +22,7 @@
 *, *::before, *::after { box-sizing: border-box !important; margin: 0; padding: 0; }
 body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--body-bg); color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; }
 
-/* --- 1. LOGIN SCREEN & ZEN MODE --- */
-.cc-auth-overlay { display: flex; position: fixed; inset: 0; justify-content: center; align-items: center; background: var(--primary); z-index: 9999; }
-.cc-login-card { background: var(--card-bg); border-radius: 20px; width: 100%; max-width: 380px; padding: 40px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.3); }
-.cc-login-icon { width: 60px; height: 60px; background: var(--primary); color: white; font-size: 24px; border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
-.cc-login-card h2 { color: var(--primary); margin-bottom: 5px; font-weight: 800; }
-.cc-login-card p { font-size: 12px; color: var(--text-sub); margin-bottom: 25px; }
-.cc-input-wrapper { position: relative; width: 100%; margin-bottom: 20px; }
-.cc-input-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-sub); }
-#auth-password { width: 100%; padding: 15px 15px 15px 45px; border-radius: 12px; border: 1px solid var(--border); font-size: 16px; letter-spacing: 3px; text-align: center; font-weight: 800; color: var(--primary); outline: none; }
-#auth-password:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-bg); }
-.cc-btn-login { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-.cc-btn-login:hover { background: #325473; }
-.cc-login-error { display: none; color: var(--danger); font-size: 12px; font-weight: 700; margin-top: 15px; background: var(--danger-bg); padding: 10px; border-radius: 8px; }
-
+/* --- 1. ZEN MODE --- */
 #zen-overlay { position: fixed; inset: 0; background: #0f172a; z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s ease; color: white; }
 .cc-zen-hidden { opacity: 0; pointer-events: none; }
 .cc-btn-exit-zen { position: absolute; top: 30px; right: 40px; background: rgba(255,255,255,0.1); border: none; color: white; padding: 10px 20px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; }
@@ -47,37 +34,10 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--body-bg);
 .cc-btn-zen { background: var(--primary); color: white; border: none; }
 .cc-btn-zen-outline { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: white; margin-left: 10px; }
 
-.cc-zen-task-selector {
-    margin-bottom: 40px;
-    width: 100%;
-    max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
-}
-.cc-zen-task-selector select {
-    background: rgba(255,255,255,0.1);
-    color: white;
-    border: 1px solid rgba(255,255,255,0.2);
-    padding: 12px 20px;
-    border-radius: 12px;
-    font-size: 14px;
-    font-family: inherit;
-    font-weight: 600;
-    outline: none;
-    width: 100%;
-    cursor: pointer;
-    text-align: center;
-    appearance: none;
-    -webkit-appearance: none;
-    transition: 0.2s;
-}
-.cc-zen-task-selector select:hover {
-    background: rgba(255,255,255,0.2);
-}
-.cc-zen-task-selector select option {
-    color: black;
-    text-align: left;
-}
+.cc-zen-task-selector { margin-bottom: 40px; width: 100%; max-width: 400px; margin-left: auto; margin-right: auto; }
+.cc-zen-task-selector select { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 12px 20px; border-radius: 12px; font-size: 14px; font-family: inherit; font-weight: 600; outline: none; width: 100%; cursor: pointer; text-align: center; appearance: none; -webkit-appearance: none; transition: 0.2s; }
+.cc-zen-task-selector select:hover { background: rgba(255,255,255,0.2); }
+.cc-zen-task-selector select option { color: black; text-align: left; }
 
 /* --- 2. LAYOUT MAIN --- */
 .cc-app-wrapper { display: flex; width: 100vw; height: 100vh; overflow: hidden; }
