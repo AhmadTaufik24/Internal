@@ -336,23 +336,24 @@
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
-    <script src="assets/js/project-tracker.js"></script>
-    <script>
-    function searchJobs() {
-        let input = document.getElementById('searchInput').value.toLowerCase();
-        let cards = document.querySelectorAll('.card');
-        cards.forEach(card => {
-            let text = card.innerText.toLowerCase();
-            if (text.includes(input)) {
-                card.style.display = ""; 
-            } else {
-                card.style.display = "none"; 
-            }
-        });
-    }
-    </script>
+<script src="assets/js/project-tracker.js"></script>
+<script>
+function searchJobs() {
+    let input = document.getElementById('searchInput').value.toLowerCase();
+    let cards = document.querySelectorAll('.card');
+    cards.forEach(card => {
+        let text = card.innerText.toLowerCase();
+        if (text.includes(input)) {
+            card.style.display = ""; 
+        } else {
+            card.style.display = "none"; 
+        }
+    });
+}
+</script>
+
 </body>
 </html>
