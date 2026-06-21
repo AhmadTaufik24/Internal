@@ -1,5 +1,5 @@
 // ==========================================
-// 0. FIREBASE AUTH & GATEWAY SYSTEM
+// 0. FIREBASE AUTH, FIRESTORE & GATEWAY SYSTEM
 // ==========================================
 const firebaseConfig = {
     apiKey: "AIzaSyCkUQXBYeMyQuB9X2HleubBDKuV3YpzVRg",
@@ -13,15 +13,22 @@ const firebaseConfig = {
 // Inisialisasi Firebase
 if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const auth = firebase.auth();
+const db = firebase.firestore(); // Inisialisasi Firestore
 
 // Pantau Sesi Login (Otomatis jalan saat halaman dibuka)
 auth.onAuthStateChanged((user) => {
     const loginOverlay = document.getElementById('login-overlay');
     if (user) {
+        // [FIXED] Simpan sesi login agar commandcenter.js bisa mendeteksi
+        sessionStorage.setItem('isLoggedIn', 'true');
+        
         // Jika sudah login, hilangkan layar penutup
         loginOverlay.style.opacity = '0';
         setTimeout(() => loginOverlay.style.display = 'none', 500);
     } else {
+        // [FIXED] Hapus sesi jika tidak ada user yang login
+        sessionStorage.removeItem('isLoggedIn');
+        
         // Jika belum login, paksa munculkan layar penutup
         loginOverlay.style.display = 'flex';
         loginOverlay.style.opacity = '1';
@@ -86,6 +93,9 @@ window.processLogout = async function() {
     const isConfirmed = await showModal('warning', 'Konfirmasi', 'Yakin ingin keluar dari Taufik OS?', true);
     if(isConfirmed) {
         auth.signOut().then(() => {
+            // [FIXED] Bersihkan sesi saat logout
+            sessionStorage.removeItem('isLoggedIn');
+            
             showToast && typeof showToast === 'function' ? showToast('Berhasil Logout') : null;
         }).catch((error) => {
             showModal('error', 'Error', 'Gagal logout.', false);
@@ -95,33 +105,21 @@ window.processLogout = async function() {
 
 
 // ==========================================
-// 1. DATABASE REGISTRY (SKEMA LOKAL LAMA)
+// 1. DATABASE REGISTRY (CLOUD FIRESTORE)
 // ==========================================
-const OS_TABLES = [
-    'jo_db_v47',                
-    'taufik_finance_db',        
-    'taufik_notes_db_v1',       
-    'taufik_crm_v2',            
-    'taufik_assets_library_v1', 
-    'taufik_core_db'            
+// Kumpulan nama Collection di Firestore untuk fitur Backup/Restore
+const OS_COLLECTIONS = [
+    'projects',          // misal untuk data job order tracker
+    'finance',           // misal untuk data finance
+    'notes',             // misal untuk data notes
+    'crm',               // misal untuk data klien
+    'assets',            // misal untuk data asset library
+    'events'             // misal untuk acara/scheduler
 ];
 
-// ==========================================
-// 2. DATABASE SERVICE (LOKAL - Akan diganti Firestore pelan-pelan)
-// ==========================================
-const DB = {
-    load: async function(tableName) {
-        return JSON.parse(localStorage.getItem(tableName)) || [];
-    },
-
-    save: async function(tableName, data) {
-        localStorage.setItem(tableName, JSON.stringify(data));
-        return true;
-    }
-};
 
 // ==========================================
-// 3. CLOCK, DATE & GREETING SYSTEM
+// 2. CLOCK, DATE & GREETING SYSTEM
 // ==========================================
 function updateTime() {
     const now = new Date();
@@ -157,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// 4. CUSTOM MODAL ENGINE
+// 3. CUSTOM MODAL ENGINE
 // ==========================================
 function showModal(type, title, message, showCancel = true) {
     return new Promise((resolve) => {
@@ -196,13 +194,24 @@ function showModal(type, title, message, showCancel = true) {
 }
 
 // ==========================================
-// 5. MASTER OS BACKUP SYSTEM (LOKAL)
+// 4. MASTER OS BACKUP SYSTEM (FIRESTORE TO JSON)
 // ==========================================
 async function downloadMasterBackup() {
     try {
+        const btn = document.querySelector('.btn-admin.primary');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+
         let dbDump = {};
-        for (let table of OS_TABLES) {
-            dbDump[table] = await DB.load(table);
+        
+        // Looping untuk narik semua data dari setiap collection di Firestore
+        for (let collectionName of OS_COLLECTIONS) {
+            const snapshot = await db.collection(collectionName).get();
+            dbDump[collectionName] = [];
+            snapshot.forEach(doc => {
+                dbDump[collectionName].push({ id: doc.id, ...doc.data() });
+            });
         }
 
         const masterData = {
@@ -217,22 +226,24 @@ async function downloadMasterBackup() {
 
         const a = document.createElement('a');
         a.href = url;
-        a.download = `TAUFIK_OS_MASTER_${new Date().toISOString().slice(0,10)}.json`;
+        a.download = `TAUFIK_OS_CLOUD_BACKUP_${new Date().toISOString().slice(0,10)}.json`;
         document.body.appendChild(a);
         a.click();
         
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        await showModal('success', 'Backup Berhasil', 'Seluruh database sistem lokal berhasil di-backup.', false);
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+        await showModal('success', 'Backup Berhasil', 'Seluruh database cloud berhasil di-backup ke JSON.', false);
     } catch (error) {
-        await showModal('error', 'Backup Gagal', 'Terjadi kesalahan saat memproses data backup.', false);
         console.error("Backup Error: ", error);
+        await showModal('error', 'Backup Gagal', 'Terjadi kesalahan saat menarik data dari Firestore.', false);
     }
 }
 
 // ==========================================
-// 6. MASTER OS RESTORE SYSTEM (LOKAL)
+// 5. MASTER OS RESTORE SYSTEM (JSON TO FIRESTORE)
 // ==========================================
 async function restoreMasterBackup(inputElement) {
     const file = inputElement.files[0];
@@ -246,24 +257,30 @@ async function restoreMasterBackup(inputElement) {
             if (content.app_name === "TAUFIK_FREELANCE_OS") {
                 const isConfirmed = await showModal(
                     'warning',
-                    'Peringatan Sistem!',
-                    `Kamu akan menimpa seluruh sistem dengan data dari tanggal:\n<strong>${content.backup_date}</strong>\n\nApakah kamu yakin ingin melanjutkan?`,
+                    'Peringatan Sistem Cloud!',
+                    `Kamu akan menimpa/menambahkan data CLOUD dengan data dari:\n<strong>${content.backup_date}</strong>\n\nApakah kamu yakin ingin melanjutkan?`,
                     true
                 );
 
                 if (isConfirmed) {
-                    for (let tableName in content.data) {
-                        await DB.save(tableName, content.data[tableName]);
+                    // Batch write ke Firestore
+                    for (let collectionName in content.data) {
+                        const items = content.data[collectionName];
+                        for (let item of items) {
+                            // Menggunakan set() dengan merge agar tidak menimpa field yang sudah ada di document tersebut
+                            await db.collection(collectionName).doc(item.id).set(item, { merge: true });
+                        }
                     }
                     
-                    await showModal('success', 'Restore Berhasil', 'Master Data berhasil dipulihkan!', false);
+                    await showModal('success', 'Restore Berhasil', 'Master Data berhasil dipulihkan ke Firestore!', false);
                     location.reload(); 
                 }
             } else {
                 await showModal('error', 'Akses Ditolak', 'File JSON ini bukan format backup Taufik OS.', false);
             }
         } catch (err) {
-            await showModal('error', 'File Corrupt', 'Gagal membaca file. File mungkin rusak atau tidak valid.', false);
+            console.error(err);
+            await showModal('error', 'File Corrupt', 'Gagal membaca file atau push ke database.', false);
         }
     };
     reader.readAsText(file);
