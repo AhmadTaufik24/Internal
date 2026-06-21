@@ -1,7 +1,6 @@
 // ==========================================
 // 1. SYSTEM CONFIG & DATABASE REGISTRY
 // ==========================================
-const APP_PWD = "AT240104";
 const DB_KEYS = {
     projects: 'jo_db_v47',
     finance: 'taufik_finance_db',
@@ -23,34 +22,20 @@ let scheduleNotifs = [];
 // 2. BOOT & AUTHENTICATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    updateClock();
-    setInterval(updateClock, 1000);
-    
-    if (sessionStorage.getItem('cc_auth') === 'true') {
-        bootSystem();
-    } else {
-        document.getElementById('auth-screen').style.display = 'flex';
-        document.getElementById('app-wrapper').style.display = 'none';
-        const pwInput = document.getElementById('auth-password');
-        if(pwInput) pwInput.focus();
+    // PROTEKSI: Cek login dari index.html
+    if (sessionStorage.getItem('isLoggedIn') !== 'true') {
+        window.location.href = 'index.html';
+        return;
     }
-});
 
-function checkAuth() {
-    const pwd = document.getElementById('auth-password').value;
-    if (pwd === APP_PWD) {
-        sessionStorage.setItem('cc_auth', 'true');
-        document.getElementById('auth-error').style.display = 'none';
-        bootSystem();
-    } else {
-        document.getElementById('auth-error').style.display = 'block';
-    }
-}
-
-function bootSystem() {
-    document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app-wrapper').style.display = 'flex';
     
+    updateClock();
+    setInterval(updateClock, 1000);
+    bootSystem();
+});
+
+function bootSystem() {
     pullAllData();
     renderCalendarWidget(); 
     renderDynamicBriefing(); 
