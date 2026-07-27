@@ -49,8 +49,22 @@ let customCategories = DB.load('taufik_categories_v1') || [];
 
 function getAllCategories() { return [...defaultCategories, ...customCategories]; }
 
+// 🔥 BAGIAN YANG DIUBAH ADA DI SINI 🔥
 if (typeof marked !== 'undefined' && typeof hljs !== 'undefined') {
+    // 1. Buat custom renderer
+    const renderer = new marked.Renderer();
+    const originalLink = renderer.link.bind(renderer);
+    
+    // 2. Timpa pengaturan default untuk link
+    renderer.link = function(href, title, text) {
+        const html = originalLink(href, title, text);
+        // Sisipkan target="_blank" dan atribut keamanan
+        return html.replace(/^<a /, '<a target="_blank" rel="noopener noreferrer" ');
+    };
+
+    // 3. Masukkan renderer ke dalam options
     marked.setOptions({
+        renderer: renderer,
         highlight: function(code, lang) {
             const language = hljs.getLanguage(lang) ? lang : 'plaintext';
             return hljs.highlight(code, { language }).value;
@@ -674,5 +688,3 @@ window.enableEditMode = function() {
     btnToggle.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Simpan Catatan'; isPreviewMode = false;
 }
 function showToast(message) { const toast = document.getElementById("toast"); if(!toast) return; toast.innerText = message; toast.className = "toast show"; setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000); }
-
-
