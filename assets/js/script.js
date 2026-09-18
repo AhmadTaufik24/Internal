@@ -207,19 +207,48 @@ function fetchLiveLocationAndWeather() {
 // ==========================================
 // 3. DAILY PALETTE ENGINE (BENTO FORMAT)
 // ==========================================
+// ==========================================
 function updateDailyPalette() {
     const palettes = [
-        ['#F38181', '#FCE38A', '#95E1D3'],
-        ['#E27D60', '#85DCBA', '#E8A87C'],
-        ['#2A363B', '#E84A5F', '#FF847C'],
-        ['#A8E6CF', '#DCEDC1', '#FFD3B6'],
-        ['#112F41', '#068587', '#4FB99F'],
-        ['#343D46', '#4F5B66', '#65737E'],
-        ['#D9B08C', '#FFCB9A', '#D1E8E2'],
-        ['#5D5C61', '#379683', '#7395AE'],
-        ['#1A1A1D', '#4E4E50', '#6F2232'],
-        ['#950740', '#C3073F', '#EDC7B7']
+        // 1-10: Kombinasi Utama (Hitam, Coklat, Putih Krem + Warna Soft)
+        ['#2C2C2C', '#FDF5E6', '#C4A484'], // Hitam Soft, Putih Krem, Coklat
+        ['#F5F5DC', '#FADCD9', '#A1887F'], // Putih Krem, Soft Pink, Coklat Muted
+        ['#1A1A1A', '#FFFDD0', '#A8E6CF'], // Hitam Pekat, Putih Krem, Soft Sage
+        ['#8D6E63', '#FDF5E6', '#FFDAB9'], // Coklat Bumi, Putih Krem, Soft Peach
+        ['#FAF0E6', '#E6E6FA', '#333333'], // Putih Krem, Soft Lavender, Hitam Soft
+        ['#000000', '#D2B48C', '#F5F5DC'], // Hitam, Coklat Terang, Putih Krem
+        ['#FFFDD0', '#B4D8E7', '#9C8477'], // Putih Krem, Soft Blue, Coklat
+        ['#A1887F', '#FDF5E6', '#DCAE96'], // Coklat Kopi Soft, Putih Krem, Dusty Rose
+        ['#212121', '#F5F5DC', '#C1E1C1'], // Hitam Charcoal, Putih Krem, Soft Mint
+        ['#BCAAA4', '#2C2C2C', '#FDF5E6'], // Coklat, Hitam Soft, Putih Krem
+
+        // 11-20: Tambahan Warna Soft Lainnya (Earthy, Pastel Muted, Dusty)
+        ['#B3A394', '#F9F6F0', '#FDECB0'], // Soft Taupe, Putih Krem, Soft Yellow
+        ['#383838', '#F5F0E6', '#D99A80'], // Charcoal, Putih Krem, Soft Terracotta
+        ['#8A735E', '#FCF8F2', '#A3B18A'], // Coklat, Putih Krem, Soft Olive
+        ['#2B2B2B', '#F4EAD5', '#9DB2BF'], // Hitam Soft, Putih Krem, Dusty Blue
+        ['#C8B6A6', '#F3EFE0', '#F2B2A8'], // Soft Mocha, Putih Krem, Soft Coral
+        ['#2F3E46', '#F5F5DC', '#A68A64'], // Dark Slate (Hitam Kebiruan), Putih Krem, Coklat Clay
+        ['#A28F85', '#FFF5E1', '#CDB4DB'], // Muted Brown, Putih Krem, Soft Lilac
+        ['#1C1C1C', '#FDF6EC', '#C1D0B5'], // Hitam, Putih Krem, Soft Matcha
+        ['#D3B89E', '#FBF4E9', '#A8D0E6'], // Coklat Pasir, Putih Krem, Soft Teal
+        ['#4A4E69', '#F2E9E4', '#9A8C98'], // Hitam/Abu Tua, Putih Krem, Soft Walnut
+
+        // 21-30: Variasi Lembut Ekstra (Lebih banyak variasi Coklat dan Krem)
+        ['#8D6E63', '#FFF8F0', '#E9C46A'], // Warm Brown, Putih Krem, Soft Mustard
+        ['#22223B', '#F2E9E4', '#C9ADA7'], // Hitam Pekat Soft, Putih Krem, Muted Mauve
+        ['#A47551', '#F5F5DC', '#BDE0FE'], // Coklat Chestnut, Putih Krem, Soft Sky
+        ['#B5838D', '#FAF0E6', '#FFCDB2'], // Coklat Kemerahan, Putih Krem, Soft Rose
+        ['#121212', '#EAE0D5', '#C6AC8F'], // Deep Soft Black, Putih Krem Gelap, Soft Hazelnut
+        ['#333333', '#FFF0F5', '#D8BFD8'], // Hitam Soft, Putih Krem/Blush, Soft Thistle
+        ['#8B7355', '#FDF5E6', '#B0E0E6'], // Coklat Kayu, Putih Krem, Soft Powder Blue
+        ['#2C3E50', '#F5F5DC', '#D2B48C'], // Hitam/Navy Tua, Putih Krem, Coklat Tan
+        ['#A0522D', '#FFF8DC', '#E0EEE0'], // Coklat Sienna Soft, Putih Krem, Soft Celadon
+        ['#191919', '#FAFAD2', '#D8C3A5']  // Hitam Pekat, Putih Krem Kuning, Coklat Gandum
     ];
+    
+    // ... sisa kode fungsi Anda
+}
     
     const now = new Date();
     const startOfYear = new Date(now.getFullYear(), 0, 0);
