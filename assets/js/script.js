@@ -210,42 +210,68 @@ function fetchLiveLocationAndWeather() {
 // ==========================================
 function updateDailyPalette() {
     const palettes = [
-        // 1-10: Kombinasi Utama (Hitam, Coklat, Putih Krem + Warna Soft)
-        ['#2C2C2C', '#FDF5E6', '#C4A484'], // Hitam Soft, Putih Krem, Coklat
-        ['#F5F5DC', '#FADCD9', '#A1887F'], // Putih Krem, Soft Pink, Coklat Muted
-        ['#1A1A1A', '#FFFDD0', '#A8E6CF'], // Hitam Pekat, Putih Krem, Soft Sage
-        ['#8D6E63', '#FDF5E6', '#FFDAB9'], // Coklat Bumi, Putih Krem, Soft Peach
-        ['#FAF0E6', '#E6E6FA', '#333333'], // Putih Krem, Soft Lavender, Hitam Soft
-        ['#000000', '#D2B48C', '#F5F5DC'], // Hitam, Coklat Terang, Putih Krem
-        ['#FFFDD0', '#B4D8E7', '#9C8477'], // Putih Krem, Soft Blue, Coklat
-        ['#A1887F', '#FDF5E6', '#DCAE96'], // Coklat Kopi Soft, Putih Krem, Dusty Rose
-        ['#212121', '#F5F5DC', '#C1E1C1'], // Hitam Charcoal, Putih Krem, Soft Mint
-        ['#BCAAA4', '#2C2C2C', '#FDF5E6'], // Coklat, Hitam Soft, Putih Krem
-
-        // 11-20: Tambahan Warna Soft Lainnya (Earthy, Pastel Muted, Dusty)
-        ['#B3A394', '#F9F6F0', '#FDECB0'], // Soft Taupe, Putih Krem, Soft Yellow
-        ['#383838', '#F5F0E6', '#D99A80'], // Charcoal, Putih Krem, Soft Terracotta
-        ['#8A735E', '#FCF8F2', '#A3B18A'], // Coklat, Putih Krem, Soft Olive
-        ['#2B2B2B', '#F4EAD5', '#9DB2BF'], // Hitam Soft, Putih Krem, Dusty Blue
-        ['#C8B6A6', '#F3EFE0', '#F2B2A8'], // Soft Mocha, Putih Krem, Soft Coral
-        ['#2F3E46', '#F5F5DC', '#A68A64'], // Dark Slate (Hitam Kebiruan), Putih Krem, Coklat Clay
-        ['#A28F85', '#FFF5E1', '#CDB4DB'], // Muted Brown, Putih Krem, Soft Lilac
-        ['#1C1C1C', '#FDF6EC', '#C1D0B5'], // Hitam, Putih Krem, Soft Matcha
-        ['#D3B89E', '#FBF4E9', '#A8D0E6'], // Coklat Pasir, Putih Krem, Soft Teal
-        ['#4A4E69', '#F2E9E4', '#9A8C98'], // Hitam/Abu Tua, Putih Krem, Soft Walnut
-
-        // 21-30: Variasi Lembut Ekstra (Lebih banyak variasi Coklat dan Krem)
-        ['#8D6E63', '#FFF8F0', '#E9C46A'], // Warm Brown, Putih Krem, Soft Mustard
-        ['#22223B', '#F2E9E4', '#C9ADA7'], // Hitam Pekat Soft, Putih Krem, Muted Mauve
-        ['#A47551', '#F5F5DC', '#BDE0FE'], // Coklat Chestnut, Putih Krem, Soft Sky
-        ['#B5838D', '#FAF0E6', '#FFCDB2'], // Coklat Kemerahan, Putih Krem, Soft Rose
-        ['#121212', '#EAE0D5', '#C6AC8F'], // Deep Soft Black, Putih Krem Gelap, Soft Hazelnut
-        ['#333333', '#FFF0F5', '#D8BFD8'], // Hitam Soft, Putih Krem/Blush, Soft Thistle
-        ['#8B7355', '#FDF5E6', '#B0E0E6'], // Coklat Kayu, Putih Krem, Soft Powder Blue
-        ['#2C3E50', '#F5F5DC', '#D2B48C'], // Hitam/Navy Tua, Putih Krem, Coklat Tan
-        ['#A0522D', '#FFF8DC', '#E0EEE0'], // Coklat Sienna Soft, Putih Krem, Soft Celadon
-        ['#191919', '#FAFAD2', '#D8C3A5']  // Hitam Pekat, Putih Krem Kuning, Coklat Gandum
+        // Pink, Peach, & Mint
+        ['#FFB7B2', '#FFDAC1', '#E2F0CB'],
+        // Mint, Baby Blue, & Soft Purple
+        ['#B5EAD7', '#C7CEEA', '#E0BBE4'],
+        // Soft Coral, Cream, & Light Sky
+        ['#F8B195', '#F67280', '#C06C84'], // (A bit bold, let's soften)
+        ['#FFDFD3', '#FEC8D8', '#D291BC'],
+        // Soft Teal & Cream
+        ['#A8E6CF', '#DCEDC1', '#FFD3B6'],
+        // Dusty Rose & Sand
+        ['#E2CFC4', '#F7E1D7', '#EDAFB8'],
+        // Warm Sunset Pastels
+        ['#F7D9C4', '#F2C6DE', '#DBCDF0'],
+        // Soft Blues & Greens
+        ['#C6DEF1', '#FAEDCB', '#C9E4DE'],
+        // Lilac & Soft Peach
+        ['#957DAD', '#E0BBE4', '#FFDFD3'],
+        // Sage Green & Warm White
+        ['#E9F5DB', '#CFE1B9', '#B5C99A'],
+        // Muted Lavender & Sky
+        ['#F4EEFF', '#DCD6F7', '#A6B1E1'],
+        // Soft Rose & Ivory
+        ['#FFF1E6', '#FDE2E4', '#FAD2E1'],
+        // Ocean Mist
+        ['#E2ECE9', '#BEE1E6', '#F0EFEB'],
+        // Periwinkle & Cotton
+        ['#DFE7FD', '#CDDAFD', '#F0E6EF'],
+        // Dusty Pink & Mint
+        ['#D8E2DC', '#FFE5D9', '#FFCAD4'],
+        // Eucalyptus & Cream
+        ['#EAF4F4', '#CCE3DE', '#A4C3B2'],
+        // Soft Apricot & Vanilla
+        ['#F9DCC4', '#F8EDEB', '#FAE1DD'],
+        // Muted Stone & Cloud
+        ['#E8E8E4', '#D8E2DC', '#ECE4DB'],
+        // Baby Pink & Butter
+        ['#FDFD96', '#FADADD', '#C1E1C1'],
+        // Soft Gray & Blush
+        ['#EADDCF', '#C2CAD0', '#F3E1E1'],
+        // Muted Berry & Cream
+        ['#E5989B', '#FFB4A2', '#FFCDB2'],
+        // Soft Indigo & White
+        ['#D9E2E8', '#B7D3DF', '#C6DBDA'],
+        // Matcha & Milk
+        ['#E1F4CB', '#BAC7A7', '#889C9B'],
+        // Cotton Candy
+        ['#FFC5BF', '#FFD8BE', '#FFF3E9'],
+        // Soft Aqua & Sand
+        ['#B2EBF2', '#80DEEA', '#E0F7FA'],
+        // Muted Mustard & Brick (Softened)
+        ['#F4F1DE', '#F2CC8F', '#F2A65A'],
+        // Gentle Lavender & Mint
+        ['#D5AAFF', '#B5B9FF', '#85E3FF'],
+        // Pale Mauve & Grey
+        ['#F5E6E8', '#D5C6E0', '#AAA1C8'],
+        // Soft Lime & Peach
+        ['#E2F0CB', '#FFDAC1', '#FF9AA2'],
+        // Gentle Cerulean & Mint
+        ['#D4F0F0', '#8FCACA', '#CCE2CB']
     ];
+    
+    // Sisa logika fungsi Anda dapat dilanjutkan di sini...
     
     // ... sisa kode fungsi Anda
     
