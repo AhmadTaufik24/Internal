@@ -248,7 +248,6 @@ function updateDailyPalette() {
     ];
     
     // ... sisa kode fungsi Anda
-}
     
     const now = new Date();
     const startOfYear = new Date(now.getFullYear(), 0, 0);
