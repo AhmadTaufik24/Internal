@@ -210,66 +210,69 @@ function fetchLiveLocationAndWeather() {
 // ==========================================
 function updateDailyPalette() {
     const palettes = [
-        // Pink, Peach, & Mint
-        ['#FFB7B2', '#FFDAC1', '#E2F0CB'],
-        // Mint, Baby Blue, & Soft Purple
-        ['#B5EAD7', '#C7CEEA', '#E0BBE4'],
-        // Soft Coral, Cream, & Light Sky
-        ['#F8B195', '#F67280', '#C06C84'], // (A bit bold, let's soften)
-        ['#FFDFD3', '#FEC8D8', '#D291BC'],
-        // Soft Teal & Cream
-        ['#A8E6CF', '#DCEDC1', '#FFD3B6'],
-        // Dusty Rose & Sand
-        ['#E2CFC4', '#F7E1D7', '#EDAFB8'],
-        // Warm Sunset Pastels
-        ['#F7D9C4', '#F2C6DE', '#DBCDF0'],
-        // Soft Blues & Greens
-        ['#C6DEF1', '#FAEDCB', '#C9E4DE'],
-        // Lilac & Soft Peach
-        ['#957DAD', '#E0BBE4', '#FFDFD3'],
-        // Sage Green & Warm White
-        ['#E9F5DB', '#CFE1B9', '#B5C99A'],
-        // Muted Lavender & Sky
-        ['#F4EEFF', '#DCD6F7', '#A6B1E1'],
-        // Soft Rose & Ivory
-        ['#FFF1E6', '#FDE2E4', '#FAD2E1'],
-        // Ocean Mist
-        ['#E2ECE9', '#BEE1E6', '#F0EFEB'],
-        // Periwinkle & Cotton
-        ['#DFE7FD', '#CDDAFD', '#F0E6EF'],
-        // Dusty Pink & Mint
-        ['#D8E2DC', '#FFE5D9', '#FFCAD4'],
-        // Eucalyptus & Cream
-        ['#EAF4F4', '#CCE3DE', '#A4C3B2'],
-        // Soft Apricot & Vanilla
-        ['#F9DCC4', '#F8EDEB', '#FAE1DD'],
-        // Muted Stone & Cloud
-        ['#E8E8E4', '#D8E2DC', '#ECE4DB'],
-        // Baby Pink & Butter
-        ['#FDFD96', '#FADADD', '#C1E1C1'],
-        // Soft Gray & Blush
-        ['#EADDCF', '#C2CAD0', '#F3E1E1'],
-        // Muted Berry & Cream
-        ['#E5989B', '#FFB4A2', '#FFCDB2'],
-        // Soft Indigo & White
-        ['#D9E2E8', '#B7D3DF', '#C6DBDA'],
-        // Matcha & Milk
-        ['#E1F4CB', '#BAC7A7', '#889C9B'],
-        // Cotton Candy
-        ['#FFC5BF', '#FFD8BE', '#FFF3E9'],
-        // Soft Aqua & Sand
-        ['#B2EBF2', '#80DEEA', '#E0F7FA'],
-        // Muted Mustard & Brick (Softened)
-        ['#F4F1DE', '#F2CC8F', '#F2A65A'],
-        // Gentle Lavender & Mint
-        ['#D5AAFF', '#B5B9FF', '#85E3FF'],
-        // Pale Mauve & Grey
-        ['#F5E6E8', '#D5C6E0', '#AAA1C8'],
-        // Soft Lime & Peach
-        ['#E2F0CB', '#FFDAC1', '#FF9AA2'],
-        // Gentle Cerulean & Mint
-        ['#D4F0F0', '#8FCACA', '#CCE2CB']
+        // Espresso & Cream
+        ['#4A3B32', '#A89F91', '#F4F1EA'],
+        // Muted Black & Fog Gray
+        ['#2B2B2B', '#737373', '#E0E0E0'],
+        // Latte & Froth
+        ['#876953', '#C6B4A6', '#FDFBF7'],
+        // Sandstone & Ash
+        ['#D8C3A5', '#E9E2D0', '#8E8D8A'],
+        // Slate & Dove
+        ['#404245', '#888D92', '#E4E5E7'],
+        // Taupe & Ivory
+        ['#B3A9A0', '#D8D3CD', '#F7F6F2'],
+        // Minimalist Greige
+        ['#5A5448', '#9C9583', '#CAC4B0'],
+        // Soft Cocoa
+        ['#5C4A44', '#998379', '#E3D7D1'],
+        // Off-White & Charcoal
+        ['#FAFAFA', '#9E9E9E', '#121212'],
+        // Clay & Sand
+        ['#9C8777', '#C9BCAE', '#F0EDE6'],
+        // Soft Walnut
+        ['#5E4B3C', '#A6907D', '#EDE6DF'],
+        // Dusty Brown & Cotton
+        ['#807266', '#BFB6AE', '#F5F5F5'],
+        // Bone & Graphite
+        ['#E3E1D9', '#9E9B96', '#2B2A29'],
+        // Muted Obsidian
+        ['#3B3A39', '#8A8885', '#DBD8D3'],
+        // Pebble Gray
+        ['#545453', '#A3A3A1', '#E8E8E6'],
+        // Almond & Bark
+        ['#4A3F35', '#A28876', '#EADDCF'],
+        // Mist & Iron
+        ['#32343B', '#737780', '#C2C5CC'],
+        // Faded Sepia
+        ['#665445', '#AB988B', '#EBE4DF'],
+        // Vanilla & Toffee
+        ['#8A6842', '#D6BA98', '#F9F6F0'],
+        // Pale Khaki & Earth
+        ['#696152', '#B3AB98', '#F2F0E9'],
+        // Cashmere & Charcoal
+        ['#33312E', '#8A8075', '#D1C7BD'],
+        // Oat & Truffle
+        ['#423C37', '#A69A8F', '#E8DFD5'],
+        // Storm Gray
+        ['#4A4E59', '#9195A1', '#E0E2E8'],
+        // Soft Sienna
+        ['#8F6E5C', '#D1BAB0', '#FCF7F5'],
+        // Driftwood
+        ['#6E6761', '#B0AAA3', '#EDEDE9'],
+        // Warm Cement
+        ['#474542', '#938F88', '#DCD9D4'],
+        // Linen & Deep Brown
+        ['#3D362B', '#C2B8A3', '#F5F2EB'],
+        // Slate Blue-Gray & Silver
+        ['#36454F', '#879299', '#CFD8DC'],
+        // Mocha & Beige
+        ['#795C44', '#C5B09C', '#F2ECE7'],
+        // Soft Olive & Khaki
+        ['#55534A', '#A19C8B', '#E6E4DF']
     ];
+    
+
     
     // Sisa logika fungsi Anda dapat dilanjutkan di sini...
     
