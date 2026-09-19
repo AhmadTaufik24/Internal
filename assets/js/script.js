@@ -1,4 +1,4 @@
-ini aku kirimkan ulang semua script.js yang sebelumnya
+
 
 // ==========================================
 
