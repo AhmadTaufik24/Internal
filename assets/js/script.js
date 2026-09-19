@@ -87,6 +87,10 @@ window.processLogin = function() {
                 btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Login System';
                 btn.disabled = false;
                 document.getElementById('login-pass').value = ''; 
+                
+                // [PERBAIKAN] Redirect otomatis ke halaman command center setelah login sukses
+                window.location.href = 'command-center.html';
+                
             }, 1000);
         }).catch((error) => {
             btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Login System';
@@ -207,7 +211,6 @@ function fetchLiveLocationAndWeather() {
 // ==========================================
 // 3. DAILY PALETTE ENGINE (BENTO FORMAT)
 // ==========================================
-// ==========================================
 function updateDailyPalette() {
     const palettes = [
         // Espresso & Cream
@@ -271,12 +274,6 @@ function updateDailyPalette() {
         // Soft Olive & Khaki
         ['#55534A', '#A19C8B', '#E6E4DF']
     ];
-    
-
-    
-    // Sisa logika fungsi Anda dapat dilanjutkan di sini...
-    
-    // ... sisa kode fungsi Anda
     
     const now = new Date();
     const startOfYear = new Date(now.getFullYear(), 0, 0);
