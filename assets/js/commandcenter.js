@@ -11,6 +11,7 @@ const firebaseConfig = {
 };
 
 if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const auth = firebase.auth(); // <-- DITAMBAHKAN DI SINI
 const db = firebase.firestore(); // Panggil Firestore API
 
 let OS_DATA = { projects: [], finance: { transactions: [], accounts: [] }, crm: [], notes: [], assets: [], events: [] };
@@ -25,17 +26,19 @@ let scheduleNotifs = [];
 // 2. BOOT & AUTHENTICATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    // PROTEKSI: Cek login dari index.html menggunakan localStorage
-    if (localStorage.getItem('isLoggedIn') !== 'true') {
-        window.location.href = 'index.html';
-        return;
-    }
-
-    document.getElementById('app-wrapper').style.display = 'flex';
-    
-    updateClock();
-    setInterval(updateClock, 1000);
-    bootSystem(); // Sekarang ini memanggil proses Async Cloud
+    // PROTEKSI: Cek login langsung ke server Firebase (Bisa nembus tab baru & sangat aman)
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            // Jika terbukti login, tampilkan UI dan jalankan sistem
+            document.getElementById('app-wrapper').style.display = 'flex';
+            updateClock();
+            setInterval(updateClock, 1000);
+            bootSystem(); // Sekarang ini memanggil proses Async Cloud
+        } else {
+            // Jika belum login/penyusup, tendang ke index
+            window.location.href = 'index.html';
+        }
+    });
 });
 
 // Jadikan Async karena akan download data dari awan
