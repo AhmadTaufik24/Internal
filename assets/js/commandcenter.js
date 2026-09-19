@@ -12,6 +12,7 @@ const firebaseConfig = {
 
 if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const db = firebase.firestore(); // Panggil Firestore API
+const auth = firebase.auth(); // Panggil Auth API
 
 let OS_DATA = { projects: [], finance: { transactions: [], accounts: [] }, crm: [], notes: [], assets: [], events: [] };
 
@@ -25,17 +26,22 @@ let scheduleNotifs = [];
 // 2. BOOT & AUTHENTICATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    // PROTEKSI: Cek login dari index.html
-    if (sessionStorage.getItem('isLoggedIn') !== 'true') {
-        window.location.href = 'index.html';
-        return;
-    }
-
-    document.getElementById('app-wrapper').style.display = 'flex';
-    
-    updateClock();
-    setInterval(updateClock, 1000);
-    bootSystem(); // Sekarang ini memanggil proses Async Cloud
+    // PROTEKSI: Cek login menggunakan Firebase Auth Listener
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            // Jika Firebase mendeteksi user aktif
+            sessionStorage.setItem('isLoggedIn', 'true');
+            document.getElementById('app-wrapper').style.display = 'flex';
+            
+            updateClock();
+            setInterval(updateClock, 1000);
+            bootSystem(); // Memanggil proses Async Cloud
+        } else {
+            // Jika user tidak aktif/belum login
+            sessionStorage.removeItem('isLoggedIn');
+            window.location.href = 'index.html';
+        }
+    });
 });
 
 // Jadikan Async karena akan download data dari awan
@@ -201,7 +207,7 @@ function renderActionInbox() {
             actions.push({
                 icon: 'fa-comments', color: 'var(--warning)', 
                 title: `Follow-up: ${j.batchID}`, desc: `Menunggu ACC Klien.`,
-                btnText: 'WA', actionCode: `openWA('${phone}', 'Halo Kak, izin mengingatkan untuk review project ${j.batchID} ya.')`, priority: 2
+                btnText: 'WA', actionCode: `openWA('${phone}', 'Halo Kak, izin mengingatkan untuk review project${j.batchID} ya.')`, priority: 2
             });
         }
         else if (j.data && j.data.deadline) {
@@ -228,7 +234,7 @@ function renderActionInbox() {
         inbox.innerHTML += `
             <div class="inbox-item">
                 <div class="inbox-content">
-                    <div class="inbox-icon" style="background: ${act.color}20; color: ${act.color};"><i class="fa-solid ${act.icon}"></i></div>
+                    <div class="inbox-icon" style="background: ${act.color}20; color:${act.color};"><i class="fa-solid ${act.icon}"></i></div>
                     <div>
                         <div class="inbox-text">${act.title}</div>
                         <div class="inbox-sub">${act.desc}</div>
@@ -388,7 +394,7 @@ function renderFinancialPipeline() {
     const statusBadge = document.getElementById('runway-status');
     if (statusBadge) {
         statusBadge.className = 'health-badge ' + (financialHealth >= 75 ? 'health-blue' : (financialHealth >= 35 ? 'health-green' : 'health-red'));
-        statusBadge.innerText = `${financialHealth >= 75 ? 'Sangat Baik' : (financialHealth >= 35 ? 'Baik' : 'Buruk')} : ${financialHealth.toFixed(1)}%`;
+        statusBadge.innerText = `${financialHealth >= 75 ? 'Sangat Baik' : (financialHealth >= 35 ? 'Baik' : 'Buruk')} :${financialHealth.toFixed(1)}%`;
     }
 
     let uangNyangkut = 0, uangPotensial = 0;
@@ -447,7 +453,7 @@ function renderCalendarWidget() {
             if (diffDays > 0) hStr = `H-${diffDays}`;
             else if (diffDays === 0) hStr = "HARI INI";
             
-            scheduleNotifs.push(`[${hStr}] ${ev.title}`);
+            scheduleNotifs.push(`[${hStr}]${ev.title}`);
         }
     });
 
@@ -455,7 +461,7 @@ function renderCalendarWidget() {
     const month = currentCalDate.getMonth();
     const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
     
-    document.getElementById('cal-month-year').innerText = `${monthNames[month]} ${year}`;
+    document.getElementById('cal-month-year').innerText = `${monthNames[month]}${year}`;
 
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -484,7 +490,7 @@ function renderCalendarWidget() {
         if (isToday) classes += " today";
         if (hasEvent) classes += " has-event";
 
-        grid.innerHTML += `<div class="${classes}" onclick="selectDate(${year}, ${month}, ${d}, this)">${d}</div>`;
+        grid.innerHTML += `<div class="${classes}" onclick="selectDate(${year},${month}, ${d}, this)">${d}</div>`;
     }
     
     if (year === today.getFullYear() && month === today.getMonth()) {
@@ -558,7 +564,7 @@ function openEventDetail(id) {
     if (ev.startDate === ev.endDate) {
         document.getElementById('det-ev-date').innerText = formatDate(ev.startDate);
     } else {
-        document.getElementById('det-ev-date').innerText = `${formatDate(ev.startDate)} s/d ${formatDate(ev.endDate)}`;
+        document.getElementById('det-ev-date').innerText = `${formatDate(ev.startDate)} s/d${formatDate(ev.endDate)}`;
     }
     
     document.getElementById('det-ev-desc').innerText = ev.desc || 'Tidak ada catatan/deskripsi.';
