@@ -50,14 +50,13 @@ async function bootSystem() {
     renderPinnedNotes();
 }
 
-// [PERBAIKAN KRUSIAL] Jalur Sinkronisasi Database Diluruskan
 async function pullAllData() {
     try {
-        // 1. Projects (SINKRON DENGAN: jobOrders)
+        // 1. Projects
         const projSnap = await db.collection('jobOrders').get();
         OS_DATA.projects = projSnap.docs.map(doc => ({id: doc.id, ...doc.data()}));
         
-        // 2. CRM (SINKRON DENGAN: clients)
+        // 2. CRM
         const crmSnap = await db.collection('clients').get();
         OS_DATA.crm = crmSnap.docs.map(doc => ({id: doc.id, ...doc.data()}));
         
@@ -80,7 +79,7 @@ async function pullAllData() {
             return ev;
         });
 
-        // 6. Finance (SINKRON DENGAN: Document Spesifik Array Transactions)
+        // 6. Finance
         const user = auth.currentUser;
         const emailAdmin = "ahtasteriz@gmail.com"; 
         const financeDocId = (user && user.email === emailAdmin) ? "main_data" : (user ? user.uid : "main_data");
@@ -135,8 +134,8 @@ function renderDynamicBriefing() {
     if (unpaidAmount > 0) briefingStr += `Terdapat <strong>${formatRp(unpaidAmount)}</strong> uang di fase Delivery. `;
     
     if (scheduleNotifs.length > 0) {
-        briefingStr += `<br><br><span style="color:var(--warning); display:inline-block; padding: 5px 10px; background: rgba(249, 175, 107, 0.2); border-radius: 8px;">`;
-        briefingStr += `<i class="fa-solid fa-bell"></i> <strong>Reminder Jadwal:</strong> Ada ${scheduleNotifs.length} jadwal terdekat (${scheduleNotifs[0]}).`;
+        briefingStr += `<br><br><span style="color:var(--warning); display:inline-block; padding: 6px 12px; background: rgba(249, 175, 107, 0.15); border-radius: 8px; font-weight: 600; font-size: 12px; margin-top: 5px;">`;
+        briefingStr += `<i class="fa-solid fa-bell"></i> Reminder: Ada ${scheduleNotifs.length} jadwal terdekat (${scheduleNotifs[0]}).`;
         briefingStr += `</span>`;
     }
     
@@ -174,7 +173,7 @@ function renderTopKPIs() {
     const pEl = document.getElementById('kpi-persen-real');
     if(pEl) {
         pEl.innerText = `${formatRp(totalReal)} (${realPercent.toFixed(1)}% Real)`;
-        pEl.className = realPercent < 0 ? 'text-danger' : 'text-success';
+        pEl.className = 'cc-kpi-subtext ' + (realPercent < 0 ? 'text-danger' : 'text-success');
     }
 
     const elProject = document.getElementById('kpi-total-project');
@@ -230,7 +229,7 @@ function renderActionInbox() {
     if(countEl) countEl.innerText = actions.length;
 
     if (actions.length === 0) {
-        inbox.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-sub); font-size: 12px;">Inbox bersih! 🎉</div>';
+        inbox.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-sub); font-size: 13px; background: var(--body-bg); border-radius: 12px; font-weight: 500;">Inbox bersih! Semua tugas under control 🎉</div>';
         return;
     }
 
@@ -250,7 +249,6 @@ function renderActionInbox() {
     });
 }
 
-// [PERBAIKAN KRUSIAL] Update status diarahkan ke collection jobOrders
 async function markDone(id) {
     if(confirm("Tandai project ini selesai & sudah dibayar? (Akan dipindah ke History)")) {
         try {
@@ -320,14 +318,14 @@ function renderRadarAndWorkload() {
         const cName = j.clientName ? j.clientName.replace(/\s\(\d{4}\)$/, '') : '-';
         tbody.innerHTML += `
             <tr style="cursor:pointer;" onclick="window.location.href='project-tracker.html?detailId=${j.id}'">
-                <td><span class="status-pill badge ${j.bClass}">${j.badge}</span> <br><span style="font-size:10px; color:var(--text-sub);">${formatDate(j.data.deadline)}</span></td>
-                <td><strong style="color:var(--primary); font-size:12px;">${j.batchID}</strong></td>
-                <td><span style="font-size:11px">${cName}</span></td>
-                <td><span style="font-size:10px; font-weight:700; text-transform:uppercase;">${j.stage}</span></td>
+                <td><span class="status-pill ${j.bClass}">${j.badge}</span> <br><span style="font-size:11px; color:var(--text-sub);">${formatDate(j.data.deadline)}</span></td>
+                <td><strong style="color:var(--primary); font-size:13px;">${j.batchID}</strong></td>
+                <td><span style="font-size:13px">${cName}</span></td>
+                <td><span style="font-size:11px; font-weight:700; text-transform:uppercase;">${j.stage}</span></td>
             </tr>
         `;
     });
-    if(radarItems.length === 0) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--text-sub); font-size:12px;">Aman terkendali.</td></tr>';
+    if(radarItems.length === 0) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:24px; color:var(--text-sub); font-size:13px; font-weight: 500;">Aman terkendali. Tidak ada deadline mendesak.</td></tr>';
 }
 
 // ==========================================
@@ -532,7 +530,7 @@ function selectDate(y, m, d, el = null) {
     });
 
     if (dayEvents.length === 0) {
-        listEl.innerHTML = '<div class="empty-state">Tidak ada jadwal di tanggal ini.</div>';
+        listEl.innerHTML = '<div style="font-size: 13px; color: var(--text-sub); text-align: center; padding: 15px 0;">Tidak ada jadwal.</div>';
         return;
     }
 
@@ -543,11 +541,11 @@ function selectDate(y, m, d, el = null) {
             : `openEventDetail('${ev.id}')`;
             
         listEl.innerHTML += `
-            <div class="cc-client-item" style="cursor: pointer; transition: 0.2s; background: var(--card-bg);" onclick="${action}" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div class="cc-client-item" style="cursor: pointer; transition: 0.2s; background: var(--card-bg);" onclick="${action}" onmouseover="this.style.borderColor='var(--primary)'; this.style.boxShadow='var(--shadow-sm)';" onmouseout="this.style.borderColor='var(--border)'; this.style.boxShadow='none';">
                 <i class="fa-solid ${icon}"></i>
                 <div style="flex: 1;">
-                    <div style="font-size:12px; font-weight:700;">${ev.title}</div>
-                    <div style="font-size:10px; color:var(--text-sub); margin-top: 2px;">${ev.desc || '-'}</div>
+                    <div style="font-size:13px; font-weight:700; color: var(--text-main);">${ev.title}</div>
+                    <div style="font-size:11px; color:var(--text-sub); margin-top: 4px;">${ev.desc || '-'}</div>
                 </div>
             </div>
         `;
@@ -674,18 +672,18 @@ function renderPinnedNotes() {
             const cleanTxt = p.content.replace(/[#*`_]/g, '').replace(/\n/g, '<br>');
             box.innerHTML += `
                 <div class="cc-pin-item">
-                    <h4 style="margin:0 0 5px 0; color:var(--text-main); font-size:13px;">${p.title||'Catatan'}</h4>
-                    <p style="margin:0; opacity:0.9;">${cleanTxt}</p>
+                    <h4>${p.title||'Catatan'}</h4>
+                    <p style="margin:0; opacity:0.9; font-size: 13px;">${cleanTxt}</p>
                 </div>
             `;
         });
     } else {
-        box.innerHTML = '<p style="color:var(--text-sub); font-size:12px; text-align:center; margin-top:30px;">Tidak ada catatan yang di-pin di Notes OS.</p>';
+        box.innerHTML = '<p style="color:var(--text-sub); font-size:13px; text-align:center; padding: 20px 0;">Belum ada notes yang di-pin.</p>';
     }
 }
 
 // ==========================================
-// 10. OMNI-COMMAND PALETTE (UPDATED TO CLOUD)
+// 10. OMNI-COMMAND PALETTE
 // ==========================================
 function handleOmniCommand(event) {
     const input = event.target.value;
@@ -713,13 +711,12 @@ function handleOmniCommand(event) {
         });
     }
 
-    if(html === '') html = '<div style="padding:15px; text-align:center; font-size:12px; color:var(--text-sub);">Data tidak ditemukan.</div>';
+    if(html === '') html = '<div style="padding:15px; text-align:center; font-size:13px; color:var(--text-sub);">Data tidak ditemukan.</div>';
     
     dropdown.innerHTML = html;
     dropdown.style.display = 'block';
 }
 
-// [PERBAIKAN KRUSIAL] Jalur Injeksi Data Command Center Diluruskan
 async function handleActionCommand(text, key) {
     const dropdown = document.getElementById('omni-dropdown');
     const parts = text.trim().split(' ');
@@ -733,10 +730,10 @@ async function handleActionCommand(text, key) {
         const title = parts.slice(2).join(' ') || '...';
         
         html += `
-            <div class="omni-item" style="background:var(--primary-bg);">
+            <div class="omni-item" style="background:var(--primary-light);">
                 <div class="omni-title">Catat ${type} Real</div>
                 <div class="omni-desc">Rp ${formatRp(amount)} - ${title}</div>
-                <div style="font-size:10px; color:var(--primary); margin-top:5px;"><strong>Tekan ENTER</strong> untuk eksekusi</div>
+                <div style="font-size:11px; color:var(--primary); margin-top:8px;"><strong>Tekan ENTER</strong> untuk eksekusi</div>
             </div>`;
             
         if(key === 'Enter' && amount > 0 && title !== '...') {
@@ -755,7 +752,6 @@ async function handleActionCommand(text, key) {
             };
             
             try {
-                // Injeksi dengan FieldValue.arrayUnion ke dalam dokumen finance
                 const user = auth.currentUser;
                 const emailAdmin = "ahtasteriz@gmail.com"; 
                 const financeDocId = (user && user.email === emailAdmin) ? "main_data" : (user ? user.uid : "main_data");
@@ -772,10 +768,10 @@ async function handleActionCommand(text, key) {
     else if (cmd === '>job') {
         const title = parts.slice(1).join(' ') || '...';
         html += `
-            <div class="omni-item" style="background:var(--success-bg);">
+            <div class="omni-item" style="background:var(--success-light);">
                 <div class="omni-title">Buat Job Baru</div>
                 <div class="omni-desc">${title} (Klien: Internal)</div>
-                <div style="font-size:10px; color:var(--success); margin-top:5px;"><strong>Tekan ENTER</strong> untuk eksekusi</div>
+                <div style="font-size:11px; color:var(--success); margin-top:8px;"><strong>Tekan ENTER</strong> untuk eksekusi</div>
             </div>`;
             
         if(key === 'Enter' && title !== '...') {
@@ -789,7 +785,7 @@ async function handleActionCommand(text, key) {
                 batchID: 'CMD-' + Math.random().toString(36).substring(2,5).toUpperCase(), 
                 stage: 'scheduling', 
                 manualPrice: 0,
-                slides: 1, // Untuk kompatibilitas struktur feed
+                slides: 1,
                 statusText: '',
                 data: { deadline: new Date().toISOString().split('T')[0], ref: '', internalLink: '', clientLink: '', chkRef: false, chkFolder: false }, 
                 history: [], 
@@ -797,7 +793,6 @@ async function handleActionCommand(text, key) {
             };
             
             try {
-                // Simpan ke 'jobOrders' agar muncul di Project Tracker
                 await db.collection('jobOrders').doc(jobId).set(jobData);
                 finishCommand();
             } catch(err) {
@@ -807,9 +802,9 @@ async function handleActionCommand(text, key) {
     }
     else {
         html += `
-            <div class="omni-item"><div class="omni-desc"><strong>>out [nominal] [judul]</strong> - Catat Pengeluaran</div></div>
-            <div class="omni-item"><div class="omni-desc"><strong>>in [nominal] [judul]</strong> - Catat Pemasukan</div></div>
-            <div class="omni-item"><div class="omni-desc"><strong>>job [judul]</strong> - Buat Job Baru</div></div>
+            <div class="omni-item"><div class="omni-title">>out [nominal] [judul]</div><div class="omni-desc">Catat Pengeluaran</div></div>
+            <div class="omni-item"><div class="omni-title">>in [nominal] [judul]</div><div class="omni-desc">Catat Pemasukan</div></div>
+            <div class="omni-item"><div class="omni-title">>job [judul]</div><div class="omni-desc">Buat Job Baru</div></div>
         `;
     }
     
@@ -823,7 +818,6 @@ function finishCommand() {
     bootSystem(); 
 }
 
-// Tutup Dropdown dan Modal saat klik di luar area
 function closeModal(id) {
     document.getElementById(id).style.display = 'none';
 }
