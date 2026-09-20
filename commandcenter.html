@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="assets/css/commandcenter.css">
 </head>
-<body class="show-money"> <!-- Class 'show-money' untuk fitur Mata visibilitas uang -->
+<body class="show-money">
 
     <!-- ZEN MODE OVERLAY -->
     <div id="zen-overlay" class="cc-zen-hidden">
@@ -42,7 +42,7 @@
                 <div class="fx-noise"></div>
             </div>
 
-            <!-- Header Mobile Actions (Sembunyi di Desktop) -->
+            <!-- Header Mobile Actions -->
             <div class="mobile-header-actions">
                 <button class="mobile-zen-icon" onclick="enterZenMode()" title="Zen Mode"><i class="fa-solid fa-brain"></i></button>
                 <button class="mobile-eye-icon" onclick="toggleMoneyVisibility()"><i class="fa-solid fa-eye-slash" id="mobile-eye-icon-fa"></i></button>
@@ -59,7 +59,7 @@
                 </div>
             </div>
 
-            <!-- MIDDLE: Accordion Menu (Bisa di-hide/show) -->
+            <!-- MIDDLE: Accordion Menu -->
             <div class="sb-menu-wrapper">
                 <button class="sb-menu-toggle" onclick="toggleSidebarMenu()">
                     <i class="fa-solid fa-bars"></i> Navigasi Modul
@@ -86,12 +86,12 @@
                     <div class="time-date" id="sidebar-date">Minggu, 20 September 2026</div>
                 </div>
 
-                <!-- BRIEFING MOBILE: Hanya muncul di HP, tepat di bawah waktu -->
+                <!-- BRIEFING MOBILE -->
                 <div class="mobile-briefing-text" id="mobile-briefing-text">
                     Sistem beroperasi optimal. Menganalisis data...
                 </div>
 
-                <!-- Grid Widget (Cuaca & Vibe) -->
+                <!-- Grid Widget (Cuaca & Vibe - Layout Diperbarui) -->
                 <div class="widget-grid">
                     <!-- Cuaca Realtime -->
                     <div class="w-card weather-card">
@@ -121,22 +121,23 @@
              ========================================== -->
         <main class="os-main cc-main-content">
             
-            <!-- TOP BAR (Ramping / Compact) -->
+            <!-- TOP BAR -->
             <header class="os-topbar cc-topbar">
                 <div class="search-compact cc-omni-container">
                     <i class="fa-solid fa-magnifying-glass s-icon"></i>
                     <input type="text" id="omni-input" placeholder="Cari data atau ketik perintah ( >out 50k Bensin )..." onkeyup="handleOmniCommand(event)">
                     <div id="omni-dropdown" class="cc-omni-dropdown" style="display: none;"></div>
                 </div>
+                <!-- Menambahkan ID topbar-location agar teks Command Hub diganti otomatis dengan Kota -->
                 <div class="location-badge">
-                    <i class="fa-solid fa-location-dot"></i> <span>Command Hub</span>
+                    <i class="fa-solid fa-location-dot"></i> <span id="topbar-location">Command Hub</span>
                 </div>
             </header>
 
             <!-- SCROLLABLE DASHBOARD -->
             <div class="os-dashboard cc-dashboard-area">
                 
-                <!-- 1. BRIEFING PANEL (Hanya Muncul di Desktop) -->
+                <!-- 1. BRIEFING PANEL (Desktop Only) -->
                 <div class="briefing-card cc-briefing-panel desktop-only">
                     <div class="bc-content">
                         <h2 id="desktop-greeting-title">Selamat Sore, Taufik.</h2>
@@ -147,14 +148,13 @@
                     </button>
                 </div>
 
-                <!-- 2. KPI GRID (Mini / Compact) -->
+                <!-- 2. KPI GRID -->
                 <div class="kpi-mini-grid cc-kpi-grid">
                     <div class="kpi-mini cc-kpi-clickable" onclick="window.location.href='finance.html?action=assetBreakdown'">
                         <div class="km-icon bg-warning-light text-warning"><i class="fa-solid fa-vault"></i></div>
                         <div class="km-info w-100">
                             <div class="km-header-row">
                                 <span class="km-label">TOTAL ASET (NET WORTH)</span>
-                                <!-- Tombol Mata untuk Sembunyikan Uang -->
                                 <button class="btn-eye" onclick="toggleMoneyVisibility(event)"><i class="fa-solid fa-eye-slash" id="desktop-eye-icon-fa"></i></button>
                             </div>
                             <span class="km-val money-text" id="kpi-total-asset">Rp 0</span>
@@ -180,10 +180,7 @@
                 <!-- 3. BENTO LAYOUT -->
                 <div class="bento-layout cc-bento-grid">
                     
-                    <!-- Kiri: Akses Cepat, Inbox, Radar -->
                     <div class="bento-left">
-                        
-                        <!-- Akses Cepat -->
                         <div class="os-card cc-quick-access">
                             <div class="card-head">
                                 <h3><i class="fa-solid fa-bolt text-warning"></i> Akses Cepat</h3>
@@ -198,7 +195,6 @@
                             </div>
                         </div>
 
-                        <!-- Action Inbox -->
                         <div class="os-card">
                             <div class="card-head">
                                 <h3><i class="fa-solid fa-inbox text-primary"></i> Action Inbox <span class="cc-badge" id="inbox-count">0</span></h3>
@@ -206,7 +202,6 @@
                             <div class="cc-inbox-list" id="inbox-list"></div>
                         </div>
 
-                        <!-- Production Radar -->
                         <div class="os-card">
                             <div class="card-head">
                                 <h3><i class="fa-solid fa-server text-warning"></i> Production Radar</h3>
@@ -226,10 +221,7 @@
                         </div>
                     </div>
 
-                    <!-- Kanan: Finance, Calendar, Notes -->
                     <div class="bento-right">
-                        
-                        <!-- Financial Health -->
                         <div class="os-card">
                             <div class="card-head">
                                 <h3><i class="fa-solid fa-heart-pulse text-success"></i> Financial Health</h3>
@@ -265,7 +257,6 @@
                             </div>
                         </div>
 
-                        <!-- Smart Scheduler -->
                         <div class="os-card">
                             <div class="card-head">
                                 <h3><i class="fa-solid fa-calendar-days text-primary"></i> Smart Scheduler</h3>
@@ -286,7 +277,6 @@
                             </div>
                         </div>
 
-                        <!-- Pinned Focus -->
                         <div class="os-card">
                             <div class="card-head">
                                 <h3><i class="fa-solid fa-thumbtack text-warning"></i> Pinned Focus</h3>
@@ -353,13 +343,17 @@
         </div>
     </div>
 
-    <!-- MOBILE BOTTOM NAV -->
+    <!-- MOBILE BOTTOM NAV (Dengan Wrapper Scroll) -->
     <nav class="cc-bottom-nav">
-        <a href="#" class="cc-bottom-item active"><i class="fa-solid fa-radar"></i> Hub</a>
-        <a href="project-tracker.html" class="cc-bottom-item"><i class="fa-solid fa-layer-group"></i> Projects</a>
-        <a href="finance.html" class="cc-bottom-item"><i class="fa-solid fa-wallet"></i> Finance</a>
-        <a href="client-crm.html" class="cc-bottom-item"><i class="fa-solid fa-users"></i> CRM</a>
-        <a href="javascript:void(0)" onclick="tambahAcaraManual()" class="cc-bottom-item"><i class="fa-solid fa-calendar-plus"></i> Acara</a>
+        <div class="bottom-nav-inner">
+            <a href="#" class="cc-bottom-item active"><i class="fa-solid fa-radar"></i> Hub</a>
+            <a href="project-tracker.html" class="cc-bottom-item"><i class="fa-solid fa-layer-group"></i> Projects</a>
+            <a href="finance.html" class="cc-bottom-item"><i class="fa-solid fa-wallet"></i> Finance</a>
+            <a href="client-crm.html" class="cc-bottom-item"><i class="fa-solid fa-users"></i> CRM</a>
+            <a href="notes.html" class="cc-bottom-item"><i class="fa-solid fa-pen-nib"></i> Notes</a>
+            <a href="lib.html" class="cc-bottom-item"><i class="fa-solid fa-box-archive"></i> Assets</a>
+            <a href="javascript:void(0)" onclick="tambahAcaraManual()" class="cc-bottom-item"><i class="fa-solid fa-calendar-plus"></i> Acara</a>
+        </div>
     </nav>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
