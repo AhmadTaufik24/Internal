@@ -22,15 +22,16 @@ let currentCalDate = new Date();
 let allSystemEvents = []; 
 let scheduleNotifs = []; 
 
+// State Visibilitas Uang (Fitur Mata)
+let isMoneyVisible = true;
+
 // ==========================================
 // 2. BOOT & AUTHENTICATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Jalankan jam segera mungkin
     updateClock();
     setInterval(updateClock, 1000);
 
-    // PROTEKSI: Cek login langsung ke server Firebase
     auth.onAuthStateChanged((user) => {
         if (user) {
             document.getElementById('app-wrapper').style.display = 'flex';
@@ -44,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
 async function bootSystem() {
     await pullAllData(); 
     
-    // Fitur Utama
     renderCalendarWidget(); 
     renderDynamicBriefing(); 
     renderTopKPIs();
@@ -53,8 +53,7 @@ async function bootSystem() {
     switchHealthMode(currentHealthMode); 
     renderPinnedNotes();
     
-    // Fitur Estetik Baru (Cuaca & Vibe)
-    fetchWeather();
+    fetchWeatherRealtime();
     updateTodaysVibe();
 }
 
@@ -101,93 +100,149 @@ async function pullAllData() {
 }
 
 // ==========================================
-// 3. FITUR ESTETIK BARU (JAM, CUACA, VIBES)
+// 3. FITUR ESTETIK BARU (JAM, CUACA, VIBES, MATA, TOGGLE MENU)
 // ==========================================
 function updateClock() {
     const now = new Date();
     
-    // Update Jam & Tanggal Sidebar
+    // Update Jam
     const sClock = document.getElementById('sidebar-clock');
     if(sClock) sClock.innerText = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
     
+    // Update Tanggal
     const sDate = document.getElementById('sidebar-date');
-    if(sDate) sDate.innerText = now.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+    if(sDate) sDate.innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     
-    // Update Sapaan Sidebar (Inggris)
+    // Sapaan Sidebar (Bahasa Inggris)
     const h = now.getHours();
     let sGreet = 'GOOD EVENING';
     if(h >= 5 && h < 12) sGreet = 'GOOD MORNING';
     else if(h >= 12 && h < 17) sGreet = 'GOOD AFTERNOON';
     
     const sGreetingEl = document.getElementById('sidebar-greeting');
-    if(sGreetingEl) sGreetingEl.innerText = sGreet;
+    if(sGreetingEl) sGreetingEl.innerText = `${sGreet}, TAUFIK.`;
 }
 
-async function fetchWeather() {
+// Fitur Sembunyikan Navigasi (Accordion)
+function toggleSidebarMenu() {
+    const menu = document.getElementById('sidebar-menu-list');
+    if (menu) menu.classList.toggle('collapsed');
+}
+
+// Fitur Mata (Sembunyikan/Tampilkan Nominal Uang)
+function toggleMoneyVisibility(e) {
+    if(e) e.stopPropagation();
+    isMoneyVisible = !isMoneyVisible;
+    
+    // Ganti Ikon Desktop & Mobile
+    const deskEye = document.getElementById('desktop-eye-icon-fa');
+    const mobEye = document.getElementById('mobile-eye-icon-fa');
+    const iconClass = isMoneyVisible ? 'fa-eye-slash' : 'fa-eye';
+    
+    if(deskEye) deskEye.className = `fa-solid ${iconClass}`;
+    if(mobEye) mobEye.className = `fa-solid ${iconClass}`;
+    
+    // Render ulang komponen yang memuat angka rupiah
+    renderTopKPIs();
+    renderFinancialPipeline();
+    renderDynamicBriefing();
+}
+
+// Format Rupiah Master (Dicegat oleh sensor mata jika ditekan)
+function formatRp(n) { 
+    if (!isMoneyVisible) return "Rp *****";
+    return new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', minimumFractionDigits:0 }).format(n); 
+}
+
+// Lokasi & Cuaca Realtime dengan Geolocation API
+async function fetchWeatherRealtime() {
+    const descEl = document.getElementById('weather-desc');
+    
+    // Deteksi Lokasi dari Perangkat
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                await getWeatherData(lat, lon);
+            },
+            async () => {
+                // Default ke Jakarta jika ditolak/gagal
+                await getWeatherData(-6.2088, 106.8456, "Jakarta");
+            }
+        );
+    } else {
+        await getWeatherData(-6.2088, 106.8456, "Jakarta");
+    }
+}
+
+async function getWeatherData(lat, lon, fallbackCity = null) {
     try {
-        // Koordinat Jakarta, ID. Menggunakan Open-Meteo (Gratis, Tanpa API Key)
-        const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-6.2088&longitude=106.8456&current=temperature_2m,relative_humidity_2m,weather_code');
-        const data = await res.json();
+        const resW = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code`);
+        const data = await resW.json();
         
+        let cityName = fallbackCity;
+        // Cari nama kota pakai reverse geocode gratis jika tidak pakai fallback
+        if (!cityName) {
+            try {
+                const resLoc = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=id`);
+                const locData = await resLoc.json();
+                cityName = locData.city || locData.locality || "Lokasi Anda";
+            } catch(e) { cityName = "Lokasi Tidak Diketahui"; }
+        }
+
         const temp = data.current.temperature_2m;
         const hum = data.current.relative_humidity_2m;
         const code = data.current.weather_code;
         
-        // Translasi WMO Code ke Text
+        // Terjemahkan Kode WMO
         let condition = "Clear / Sunny";
         if (code >= 1 && code <= 3) condition = "Partly Cloudy";
-        if (code >= 45 && code <= 48) condition = "Foggy";
-        if (code >= 51 && code <= 67) condition = "Rainy";
-        if (code >= 71 && code <= 77) condition = "Snowy";
-        if (code >= 80 && code <= 82) condition = "Rain Showers";
-        if (code >= 95) condition = "Thunderstorm";
+        else if (code >= 45 && code <= 48) condition = "Foggy";
+        else if (code >= 51 && code <= 67) condition = "Rainy";
+        else if (code >= 71 && code <= 77) condition = "Snowy";
+        else if (code >= 80 && code <= 82) condition = "Rain Showers";
+        else if (code >= 95) condition = "Thunderstorm";
 
         const descEl = document.getElementById('weather-desc');
         const humEl = document.getElementById('weather-humidity');
         
-        if(descEl) descEl.innerText = `${temp}°C • ${condition}`;
+        if(descEl) descEl.innerHTML = `${temp}°C • ${condition} <br><span style="font-size:0.65rem; color:rgba(255,255,255,0.7); display:block; margin-top:4px;"><i class="fa-solid fa-location-dot" style="color:var(--accent-orange);"></i> ${cityName}</span>`;
         if(humEl) humEl.innerText = `${hum}%`;
     } catch(err) {
-        console.log("Gagal mengambil data cuaca:", err);
+        console.log("Cuaca gagal diload:", err);
     }
 }
 
+// Vibe warna ganti tiap hari
 function updateTodaysVibe() {
-    // Kumpulan Palette Warna Estetik
     const palettes = [
-        ['#8F6E5C', '#D1BAB0', '#FCF7F5'], // Warm Coffee
-        ['#456D91', '#7A9EBF', '#BBD5E8'], // Taufik OS Blue
-        ['#F96B6B', '#F9AF6B', '#FDF2E9'], // Sunset Coral
-        ['#2C3E50', '#897E7A', '#EAEFF4'], // Enterprise Minimal
-        ['#10B981', '#76D7B4', '#F0FDF4'], // Fresh Mint
-        ['#D97706', '#FBBF24', '#FFFBEB'], // Golden Hour
-        ['#6366F1', '#A5B4FC', '#EEF2FF']  // Indigo Chill
+        ['#8F6E5C', '#D1BAB0', '#FCF7F5'], // Coffee
+        ['#456D91', '#7A9EBF', '#BBD5E8'], // Ocean
+        ['#F96B6B', '#F9AF6B', '#FDF2E9'], // Sunset
+        ['#10B981', '#76D7B4', '#F0FDF4'], // Mint
+        ['#8B5CF6', '#C4B5FD', '#F5F3FF']  // Purple
     ];
     
-    // Algoritma ganti warna tiap hari (Berdasarkan hari dalam setahun)
+    // Ambil hari ke-sekian di tahun ini
     const now = new Date();
     const start = new Date(now.getFullYear(), 0, 0);
-    const diff = now - start;
-    const oneDay = 1000 * 60 * 60 * 24;
-    const dayOfYear = Math.floor(diff / oneDay);
+    const dayOfYear = Math.floor((now - start) / (1000 * 60 * 60 * 24));
     
     const p = palettes[dayOfYear % palettes.length];
     
     const circleBox = document.getElementById('vibe-circles');
     if(circleBox) {
         circleBox.innerHTML = `
-            <div class="color-swatch" style="background:${p[0]}"></div>
-            <div class="color-swatch" style="background:${p[1]}"></div>
-            <div class="color-swatch" style="background:${p[2]}"></div>
+            <div class="vs" style="background:${p[0]}"></div>
+            <div class="vs" style="background:${p[1]}"></div>
+            <div class="vs" style="background:${p[2]}"></div>
         `;
     }
     
     const hexBox = document.getElementById('vibe-hex');
-    if(hexBox) {
-        hexBox.innerText = `${p[0]} • ${p[1]} •${p[2]}`;
-    }
+    if(hexBox) hexBox.innerHTML = `${p[0]}<br>${p[1]}<br>${p[2]}`;
 }
-
 
 // ==========================================
 // 4. DYNAMIC MORNING BRIEFING 
@@ -205,31 +260,32 @@ function renderDynamicBriefing() {
         if (j.stage === 'upload') unpaidAmount += calculateJobPrice(j);
     });
 
-    const titleEl = document.getElementById('greeting-title');
-    const textEl = document.getElementById('briefing-text');
-
-    const h = new Date().getHours();
-    let greet = 'Selamat Malam';
-    if(h >= 5 && h < 12) greet = 'Selamat Pagi'; 
-    else if(h >= 12 && h < 15) greet = 'Selamat Siang'; 
-    else if(h >= 15 && h < 19) greet = 'Selamat Sore';
-
-    if(titleEl) titleEl.innerText = `${greet}, Taufik.`;
-
     let briefingStr = `Sistem beroperasi optimal. `;
-    
     if (urgentJobs > 0) briefingStr += `Ada <strong>${urgentJobs} deadline mendesak</strong> hari ini. `;
     else briefingStr += `Tidak ada deadline mendesak hari ini. `;
-
+    
     if (unpaidAmount > 0) briefingStr += `Terdapat <strong>${formatRp(unpaidAmount)}</strong> uang di fase Delivery. `;
     
     if (scheduleNotifs.length > 0) {
-        briefingStr += `<br><br><span style="color:var(--accent-orange); display:inline-block; padding: 6px 12px; background: rgba(249, 175, 107, 0.15); border-radius: 8px; font-weight: 600; font-size: 12px; margin-top: 5px;">`;
-        briefingStr += `<i class="fa-solid fa-bell"></i> Reminder: Ada ${scheduleNotifs.length} jadwal terdekat (${scheduleNotifs[0]}).`;
-        briefingStr += `</span>`;
+        briefingStr += `<br><span style="color:var(--accent-orange); display:inline-block; margin-top:6px; font-weight:700;"><i class="fa-solid fa-bell"></i> Reminder: Ada ${scheduleNotifs.length} jadwal terdekat (${scheduleNotifs[0]}).</span>`;
     }
+
+    // Suntik ke Desktop Card
+    const dTitle = document.getElementById('desktop-greeting-title');
+    const dText = document.getElementById('desktop-briefing-text');
     
-    if(textEl) textEl.innerHTML = briefingStr;
+    const h = new Date().getHours();
+    let greetDesk = 'Selamat Malam';
+    if(h >= 5 && h < 12) greetDesk = 'Selamat Pagi'; 
+    else if(h >= 12 && h < 15) greetDesk = 'Selamat Siang'; 
+    else if(h >= 15 && h < 19) greetDesk = 'Selamat Sore';
+
+    if(dTitle) dTitle.innerText = `${greetDesk}, Taufik.`;
+    if(dText) dText.innerHTML = briefingStr;
+
+    // Suntik ke Mobile Header (Tanpa Sapaan, krn udah ada GOOD EVENING di atas)
+    const mText = document.getElementById('mobile-briefing-text');
+    if(mText) mText.innerHTML = briefingStr;
 }
 
 // ==========================================
@@ -262,8 +318,11 @@ function renderTopKPIs() {
     
     const pEl = document.getElementById('kpi-persen-real');
     if(pEl) {
-        pEl.innerText = `${formatRp(totalReal)} (${realPercent.toFixed(1)}% Real)`;
-        pEl.className = 'cc-kpi-subtext ' + (realPercent < 0 ? 'text-danger' : 'text-success');
+        // Logika agar saat mata dimatikan, persennya tetap tampil tapi uang sensor
+        if(!isMoneyVisible) pEl.innerText = `Rp ***** (${realPercent.toFixed(1)}% Real)`;
+        else pEl.innerText = `${formatRp(totalReal)} (${realPercent.toFixed(1)}% Real)`;
+        
+        pEl.className = 'km-sub money-text ' + (realPercent < 0 ? 'text-danger' : 'text-success');
     }
 
     const elProject = document.getElementById('kpi-total-project');
@@ -285,32 +344,19 @@ function renderActionInbox() {
 
     OS_DATA.projects.forEach(j => {
         if (j.stage === 'archive' || j.stage === 'done') return;
-
         const clientName = j.clientName ? j.clientName.replace(/\s\(\d{4}\)$/, '') : 'Internal';
 
         if (j.stage === 'upload') {
-            actions.push({
-                icon: 'fa-file-invoice-dollar', color: 'var(--success)', 
-                title: `Tagih: ${j.batchID}`, desc: `Selesai dikerjakan.`,
-                btnText: 'Lunas', actionCode: `markDone('${j.id}')`, priority: 3
-            });
+            actions.push({ icon: 'fa-file-invoice-dollar', color: 'var(--success)', title: `Tagih: ${j.batchID}`, desc: `Selesai dikerjakan.`, btnText: 'Lunas', actionCode: `markDone('${j.id}')`, priority: 3 });
         }
         else if (j.stage === 'review') {
             const phone = getClientPhone(clientName);
-            actions.push({
-                icon: 'fa-comments', color: 'var(--accent-orange)', 
-                title: `Follow-up: ${j.batchID}`, desc: `Menunggu ACC Klien.`,
-                btnText: 'WA', actionCode: `openWA('${phone}', 'Halo Kak, izin mengingatkan untuk review project${j.batchID} ya.')`, priority: 2
-            });
+            actions.push({ icon: 'fa-comments', color: 'var(--accent-orange)', title: `Follow-up: ${j.batchID}`, desc: `Menunggu ACC Klien.`, btnText: 'WA', actionCode: `openWA('${phone}', 'Halo Kak, izin mengingatkan untuk review project${j.batchID} ya.')`, priority: 2 });
         }
         else if (j.data && j.data.deadline) {
             const dl = new Date(j.data.deadline).setHours(0,0,0,0);
             if (dl <= today) {
-                actions.push({
-                    icon: 'fa-triangle-exclamation', color: 'var(--danger)', 
-                    title: `Kerjakan: ${j.batchID}`, desc: `Deadline ${dl < today ? 'OVERDUE' : 'HARI INI'}!`,
-                    btnText: 'Buka Job', actionCode: `window.location.href='project-tracker.html?detailId=${j.id}'`, priority: 4
-                });
+                actions.push({ icon: 'fa-triangle-exclamation', color: 'var(--danger)', title: `Kerjakan: ${j.batchID}`, desc: `Deadline ${dl < today ? 'OVERDUE' : 'HARI INI'}!`, btnText: 'Buka Job', actionCode: `window.location.href='project-tracker.html?detailId=${j.id}'`, priority: 4 });
             }
         }
     });
@@ -319,7 +365,7 @@ function renderActionInbox() {
     if(countEl) countEl.innerText = actions.length;
 
     if (actions.length === 0) {
-        inbox.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px; background: var(--bg-main); border-radius: 12px; font-weight: 500;">Inbox bersih! Semua tugas under control 🎉</div>';
+        inbox.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px; background: var(--bg-main); border-radius: 12px; font-weight: 500;">Inbox bersih! Semua tugas under control 🎉</div>';
         return;
     }
 
@@ -328,10 +374,7 @@ function renderActionInbox() {
             <div class="inbox-item">
                 <div class="inbox-content">
                     <div class="inbox-icon" style="background: ${act.color}20; color:${act.color};"><i class="fa-solid ${act.icon}"></i></div>
-                    <div>
-                        <div class="inbox-text">${act.title}</div>
-                        <div class="inbox-sub">${act.desc}</div>
-                    </div>
+                    <div><div class="inbox-text">${act.title}</div><div class="inbox-sub">${act.desc}</div></div>
                 </div>
                 <button class="inbox-action-btn" onclick="${act.actionCode}">${act.btnText}</button>
             </div>
@@ -340,21 +383,13 @@ function renderActionInbox() {
 }
 
 async function markDone(id) {
-    if(confirm("Tandai project ini selesai & sudah dibayar? (Akan dipindah ke History)")) {
-        try {
-            await db.collection('jobOrders').doc(id).update({
-                stage: 'archive',
-                archivedDate: new Date().toISOString()
-            });
-            bootSystem(); 
-        } catch(err) {
-            console.error("Gagal update project:", err);
-            alert("Gagal koneksi ke server!");
-        }
+    if(confirm("Tandai project ini selesai & sudah dibayar?")) {
+        try { await db.collection('jobOrders').doc(id).update({ stage: 'archive', archivedDate: new Date().toISOString() }); bootSystem(); } 
+        catch(err) { alert("Gagal koneksi ke server!"); }
     }
 }
 function openWA(phone, text) {
-    if(!phone || phone === 'null') alert('Nomor HP klien tidak ditemukan di database CRM.');
+    if(!phone || phone === 'null') alert('Nomor HP klien tidak ditemukan.');
     else window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text||'')}`, '_blank');
 }
 function getClientPhone(name) {
@@ -370,9 +405,7 @@ function renderRadarAndWorkload() {
     if(!tbody) return;
     tbody.innerHTML = '';
     
-    let activeCount = 0;
-    let radarItems = [];
-
+    let activeCount = 0; let radarItems = [];
     OS_DATA.projects.forEach(j => {
         if (['archive', 'done', 'upload'].includes(j.stage)) return;
         activeCount++;
@@ -383,19 +416,15 @@ function renderRadarAndWorkload() {
             const dl = new Date(j.data.deadline).setHours(0,0,0,0);
             const today = new Date().setHours(0,0,0,0);
             const diff = (dl - today) / 86400000;
-            
             if (diff < 0) { p=3; badge = 'OVERDUE'; bClass = 'red'; }
             else if (diff === 0) { p=2; badge = 'HARI INI'; bClass = 'red'; }
             else if (diff <= 2) { p=1; badge = `H-${diff}`; bClass = 'orange'; }
         }
-
         if(badge) radarItems.push({...j, p, badge, bClass});
     });
 
-    const capacity = 12; 
-    const perc = Math.min(100, (activeCount / capacity) * 100);
-    const bar = document.getElementById('workload-bar');
-    const wStatus = document.getElementById('workload-status');
+    const capacity = 12; const perc = Math.min(100, (activeCount / capacity) * 100);
+    const bar = document.getElementById('workload-bar'); const wStatus = document.getElementById('workload-status');
     
     if(bar && wStatus) {
         bar.style.width = perc + '%';
@@ -409,13 +438,13 @@ function renderRadarAndWorkload() {
         tbody.innerHTML += `
             <tr style="cursor:pointer;" onclick="window.location.href='project-tracker.html?detailId=${j.id}'">
                 <td><span class="status-pill ${j.bClass}">${j.badge}</span> <br><span style="font-size:11px; color:var(--text-muted);">${formatDate(j.data.deadline)}</span></td>
-                <td><strong style="color:var(--text-dark); font-size:13px;">${j.batchID}</strong></td>
-                <td><span style="font-size:13px">${cName}</span></td>
-                <td><span style="font-size:11px; font-weight:700; text-transform:uppercase;">${j.stage}</span></td>
+                <td><strong style="color:var(--text-dark); font-size:12px;">${j.batchID}</strong></td>
+                <td><span style="font-size:12px">${cName}</span></td>
+                <td><span style="font-size:10px; font-weight:700; text-transform:uppercase;">${j.stage}</span></td>
             </tr>
         `;
     });
-    if(radarItems.length === 0) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:24px; color:var(--text-muted); font-size:13px; font-weight: 500;">Aman terkendali. Tidak ada deadline mendesak.</td></tr>';
+    if(radarItems.length === 0) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px; font-weight: 500;">Aman terkendali.</td></tr>';
 }
 
 // ==========================================
@@ -427,10 +456,8 @@ function formatInputTarget(el) { let val = el.value.replace(/[^0-9]/g, ''); el.v
 function switchHealthMode(mode) {
     currentHealthMode = mode;
     localStorage.setItem('cc_health_mode', mode);
-    
     document.getElementById('toggle-real')?.classList.toggle('active', mode === 'real');
     document.getElementById('toggle-target')?.classList.toggle('active', mode === 'target');
-    
     const targetBox = document.getElementById('target-setup-box');
     if (targetBox) {
         targetBox.style.display = (mode === 'target') ? 'block' : 'none';
@@ -442,11 +469,8 @@ function switchHealthMode(mode) {
 function saveTarget() {
     const inputEl = document.getElementById('input-target-amount');
     const val = parseInt(inputEl.value.replace(/\./g, '')) || 0;
-    if (val > 0) {
-        targetFinansial = val;
-        localStorage.setItem('cc_target_finansial', targetFinansial);
-        renderFinancialPipeline(); 
-    } else inputEl.value = formatNumberWithDot(targetFinansial);
+    if (val > 0) { targetFinansial = val; localStorage.setItem('cc_target_finansial', targetFinansial); renderFinancialPipeline(); } 
+    else inputEl.value = formatNumberWithDot(targetFinansial);
 }
 
 function renderFinancialPipeline() {
@@ -467,21 +491,12 @@ function renderFinancialPipeline() {
     const sisaDana = totalAllIncome - totalAllExpense;
     let activeExpense = thisMonthExpense > 0 ? thisMonthExpense : 500000; 
     let monthsLeft = Math.max(0, sisaDana / activeExpense);
-
-    let financialHealth = 0;
-    if (currentHealthMode === 'real') {
-        if (totalAllIncome > 0) financialHealth = Math.min(100, (sisaDana / totalAllIncome) * 100);
-    } else {
-        if (targetFinansial > 0) financialHealth = (sisaDana / targetFinansial) * 100;
-    }
+    let financialHealth = currentHealthMode === 'real' ? (totalAllIncome > 0 ? Math.min(100, (sisaDana / totalAllIncome) * 100) : 0) : (targetFinansial > 0 ? (sisaDana / targetFinansial) * 100 : 0);
     financialHealth = Math.max(0, financialHealth);
 
-    const elRunway = document.getElementById('cash-runway');
-    if(elRunway) elRunway.innerText = Math.floor(monthsLeft) + " Bulan";
-    const elSisa = document.getElementById('runway-sisa');
-    if(elSisa) elSisa.innerText = formatRp(sisaDana);
-    const elExp = document.getElementById('runway-expense');
-    if(elExp) elExp.innerText = formatRp(thisMonthExpense); 
+    const elRunway = document.getElementById('cash-runway'); if(elRunway) elRunway.innerText = Math.floor(monthsLeft) + " Bulan";
+    const elSisa = document.getElementById('runway-sisa'); if(elSisa) elSisa.innerText = formatRp(sisaDana);
+    const elExp = document.getElementById('runway-expense'); if(elExp) elExp.innerText = formatRp(thisMonthExpense); 
 
     const statusBadge = document.getElementById('runway-status');
     if (statusBadge) {
@@ -504,141 +519,79 @@ function renderFinancialPipeline() {
 // 9. SMART SCHEDULER WIDGET
 // ==========================================
 function renderCalendarWidget() {
-    const today = new Date();
-    today.setHours(0,0,0,0);
-
-    allSystemEvents = [];
-    scheduleNotifs = [];
+    const today = new Date(); today.setHours(0,0,0,0);
+    allSystemEvents = []; scheduleNotifs = [];
 
     OS_DATA.projects.forEach(j => {
         if (['archive', 'done'].includes(j.stage)) return;
         if (j.data && j.data.deadline) {
-            allSystemEvents.push({
-                id: j.id, title: `Job: ${j.title || j.batchID}`, desc: `Klien: ${j.clientName || 'Internal'}`,
-                startDate: j.data.deadline, endDate: j.data.deadline, type: 'job', reminder: 2
-            });
+            allSystemEvents.push({ id: j.id, title: `Job: ${j.title || j.batchID}`, desc: `Klien: ${j.clientName || 'Internal'}`, startDate: j.data.deadline, endDate: j.data.deadline, type: 'job', reminder: 2 });
         }
     });
 
     if(OS_DATA.events) {
         OS_DATA.events.forEach(e => {
-            allSystemEvents.push({
-                id: e.id, title: e.title, desc: e.desc || '',
-                startDate: e.startDate, endDate: e.endDate, type: 'manual', reminder: e.reminder || 1
-            });
+            allSystemEvents.push({ id: e.id, title: e.title, desc: e.desc || '', startDate: e.startDate, endDate: e.endDate, type: 'manual', reminder: e.reminder || 1 });
         });
     }
 
     allSystemEvents.forEach(ev => {
-        const evStart = new Date(ev.startDate);
-        evStart.setHours(0,0,0,0);
-        
-        const evEnd = new Date(ev.endDate);
-        evEnd.setHours(23,59,59,999);
-        
-        const reminderDate = new Date(evStart);
-        reminderDate.setDate(reminderDate.getDate() - ev.reminder);
+        const evStart = new Date(ev.startDate); evStart.setHours(0,0,0,0);
+        const evEnd = new Date(ev.endDate); evEnd.setHours(23,59,59,999);
+        const reminderDate = new Date(evStart); reminderDate.setDate(reminderDate.getDate() - ev.reminder);
         
         if (today >= reminderDate && today <= evEnd) {
             const diffDays = Math.ceil((evStart - today) / (1000 * 60 * 60 * 24));
-            let hStr = "Berlangsung";
-            if (diffDays > 0) hStr = `H-${diffDays}`;
-            else if (diffDays === 0) hStr = "HARI INI";
-            
+            let hStr = diffDays > 0 ? `H-${diffDays}` : (diffDays === 0 ? "HARI INI" : "Berlangsung");
             scheduleNotifs.push(`[${hStr}]${ev.title}`);
         }
     });
 
-    const year = currentCalDate.getFullYear();
-    const month = currentCalDate.getMonth();
+    const year = currentCalDate.getFullYear(); const month = currentCalDate.getMonth();
     const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-    
     document.getElementById('cal-month-year').innerText = `${monthNames[month]}${year}`;
 
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const grid = document.getElementById('cal-days-grid');
-    if(!grid) return;
-    grid.innerHTML = '';
+    const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const grid = document.getElementById('cal-days-grid'); if(!grid) return; grid.innerHTML = '';
 
-    for(let i = 0; i < firstDay; i++) {
-        grid.innerHTML += `<div class="cc-cal-day empty"></div>`;
-    }
-
+    for(let i = 0; i < firstDay; i++) { grid.innerHTML += `<div class="cc-cal-day empty"></div>`; }
     for(let d = 1; d <= daysInMonth; d++) {
-        const dateObj = new Date(year, month, d);
-        dateObj.setHours(0,0,0,0);
-        
+        const dateObj = new Date(year, month, d); dateObj.setHours(0,0,0,0);
         let isToday = (dateObj.getTime() === today.getTime());
-        
         let hasEvent = allSystemEvents.some(ev => {
-            const sDate = new Date(ev.startDate).setHours(0,0,0,0);
-            const eDate = new Date(ev.endDate).setHours(0,0,0,0);
-            const cur = dateObj.getTime();
+            const sDate = new Date(ev.startDate).setHours(0,0,0,0); const eDate = new Date(ev.endDate).setHours(0,0,0,0); const cur = dateObj.getTime();
             return cur >= sDate && cur <= eDate;
         });
-
-        let classes = "cc-cal-day";
-        if (isToday) classes += " today";
-        if (hasEvent) classes += " has-event";
-
+        let classes = "cc-cal-day" + (isToday ? " today" : "") + (hasEvent ? " has-event" : "");
         grid.innerHTML += `<div class="${classes}" onclick="selectDate(${year},${month}, ${d}, this)">${d}</div>`;
     }
     
-    if (year === today.getFullYear() && month === today.getMonth()) {
-        selectDate(today.getFullYear(), today.getMonth(), today.getDate());
-    } else {
-        document.getElementById('cal-selected-events').style.display = 'none';
-    }
+    if (year === today.getFullYear() && month === today.getMonth()) selectDate(today.getFullYear(), today.getMonth(), today.getDate());
+    else document.getElementById('cal-selected-events').style.display = 'none';
 }
 
-function changeMonth(offset) {
-    currentCalDate.setMonth(currentCalDate.getMonth() + offset);
-    renderCalendarWidget();
-}
+function changeMonth(offset) { currentCalDate.setMonth(currentCalDate.getMonth() + offset); renderCalendarWidget(); }
 
 function selectDate(y, m, d, el = null) {
-    document.querySelectorAll('.cc-cal-day').forEach(node => node.classList.remove('selected'));
-    if (el) el.classList.add('selected');
-
-    const selectedDate = new Date(y, m, d);
-    selectedDate.setHours(0,0,0,0);
-
-    const listEl = document.getElementById('cal-selected-events-list');
-    const boxEl = document.getElementById('cal-selected-events');
-    const labelEl = document.getElementById('cal-selected-date-label');
-    
-    boxEl.style.display = 'block';
-    labelEl.innerText = `Agenda: ${selectedDate.toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year:'numeric'})}`;
-    listEl.innerHTML = '';
+    document.querySelectorAll('.cc-cal-day').forEach(n => n.classList.remove('selected')); if (el) el.classList.add('selected');
+    const selectedDate = new Date(y, m, d); selectedDate.setHours(0,0,0,0);
+    const listEl = document.getElementById('cal-selected-events-list'); const boxEl = document.getElementById('cal-selected-events');
+    boxEl.style.display = 'block'; document.getElementById('cal-selected-date-label').innerText = `Agenda: ${selectedDate.toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year:'numeric'})}`; listEl.innerHTML = '';
 
     const dayEvents = allSystemEvents.filter(ev => {
-        const sDate = new Date(ev.startDate).setHours(0,0,0,0);
-        const eDate = new Date(ev.endDate).setHours(0,0,0,0);
-        const cur = selectedDate.getTime();
+        const sDate = new Date(ev.startDate).setHours(0,0,0,0); const eDate = new Date(ev.endDate).setHours(0,0,0,0); const cur = selectedDate.getTime();
         return cur >= sDate && cur <= eDate;
     });
 
-    if (dayEvents.length === 0) {
-        listEl.innerHTML = '<div style="font-size: 13px; color: var(--text-muted); text-align: center; padding: 15px 0;">Tidak ada jadwal.</div>';
-        return;
-    }
-
+    if (dayEvents.length === 0) { listEl.innerHTML = '<div style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 10px 0;">Tidak ada jadwal.</div>'; return; }
     dayEvents.forEach(ev => {
         const icon = ev.type === 'job' ? 'fa-briefcase text-primary' : 'fa-calendar-check text-success';
-        const action = ev.type === 'job' 
-            ? `window.location.href='project-tracker.html?detailId=${ev.id}'` 
-            : `openEventDetail('${ev.id}')`;
-            
+        const action = ev.type === 'job' ? `window.location.href='project-tracker.html?detailId=${ev.id}'` : `openEventDetail('${ev.id}')`;
         listEl.innerHTML += `
-            <div class="cc-client-item" style="cursor: pointer; transition: 0.2s;" onclick="${action}" onmouseover="this.style.borderColor='var(--primary)'; this.style.boxShadow='var(--shadow-sm)';" onmouseout="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none';">
+            <div class="cc-client-item" style="cursor: pointer;" onclick="${action}">
                 <i class="fa-solid ${icon}"></i>
-                <div style="flex: 1;">
-                    <div style="font-size:13px; font-weight:700; color: var(--text-dark);">${ev.title}</div>
-                    <div style="font-size:11px; color:var(--text-muted); margin-top: 4px;">${ev.desc || '-'}</div>
-                </div>
-            </div>
-        `;
+                <div style="flex: 1;"><div style="font-size:12px; font-weight:700; color: var(--text-dark);">${ev.title}</div><div style="font-size:10px; color:var(--text-muted); margin-top: 2px;">${ev.desc || '-'}</div></div>
+            </div>`;
     });
 }
 
@@ -646,362 +599,132 @@ function selectDate(y, m, d, el = null) {
 // FUNGSI MODAL ACARA MANUAL
 // -----------------------------------------------------
 function openEventDetail(id) {
-    const ev = allSystemEvents.find(e => e.id === id && e.type === 'manual');
-    if(!ev) return;
-    
+    const ev = allSystemEvents.find(e => e.id === id && e.type === 'manual'); if(!ev) return;
     document.getElementById('det-ev-title').innerText = ev.title;
-    
-    if (ev.startDate === ev.endDate) {
-        document.getElementById('det-ev-date').innerText = formatDate(ev.startDate);
-    } else {
-        document.getElementById('det-ev-date').innerText = `${formatDate(ev.startDate)} s/d${formatDate(ev.endDate)}`;
-    }
-    
-    document.getElementById('det-ev-desc').innerText = ev.desc || 'Tidak ada catatan/deskripsi.';
-    document.getElementById('det-ev-reminder').innerText = `H-${ev.reminder}`;
-    
-    document.getElementById('btn-edit-ev').onclick = () => editAcara(id);
-    document.getElementById('btn-del-ev').onclick = () => deleteAcara(id);
-    
+    document.getElementById('det-ev-date').innerText = ev.startDate === ev.endDate ? formatDate(ev.startDate) : `${formatDate(ev.startDate)} s/d${formatDate(ev.endDate)}`;
+    document.getElementById('det-ev-desc').innerText = ev.desc || 'Tidak ada catatan/deskripsi.'; document.getElementById('det-ev-reminder').innerText = `H-${ev.reminder}`;
+    document.getElementById('btn-edit-ev').onclick = () => editAcara(id); document.getElementById('btn-del-ev').onclick = () => deleteAcara(id);
     document.getElementById('modal-event-detail').style.display = 'flex';
 }
-
 function editAcara(id) {
-    closeModal('modal-event-detail');
-    const ev = OS_DATA.events.find(e => e.id === id);
-    if(!ev) return;
-    
-    document.getElementById('evt-id').value = id;
-    document.getElementById('evt-title').value = ev.title;
-    document.getElementById('evt-start').value = ev.startDate;
-    document.getElementById('evt-end').value = ev.endDate;
-    document.getElementById('evt-desc').value = ev.desc || '';
-    document.getElementById('evt-reminder').value = ev.reminder || 0;
-    
+    closeModal('modal-event-detail'); const ev = OS_DATA.events.find(e => e.id === id); if(!ev) return;
+    document.getElementById('evt-id').value = id; document.getElementById('evt-title').value = ev.title; document.getElementById('evt-start').value = ev.startDate;
+    document.getElementById('evt-end').value = ev.endDate; document.getElementById('evt-desc').value = ev.desc || ''; document.getElementById('evt-reminder').value = ev.reminder || 0;
     document.getElementById('event-modal').style.display = 'flex';
 }
-
-async function deleteAcara(id) {
-    if(confirm('Yakin ingin menghapus acara ini secara permanen?')) {
-        try {
-            await db.collection('events').doc(id).delete();
-            closeModal('modal-event-detail');
-            bootSystem(); 
-        } catch(err) {
-            console.error("Gagal hapus acara:", err);
-        }
-    }
-}
-
-function tambahAcaraManual() {
-    document.getElementById('evt-id').value = ''; 
-    document.getElementById('evt-title').value = '';
-    document.getElementById('evt-start').value = new Date().toISOString().split('T')[0];
-    document.getElementById('evt-end').value = new Date().toISOString().split('T')[0];
-    document.getElementById('evt-desc').value = '';
-    document.getElementById('evt-reminder').value = '1';
-    
-    document.getElementById('event-modal').style.display = 'flex';
-}
-
-function closeAcaraModal() {
-    document.getElementById('event-modal').style.display = 'none';
-}
-
+async function deleteAcara(id) { if(confirm('Yakin ingin menghapus acara ini secara permanen?')) { try { await db.collection('events').doc(id).delete(); closeModal('modal-event-detail'); bootSystem(); } catch(err) { console.error(err); } } }
+function tambahAcaraManual() { document.getElementById('evt-id').value = ''; document.getElementById('evt-title').value = ''; document.getElementById('evt-start').value = new Date().toISOString().split('T')[0]; document.getElementById('evt-end').value = new Date().toISOString().split('T')[0]; document.getElementById('evt-desc').value = ''; document.getElementById('evt-reminder').value = '1'; document.getElementById('event-modal').style.display = 'flex'; }
+function closeAcaraModal() { document.getElementById('event-modal').style.display = 'none'; }
 async function simpanAcara() {
-    let id = document.getElementById('evt-id').value;
-    const title = document.getElementById('evt-title').value.trim();
-    const startDate = document.getElementById('evt-start').value;
-    const endDate = document.getElementById('evt-end').value;
-    const desc = document.getElementById('evt-desc').value.trim();
-    const reminder = parseInt(document.getElementById('evt-reminder').value) || 0;
-
-    if (!title || !startDate || !endDate) {
-        alert("Nama Acara dan Tanggal wajib diisi!");
-        return;
-    }
-
-    if (new Date(endDate) < new Date(startDate)) {
-        alert("Tanggal Selesai tidak boleh lebih awal dari Tanggal Mulai!");
-        return;
-    }
-
+    let id = document.getElementById('evt-id').value; const title = document.getElementById('evt-title').value.trim(); const startDate = document.getElementById('evt-start').value; const endDate = document.getElementById('evt-end').value; const desc = document.getElementById('evt-desc').value.trim(); const reminder = parseInt(document.getElementById('evt-reminder').value) || 0;
+    if (!title || !startDate || !endDate) { alert("Nama Acara dan Tanggal wajib diisi!"); return; }
+    if (new Date(endDate) < new Date(startDate)) { alert("Tanggal Selesai tidak boleh lebih awal dari Tanggal Mulai!"); return; }
     if (!id) id = 'EVT-' + Date.now();
-
-    try {
-        await db.collection('events').doc(id).set({
-            id: id,
-            title: title,
-            startDate: startDate,
-            endDate: endDate,
-            desc: desc,
-            reminder: reminder,
-            createdAt: new Date().toISOString()
-        }, { merge: true });
-
-        closeAcaraModal();
-        bootSystem(); 
-    } catch(err) {
-        console.error("Gagal simpan acara:", err);
-        alert("Gagal menyimpan ke cloud!");
-    }
+    try { await db.collection('events').doc(id).set({ id, title, startDate, endDate, desc, reminder, createdAt: new Date().toISOString() }, { merge: true }); closeAcaraModal(); bootSystem(); } catch(err) { alert("Gagal menyimpan ke cloud!"); }
 }
 
 // ==========================================
 // 10. PINNED NOTES 
 // ==========================================
 function renderPinnedNotes() {
-    const box = document.getElementById('pinned-note-box'); 
-    if(!box) return;
-    
-    const pinned = OS_DATA.notes.filter(n => n.isPinned && !n.isArchived);
-    box.innerHTML = '';
-    
+    const box = document.getElementById('pinned-note-box'); if(!box) return;
+    const pinned = OS_DATA.notes.filter(n => n.isPinned && !n.isArchived); box.innerHTML = '';
     if(pinned.length > 0) {
         pinned.forEach(p => {
             const cleanTxt = p.content.replace(/[#*`_]/g, '').replace(/\n/g, '<br>');
-            // Tag <p> dipastikan membungkus teks sesuai dengan aturan CSS yang baru ditambahkan
-            box.innerHTML += `
-                <div class="cc-pin-item">
-                    <h4>${p.title||'Catatan'}</h4>
-                    <p>${cleanTxt}</p>
-                </div>
-            `;
+            box.innerHTML += `<div class="cc-pin-item"><h4>${p.title||'Catatan'}</h4><p>${cleanTxt}</p></div>`;
         });
-    } else {
-        box.innerHTML = '<p style="color:var(--text-muted); font-size:13px; text-align:center; padding: 20px 0;">Belum ada notes yang di-pin.</p>';
-    }
+    } else { box.innerHTML = '<p style="color:var(--text-muted); font-size:12px; text-align:center; padding: 20px 0;">Belum ada notes yang di-pin.</p>'; }
 }
 
 // ==========================================
 // 11. OMNI-COMMAND PALETTE
 // ==========================================
 function handleOmniCommand(event) {
-    const input = event.target.value;
-    const dropdown = document.getElementById('omni-dropdown');
-    
+    const input = event.target.value; const dropdown = document.getElementById('omni-dropdown');
     if (input.startsWith('>')) { handleActionCommand(input, event.key); return; }
     if (input.length < 2) { dropdown.style.display = 'none'; return; }
-    
-    const q = input.toLowerCase();
-    let html = '';
+    const q = input.toLowerCase(); let html = '';
     
     const projMatches = OS_DATA.projects.filter(p => (p.title&&p.title.toLowerCase().includes(q)) || (p.batchID && p.batchID.toLowerCase().includes(q))).slice(0,3);
     if(projMatches.length>0) {
         html += '<div class="omni-group-label">Project Tracker</div>';
-        projMatches.forEach(p => { 
-            html += `<div class="omni-item" onclick="window.location.href='project-tracker.html?detailId=${p.id}'"><div class="omni-title">${p.batchID || '-'} - ${p.title||'Untitled'}</div><div class="omni-desc">Stage: ${p.stage}</div></div>`; 
-        });
+        projMatches.forEach(p => { html += `<div class="omni-item" onclick="window.location.href='project-tracker.html?detailId=${p.id}'"><div class="omni-title">${p.batchID || '-'} - ${p.title||'Untitled'}</div><div class="omni-desc">Stage: ${p.stage}</div></div>`; });
     }
     
     const crmMatches = OS_DATA.crm.filter(c => c.name.toLowerCase().includes(q)).slice(0,2);
     if(crmMatches.length>0) {
         html += '<div class="omni-group-label">Client CRM</div>';
-        crmMatches.forEach(c => { 
-            html += `<div class="omni-item" onclick="window.location.href='client-crm.html?search=${encodeURIComponent(c.name)}'"><div class="omni-title">${c.name}</div><div class="omni-desc">${c.phone||'No HP'}</div></div>`; 
-        });
+        crmMatches.forEach(c => { html += `<div class="omni-item" onclick="window.location.href='client-crm.html?search=${encodeURIComponent(c.name)}'"><div class="omni-title">${c.name}</div><div class="omni-desc">${c.phone||'No HP'}</div></div>`; });
     }
-
-    if(html === '') html = '<div style="padding:15px; text-align:center; font-size:13px; color:var(--text-muted);">Data tidak ditemukan.</div>';
-    
-    dropdown.innerHTML = html;
-    dropdown.style.display = 'block';
+    if(html === '') html = '<div style="padding:15px; text-align:center; font-size:12px; color:var(--text-muted);">Data tidak ditemukan.</div>';
+    dropdown.innerHTML = html; dropdown.style.display = 'block';
 }
 
 async function handleActionCommand(text, key) {
-    const dropdown = document.getElementById('omni-dropdown');
-    const parts = text.trim().split(' ');
-    const cmd = parts[0].toLowerCase();
-    
+    const dropdown = document.getElementById('omni-dropdown'); const parts = text.trim().split(' '); const cmd = parts[0].toLowerCase();
     let html = '<div class="omni-group-label" style="color:var(--primary);">⚡ QUICK COMMAND MODE</div>';
     
     if (cmd === '>out' || cmd === '>in') {
-        const type = cmd === '>out' ? 'Pengeluaran' : 'Pemasukan';
-        const amount = parseInt(parts[1]) || 0;
-        const title = parts.slice(2).join(' ') || '...';
-        
-        html += `
-            <div class="omni-item" style="background:var(--bg-main);">
-                <div class="omni-title">Catat ${type} Real</div>
-                <div class="omni-desc">Rp ${formatRp(amount)} - ${title}</div>
-                <div style="font-size:11px; color:var(--primary); margin-top:8px;"><strong>Tekan ENTER</strong> untuk eksekusi</div>
-            </div>`;
-            
+        const type = cmd === '>out' ? 'Pengeluaran' : 'Pemasukan'; const amount = parseInt(parts[1]) || 0; const title = parts.slice(2).join(' ') || '...';
+        html += `<div class="omni-item" style="background:var(--bg-main);"><div class="omni-title">Catat ${type} Real</div><div class="omni-desc">Rp ${formatRp(amount)} - ${title}</div><div style="font-size:10px; color:var(--primary); margin-top:8px;"><strong>Tekan ENTER</strong> untuk eksekusi</div></div>`;
         if(key === 'Enter' && amount > 0 && title !== '...') {
             const txId = 'TX-CMD-' + Date.now();
-            const txData = {
-                id: txId, 
-                date: new Date().toISOString().split('T')[0],
-                title: title, 
-                type: cmd === '>out' ? 'expense' : 'income', 
-                category: 'Lainnya',
-                accountId: OS_DATA.finance.accounts[0]?.id || 'ACC-1', 
-                assetType: 'real', 
-                amount: amount, 
-                notes: 'Via OmniCommand', 
-                createdAt: new Date().toISOString()
-            };
-            
+            const txData = { id: txId, date: new Date().toISOString().split('T')[0], title: title, type: cmd === '>out' ? 'expense' : 'income', category: 'Lainnya', accountId: OS_DATA.finance.accounts[0]?.id || 'ACC-1', assetType: 'real', amount: amount, notes: 'Via OmniCommand', createdAt: new Date().toISOString() };
             try {
-                const user = auth.currentUser;
-                const emailAdmin = "ahtasteriz@gmail.com"; 
-                const financeDocId = (user && user.email === emailAdmin) ? "main_data" : (user ? user.uid : "main_data");
-                
-                await db.collection('finance').doc(financeDocId).update({
-                    transactions: firebase.firestore.FieldValue.arrayUnion(txData)
-                });
+                const user = auth.currentUser; const emailAdmin = "ahtasteriz@gmail.com"; const financeDocId = (user && user.email === emailAdmin) ? "main_data" : (user ? user.uid : "main_data");
+                await db.collection('finance').doc(financeDocId).update({ transactions: firebase.firestore.FieldValue.arrayUnion(txData) });
                 finishCommand();
-            } catch(err) {
-                console.error("Gagal simpan transaksi:", err);
-            }
+            } catch(err) { console.error(err); }
         }
     } 
     else if (cmd === '>job') {
         const title = parts.slice(1).join(' ') || '...';
-        html += `
-            <div class="omni-item" style="background:var(--success-light);">
-                <div class="omni-title">Buat Job Baru</div>
-                <div class="omni-desc">${title} (Klien: Internal)</div>
-                <div style="font-size:11px; color:var(--success); margin-top:8px;"><strong>Tekan ENTER</strong> untuk eksekusi</div>
-            </div>`;
-            
+        html += `<div class="omni-item" style="background:var(--success-light);"><div class="omni-title">Buat Job Baru</div><div class="omni-desc">${title} (Klien: Internal)</div><div style="font-size:10px; color:var(--success); margin-top:8px;"><strong>Tekan ENTER</strong> untuk eksekusi</div></div>`;
         if(key === 'Enter' && title !== '...') {
             const jobId = Date.now().toString() + Math.random().toString(36).slice(2);
-            const jobData = {
-                id: jobId, 
-                category: 'General', 
-                type: 'Lainnya', 
-                title: title, 
-                clientName: 'Internal',
-                batchID: 'CMD-' + Math.random().toString(36).substring(2,5).toUpperCase(), 
-                stage: 'scheduling', 
-                manualPrice: 0,
-                slides: 1,
-                statusText: '',
-                data: { deadline: new Date().toISOString().split('T')[0], ref: '', internalLink: '', clientLink: '', chkRef: false, chkFolder: false }, 
-                history: [], 
-                createdAt: new Date().toISOString()
-            };
-            
-            try {
-                await db.collection('jobOrders').doc(jobId).set(jobData);
-                finishCommand();
-            } catch(err) {
-                console.error("Gagal buat job:", err);
-            }
+            const jobData = { id: jobId, category: 'General', type: 'Lainnya', title: title, clientName: 'Internal', batchID: 'CMD-' + Math.random().toString(36).substring(2,5).toUpperCase(), stage: 'scheduling', manualPrice: 0, slides: 1, statusText: '', data: { deadline: new Date().toISOString().split('T')[0], ref: '', internalLink: '', clientLink: '', chkRef: false, chkFolder: false }, history: [], createdAt: new Date().toISOString() };
+            try { await db.collection('jobOrders').doc(jobId).set(jobData); finishCommand(); } catch(err) { console.error(err); }
         }
     }
-    else {
-        html += `
-            <div class="omni-item"><div class="omni-title">>out [nominal] [judul]</div><div class="omni-desc">Catat Pengeluaran</div></div>
-            <div class="omni-item"><div class="omni-title">>in [nominal] [judul]</div><div class="omni-desc">Catat Pemasukan</div></div>
-            <div class="omni-item"><div class="omni-title">>job [judul]</div><div class="omni-desc">Buat Job Baru</div></div>
-        `;
-    }
-    
-    dropdown.innerHTML = html;
-    dropdown.style.display = 'block';
+    else { html += `<div class="omni-item"><div class="omni-title">>out [nominal] [judul]</div><div class="omni-desc">Catat Pengeluaran</div></div><div class="omni-item"><div class="omni-title">>in [nominal] [judul]</div><div class="omni-desc">Catat Pemasukan</div></div><div class="omni-item"><div class="omni-title">>job [judul]</div><div class="omni-desc">Buat Job Baru</div></div>`; }
+    dropdown.innerHTML = html; dropdown.style.display = 'block';
 }
-
-function finishCommand() {
-    document.getElementById('omni-input').value = '';
-    document.getElementById('omni-dropdown').style.display = 'none';
-    bootSystem(); 
-}
-
-function closeModal(id) {
-    document.getElementById(id).style.display = 'none';
-}
-
+function finishCommand() { document.getElementById('omni-input').value = ''; document.getElementById('omni-dropdown').style.display = 'none'; bootSystem(); }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 document.addEventListener('click', (e) => {
-    if(!e.target.closest('.cc-omni-container')) {
-        const dd = document.getElementById('omni-dropdown');
-        if(dd) dd.style.display = 'none';
-    }
-
-    if (e.target.classList.contains('cc-modal-overlay')) {
-        e.target.style.display = 'none';
-    }
+    if(!e.target.closest('.cc-omni-container')) { const dd = document.getElementById('omni-dropdown'); if(dd) dd.style.display = 'none'; }
+    if (e.target.classList.contains('cc-modal-overlay')) { e.target.style.display = 'none'; }
 });
 
 // ==========================================
 // 12. ZEN FOCUS MODE
 // ==========================================
-let zenTimer = null;
-let zenTimeLeft = 25 * 60; 
-let isZenRunning = false;
-
+let zenTimer = null; let zenTimeLeft = 25 * 60; let isZenRunning = false;
 function enterZenMode() {
     document.getElementById('zen-overlay').classList.remove('cc-zen-hidden');
-    
-    const selectEl = document.getElementById('zen-task-select');
-    selectEl.innerHTML = '<option value="">Pekerjaan Umum / Bebas</option>';
-    
+    const selectEl = document.getElementById('zen-task-select'); selectEl.innerHTML = '<option value="">Pekerjaan Umum / Bebas</option>';
     const activeJobs = OS_DATA.projects.filter(j => !['archive', 'done', 'upload'].includes(j.stage));
-    
     activeJobs.forEach(j => {
-        const opt = document.createElement('option');
-        opt.value = j.id;
-        opt.text = `${j.batchID || '-'} - ${j.title || 'Untitled'} (${j.stage.toUpperCase()})`;
-        selectEl.appendChild(opt);
+        const opt = document.createElement('option'); opt.value = j.id; opt.text = `${j.batchID || '-'} - ${j.title || 'Untitled'} (${j.stage.toUpperCase()})`; selectEl.appendChild(opt);
     });
-
-    const progressJob = activeJobs.find(j => j.stage === 'progress');
-    if (progressJob) {
-        selectEl.value = progressJob.id;
-    }
+    const progressJob = activeJobs.find(j => j.stage === 'progress'); if (progressJob) selectEl.value = progressJob.id;
 }
-
-function exitZenMode() {
-    document.getElementById('zen-overlay').classList.add('cc-zen-hidden');
-    resetZenTimer();
-}
-
+function exitZenMode() { document.getElementById('zen-overlay').classList.add('cc-zen-hidden'); resetZenTimer(); }
 function toggleZenTimer() {
     const btn = document.getElementById('btn-zen-play');
-    if (isZenRunning) {
-        clearInterval(zenTimer);
-        isZenRunning = false;
-        btn.innerHTML = '<i class="fa-solid fa-play"></i> Lanjut Fokus';
-    } else {
-        isZenRunning = true;
-        btn.innerHTML = '<i class="fa-solid fa-pause"></i> Jeda';
+    if (isZenRunning) { clearInterval(zenTimer); isZenRunning = false; btn.innerHTML = '<i class="fa-solid fa-play"></i> Lanjut Fokus'; } 
+    else {
+        isZenRunning = true; btn.innerHTML = '<i class="fa-solid fa-pause"></i> Jeda';
         zenTimer = setInterval(() => {
-            if (zenTimeLeft > 0) {
-                zenTimeLeft--;
-                updateZenUI();
-            } else {
-                clearInterval(zenTimer);
-                isZenRunning = false;
-                alert("Sesi Fokus 25 Menit Selesai! Waktunya Istirahat 5 Menit.");
-                zenTimeLeft = 5 * 60; 
-                updateZenUI();
-                btn.innerHTML = '<i class="fa-solid fa-play"></i> Mulai Istirahat';
-            }
+            if (zenTimeLeft > 0) { zenTimeLeft--; updateZenUI(); } 
+            else { clearInterval(zenTimer); isZenRunning = false; alert("Sesi Fokus 25 Menit Selesai! Waktunya Istirahat 5 Menit."); zenTimeLeft = 5 * 60; updateZenUI(); btn.innerHTML = '<i class="fa-solid fa-play"></i> Mulai Istirahat'; }
         }, 1000);
     }
 }
+function resetZenTimer() { clearInterval(zenTimer); isZenRunning = false; zenTimeLeft = 25 * 60; updateZenUI(); document.getElementById('btn-zen-play').innerHTML = '<i class="fa-solid fa-play"></i> Mulai Fokus'; }
+function updateZenUI() { const m = Math.floor(zenTimeLeft / 60).toString().padStart(2, '0'); const s = (zenTimeLeft % 60).toString().padStart(2, '0'); document.getElementById('zen-time').innerText = `${m}:${s}`; }
 
-function resetZenTimer() {
-    clearInterval(zenTimer);
-    isZenRunning = false;
-    zenTimeLeft = 25 * 60;
-    updateZenUI();
-    document.getElementById('btn-zen-play').innerHTML = '<i class="fa-solid fa-play"></i> Mulai Fokus';
-}
-
-function updateZenUI() {
-    const m = Math.floor(zenTimeLeft / 60).toString().padStart(2, '0');
-    const s = (zenTimeLeft % 60).toString().padStart(2, '0');
-    document.getElementById('zen-time').innerText = `${m}:${s}`;
-}
-
-// ==========================================
-// UTILS
-// ==========================================
-// updateClock() dipindah ke atas agar tergabung dengan Fitur 3
-function formatRp(n) { return new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', minimumFractionDigits:0 }).format(n); }
-function formatDate(dStr) { return dStr ? new Date(dStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : '-'; }
 function calculateJobPrice(jo) {
     if (jo.type === 'Adjust' || jo.category === 'General' || jo.manualPrice > 0) return jo.manualPrice || 0; 
     const base = (jo.type === 'FKKR' || jo.type === 'Reels') ? 150000 : 50000;
