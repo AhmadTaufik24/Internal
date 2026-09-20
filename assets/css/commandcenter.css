@@ -1,6 +1,6 @@
 /* =========================================================
    TAUFIK OS - REFINED COMMAND CENTER 
-   (Bento UI + Custom Pattern + Mini KPI + Mobile Fit)
+   (Bento UI, Dynamic Pattern, Mobile Header Optimized)
 ========================================================= */
 
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Fira+Code:wght@500;700&display=swap');
@@ -52,13 +52,17 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+/* Jika class show-money dihilangkan, efek blur ringan ditambahkan (opsional CSS fallback) */
+body:not(.show-money) .money-text { filter: blur(4px); opacity: 0.7; user-select: none; transition: 0.2s;}
+body.show-money .money-text { filter: blur(0px); opacity: 1; transition: 0.2s;}
+
 /* =========================================================
    1. LAYOUT & SIDEBAR (DESKTOP)
 ========================================================= */
 .os-layout { display: flex; width: 100vw; height: 100vh; }
 
 .os-sidebar {
-    width: 320px; 
+    width: 330px; 
     height: 100vh;
     background-color: var(--primary);
     background: linear-gradient(160deg, var(--primary) 0%, #2f4f6b 100%);
@@ -67,19 +71,20 @@ body {
     padding: 30px 25px; 
     flex-shrink: 0; position: relative;
     overflow: hidden; 
-    border-right: 1px solid rgba(0,0,0,0.1);
+    border-right: 1px solid rgba(0,0,0,0.15);
     z-index: 10;
 }
 
 /* Background FX */
 .sidebar-fx { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
-.fx-pattern { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.1; background-image: url('../images/pattern.png'); background-size: 250px; }
+.fx-pattern { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.12; background-image: url('../images/pattern.png'); background-size: 250px; }
 .fx-orb { position: absolute; border-radius: 50%; filter: blur(50px); opacity: 0.35; animation: orbFloat 10s infinite alternate ease-in-out; }
 .fx-orb-1 { width: 250px; height: 250px; background: rgba(249, 175, 107, 0.4); top: -30px; right: -50px; }
 .fx-orb-2 { width: 300px; height: 300px; background: rgba(122, 158, 191, 0.4); bottom: -50px; left: -80px; animation-delay: -5s; }
 @keyframes orbFloat { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(15px, 25px) scale(1.1); } }
 
-/* Sidebar Top (Logo Pill) */
+/* Sidebar Top (Logo Pill & Mobile Actions) */
+.mobile-header-actions { display: none; } /* Sembunyi di Desktop */
 .sb-header { position: relative; z-index: 2; margin-bottom: 25px; }
 .brand-pill {
     display: inline-flex; align-items: center; gap: 10px;
@@ -92,10 +97,23 @@ body {
 .bp-text span { font-size: 0.55rem; font-weight: 700; color: rgba(255,255,255,0.8); display: flex; align-items: center; gap: 4px; text-transform: uppercase;}
 .bp-text span i { color: var(--accent-orange); }
 
-/* Sidebar Navigasi */
-.sb-menu { position: relative; z-index: 2; margin-bottom: 30px; }
+/* Sidebar Accordion Menu */
+.sb-menu-wrapper { position: relative; z-index: 2; margin-bottom: 25px; }
+.sb-menu-toggle {
+    width: 100%; background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white; padding: 12px 15px; border-radius: var(--radius-md); display: flex; align-items: center; gap: 10px;
+    font-family: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: var(--transition);
+    backdrop-filter: blur(5px);
+}
+.sb-menu-toggle:hover { background: rgba(0, 0, 0, 0.25); border-color: rgba(255, 255, 255, 0.2); }
+.sb-menu { 
+    display: flex; flex-direction: column; margin-top: 10px; 
+    overflow: hidden; max-height: 500px; transition: max-height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.sb-menu.collapsed { max-height: 0; margin-top: 0; }
+
 .sb-nav-label { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; padding-left: 10px; letter-spacing: 1px; color: rgba(255,255,255,0.5); }
-.mt-label { margin-top: 20px; }
+.mt-label { margin-top: 15px; }
 .sb-nav-item {
     display: flex; align-items: center; gap: 12px; padding: 10px 12px;
     color: rgba(255,255,255,0.8); text-decoration: none; font-size: 0.85rem; font-weight: 600;
@@ -107,22 +125,24 @@ body {
 /* Sidebar Widgets (Jam, Cuaca, Vibe) */
 .sb-widgets { position: relative; z-index: 2; margin-top: auto; display: flex; flex-direction: column; gap: 20px;}
 .widget-time { padding-left: 5px; }
-.time-greeting { font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; color: rgba(255,255,255,0.7); margin-bottom: 2px; text-transform: uppercase; }
-.time-clock { font-size: 2.8rem; font-weight: 800; line-height: 1; letter-spacing: -1px; text-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 4px; }
-.time-date { font-size: 0.8rem; font-weight: 500; color: rgba(255,255,255,0.8); }
+.time-greeting { font-size: 0.7rem; font-weight: 700; letter-spacing: 2px; color: rgba(255,255,255,0.8); margin-bottom: 2px; text-transform: uppercase; }
+.time-clock { font-size: 3.2rem; font-weight: 800; line-height: 1; letter-spacing: -1.5px; text-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 4px; }
+.time-date { font-size: 0.8rem; font-weight: 500; color: rgba(255,255,255,0.7); }
 
-.widget-grid { display: flex; flex-direction: column; gap: 10px; }
-.w-card { background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: var(--radius-md); padding: 14px; backdrop-filter: blur(10px); }
-.w-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.6rem; font-weight: 800; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+.mobile-briefing-text { display: none; } /* Hanya muncul di HP */
+
+.widget-grid { display: flex; flex-direction: column; gap: 12px; }
+.w-card { background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-md); padding: 14px; backdrop-filter: blur(10px); }
+.w-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.65rem; font-weight: 800; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
 .w-header i { margin-right: 5px; font-size: 0.8rem;}
 .w-badge { font-weight: 800; color: white; }
-.w-body { font-size: 1rem; font-weight: 600; color: white; letter-spacing: -0.3px;}
+.w-body { font-size: 1.05rem; font-weight: 600; color: white; letter-spacing: -0.3px;}
 
-.w-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.vibe-circles { display: flex; gap: 6px; margin-bottom: 8px; }
-.vs { width: 20px; height: 20px; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-.vibe-hex { font-family: 'Fira Code', monospace; font-size: 0.55rem; color: rgba(255,255,255,0.6); line-height: 1.4; }
-.bigday-val { color: var(--accent-coral); font-weight: 800; font-size: 0.95rem; margin-top: auto;}
+/* Vibe Layout Fix */
+.vibe-content-wrapper { display: flex; align-items: center; gap: 12px; }
+.vibe-circles { display: flex; gap: 4px; }
+.vs { width: 22px; height: 22px; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); }
+.vibe-hex { font-family: 'Fira Code', monospace; font-size: 0.6rem; color: rgba(255,255,255,0.7); line-height: 1.4; }
 
 /* Master Control */
 .widget-control { margin-top: 5px; }
@@ -139,7 +159,7 @@ body {
 ========================================================= */
 .os-main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; background-color: var(--bg-main); scroll-behavior: smooth; }
 
-/* SEARCH BAR COMPACT / LEBIH KECIL & BISA MELEBAR */
+/* SEARCH BAR COMPACT (Expand on Click) */
 .os-topbar {
     display: flex; justify-content: space-between; align-items: center;
     padding: 15px 35px; background-color: rgba(248, 250, 253, 0.85); backdrop-filter: blur(12px);
@@ -147,24 +167,24 @@ body {
 }
 .search-compact { position: relative; }
 .search-compact input {
-    width: 280px; /* Lebih pendek aslinya */
-    padding: 10px 15px 10px 40px; 
+    width: 250px; 
+    padding: 10px 15px 10px 35px; 
     background: white; border: 1px solid var(--border-color); 
-    border-radius: 30px; font-family: inherit; font-size: 0.85rem; 
+    border-radius: 30px; font-family: inherit; font-size: 0.8rem; 
     outline: none; box-shadow: var(--shadow-sm); transition: width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.2s;
 }
-.search-compact input:focus { width: 450px; /* Melebar saat diklik */ border-color: var(--primary-light); box-shadow: 0 0 0 4px rgba(69, 109, 145, 0.1); }
-.s-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.9rem; pointer-events: none;}
+.search-compact input:focus { width: 450px; border-color: var(--primary-light); box-shadow: 0 0 0 4px rgba(69, 109, 145, 0.1); }
+.s-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem; pointer-events: none;}
 
 .location-badge { background: #ffffff; border: 1px solid var(--border-color); padding: 6px 14px; border-radius: 30px; font-size: 0.75rem; font-weight: 700; color: var(--text-dark); box-shadow: var(--shadow-sm); display: flex; align-items: center; gap: 6px; }
 .location-badge i { color: var(--accent-orange); font-size: 0.9rem;}
 
 /* =========================================================
-   3. DASHBOARD CONTENT (BRIEFING, MINI KPI, BENTO)
+   3. DASHBOARD CONTENT
 ========================================================= */
 .os-dashboard { padding: 25px 35px; max-width: 1440px; margin: 0 auto; width: 100%; }
 
-/* Briefing Panel */
+/* Briefing Panel (Desktop) */
 .briefing-card {
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
     border-radius: var(--radius-lg); padding: 20px 25px; 
@@ -176,19 +196,23 @@ body {
 .btn-zen { background-color: var(--accent-orange); color: white; border: none; padding: 10px 18px; border-radius: 30px; font-weight: 800; font-size: 0.75rem; cursor: pointer; transition: var(--transition); display: flex; gap: 6px; align-items: center; text-transform: uppercase; letter-spacing: 0.5px; }
 .btn-zen:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(249, 175, 107, 0.4); background-color: #fca048; }
 
-/* MINI KPI GRID (SUPER COMPACT) */
+/* MINI KPI GRID */
 .kpi-mini-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
 .kpi-mini {
     background: white; border: 1px solid var(--border-color); border-radius: var(--radius-md);
-    padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+    padding: 16px; display: flex; align-items: center; gap: 14px;
     box-shadow: var(--shadow-sm); cursor: pointer; transition: var(--transition);
 }
 .kpi-mini:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: #d0dbe5;}
-.km-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 1rem; flex-shrink: 0;}
-.km-info { display: flex; flex-direction: column; }
-.km-label { font-size: 0.65rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;}
-.km-val { font-size: 1.2rem; font-weight: 800; color: var(--text-dark); line-height: 1;}
-.km-sub { font-size: 0.65rem; font-weight: 700; margin-top: 3px;}
+.km-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; justify-content: center; align-items: center; font-size: 1.1rem; flex-shrink: 0;}
+.km-info { display: flex; flex-direction: column; width: 100%;}
+.w-100 { width: 100%; }
+.km-header-row { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 2px; }
+.btn-eye { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.85rem; transition: 0.2s; padding: 2px; }
+.btn-eye:hover { color: var(--primary); }
+.km-label { font-size: 0.65rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;}
+.km-val { font-size: 1.25rem; font-weight: 800; color: var(--text-dark); line-height: 1.2;}
+.km-sub { font-size: 0.7rem; font-weight: 700; margin-top: 2px;}
 
 /* BENTO LAYOUT */
 .bento-layout { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.3fr); gap: 20px; align-items: start; }
@@ -200,7 +224,6 @@ body {
 .os-card:hover { box-shadow: var(--shadow-md); border-color: #d0dbe5; }
 .card-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
 .card-head h3 { font-size: 0.95rem; font-weight: 800; color: var(--text-dark); margin: 0; display: flex; align-items: center; gap: 8px; }
-.card-head h3 i { font-size: 1.05rem; }
 
 /* Mini Quick Access */
 .qa-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -296,22 +319,14 @@ body {
 .cc-agenda-list { display: flex; flex-direction: column; gap: 8px; }
 .cc-client-item { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: white;}
 
-/* 🛑 SOLUSI TEKS PINNED NOTES BERANTAKAN DIKOTAK */
+/* Pinned Notes Fixed Flow */
 .cc-pinned-note-wrapper { display: flex; flex-direction: column; gap: 10px; }
-.cc-pin-item { 
-    background: #fffcf9; border-left: 5px solid var(--accent-orange); 
-    padding: 14px; border-radius: 0 var(--radius-md) var(--radius-md) 0; 
-    font-size: 0.8rem; line-height: 1.6; color: var(--text-dark); 
-}
+.cc-pin-item { background: #fffcf9; border-left: 5px solid var(--accent-orange); padding: 14px; border-radius: 0 var(--radius-md) var(--radius-md) 0; font-size: 0.8rem; line-height: 1.6; color: var(--text-dark); }
 .cc-pin-item h4 { margin-bottom: 4px !important; font-size: 0.85rem !important; color: var(--text-dark); font-weight: 700;}
-.cc-pin-item p, .cc-pin-item a, .cc-pin-item span {
-    word-break: break-word !important;
-    overflow-wrap: anywhere !important;
-    white-space: pre-wrap !important;
-}
+.cc-pin-item p, .cc-pin-item a, .cc-pin-item span { word-break: break-word !important; overflow-wrap: anywhere !important; white-space: pre-wrap !important; }
 
 /* =========================================================
-   4. MODALS & OMNI SEARCH DROPDOWN
+   4. MODALS & ZEN MODE
 ========================================================= */
 .cc-omni-dropdown { position: absolute; top: 100%; left: 0; right: 0; margin-top: 8px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); max-height: 250px; overflow-y: auto; z-index: 100; }
 .omni-group-label { padding: 8px 15px; font-size: 0.65rem; font-weight: 800; color: var(--primary); background: var(--bg-main); text-transform: uppercase; letter-spacing: 0.5px;}
@@ -322,55 +337,30 @@ body {
 
 .cc-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); z-index: 2000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
 .cc-modal-card { background: var(--card-bg); width: 90%; max-width: 400px; border-radius: var(--radius-lg); padding: 25px; box-shadow: var(--shadow-lg); overflow: hidden;}
-.p-0 { padding: 0 !important; }
 .cc-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .cc-modal-header h3 { margin: 0; font-size: 1.05rem; font-weight: 800;}
 .cc-modal-header button { background: var(--bg-main); border: 1px solid var(--border-color); width: 28px; height: 28px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; transition: var(--transition);}
-.cc-modal-header button:hover { background: var(--danger-light); color: var(--danger); border-color: var(--danger-light); }
 .cc-form-group { margin-bottom: 15px; }
-.cc-form-group label { display: block; font-size: 0.7rem; font-weight: 800; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;}
-.cc-form-group input, .cc-form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.85rem; outline: none; background: var(--bg-main); font-weight: 500; transition: var(--transition);}
-.cc-form-group input:focus, .cc-form-group textarea:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(69, 109, 145, 0.1);}
+.cc-form-group label { display: block; font-size: 0.7rem; font-weight: 800; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; }
+.cc-form-group input, .cc-form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.85rem; outline: none; background: var(--bg-main); transition: var(--transition);}
+.cc-form-group input:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(69, 109, 145, 0.1);}
 .cc-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.cc-btn-primary { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: var(--radius-md); font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; transition: var(--transition);}
-.cc-btn-primary:hover { background: var(--primary-dark); transform: translateY(-2px); box-shadow: var(--shadow-sm);}
-
-/* Modal Detail Agenda */
-.cc-modal-hero { background: var(--primary); padding: 25px; color: white; position: relative; }
-.cc-modal-close { position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.2); border: none; color: white; width: 28px; height: 28px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; transition: var(--transition); }
-.cc-modal-close:hover { background: var(--accent-coral); }
-.cc-modal-eyebrow { font-size: 0.65rem; font-weight: 800; letter-spacing: 1px; opacity: 0.8; margin-bottom: 6px; text-transform: uppercase; }
-.cc-modal-hero h3 { margin: 0; font-size: 1.25rem; font-weight: 800; line-height: 1.3;}
-.cc-modal-content { padding: 25px; }
-.cc-modal-info-row { display: flex; gap: 15px; margin-bottom: 20px; }
-.flex-1 { flex: 1; }
-.cc-info-label { font-size: 0.7rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px;}
-.cc-info-value { font-size: 0.85rem; font-weight: 700; color: var(--text-dark); }
-.cc-modal-desc-box { margin-bottom: 25px; }
-.cc-desc-content { font-size: 0.85rem; color: var(--text-dark); line-height: 1.5; background: var(--bg-main); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color); min-height: 60px; }
-.cc-modal-actions { display: flex; gap: 10px; }
-.cc-btn-outline { flex: 1; background: white; color: var(--text-dark); border: 1px solid var(--border-color); padding: 10px; border-radius: var(--radius-md); font-weight: 800; font-size:0.8rem; cursor: pointer; transition: var(--transition);}
-.cc-btn-outline:hover { background: var(--bg-main); }
-.cc-btn-danger { flex: 1; background: var(--danger-bg); color: var(--danger); border: none; padding: 10px; border-radius: var(--radius-md); font-weight: 800; font-size:0.8rem; cursor: pointer; transition: var(--transition);}
-.cc-btn-danger:hover { background: var(--danger); color: white; }
+.cc-btn-primary { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: var(--radius-md); font-weight: 800; font-size: 0.85rem; cursor: pointer; width: 100%; transition: var(--transition);}
 
 /* Zen Mode */
 .cc-zen-hidden { display: none !important; }
 #zen-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.98); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; backdrop-filter: blur(15px); }
-.cc-btn-exit-zen { position: absolute; top: 30px; right: 30px; background: rgba(255,255,255,0.1); border: none; color: white; padding: 10px 20px; border-radius: 30px; cursor: pointer; font-weight: 700; font-size: 0.85rem; transition: var(--transition);}
-.cc-btn-exit-zen:hover { background: var(--accent-coral); color: white; }
+.cc-btn-exit-zen { position: absolute; top: 30px; right: 30px; background: rgba(255,255,255,0.1); border: none; color: white; padding: 10px 20px; border-radius: 30px; cursor: pointer; font-weight: 700; font-size: 0.85rem;}
 .cc-zen-label { font-size: 0.95rem; letter-spacing: 5px; opacity: 0.8; margin-bottom: 20px; font-weight: 800; color: var(--accent-orange); text-align: center;}
 .cc-zen-timer { font-size: 6rem; font-weight: 800; font-family: 'Fira Code', monospace; line-height: 1; margin-bottom: 40px; letter-spacing: -3px;}
-.cc-zen-task-selector select { padding: 12px 20px; width: 300px; border-radius: var(--radius-md); border: 1px solid rgba(255,255,255,0.2); outline: none; font-family: inherit; font-size: 0.9rem; font-weight: 700; margin-bottom: 30px; background: rgba(255,255,255,0.05); color: white; text-align: center; appearance: none; cursor: pointer;}
+.cc-zen-task-selector select { padding: 12px 20px; width: 300px; border-radius: var(--radius-md); font-size: 0.9rem; margin-bottom: 30px; background: rgba(255,255,255,0.05); color: white; text-align: center;}
 .cc-zen-task-selector select option { color: var(--text-dark); }
-.cc-zen-controls { display: flex; gap: 15px; justify-content: center; }
-.cc-btn-zen { background: white; color: var(--text-dark); border: none; padding: 12px 25px; border-radius: 30px; font-size: 0.9rem; font-weight: 800; cursor: pointer; transition: var(--transition); display: flex; gap: 8px; align-items: center;}
-.cc-btn-zen:hover { transform: scale(1.05); background: var(--accent-orange); color: white; }
-.cc-btn-zen-outline { background: transparent; color: white; border: 2px solid rgba(255,255,255,0.3); padding: 12px 25px; border-radius: 30px; font-size: 0.9rem; font-weight: 800; cursor: pointer; transition: var(--transition);}
-.cc-btn-zen-outline:hover { background: rgba(255,255,255,0.1); }
+.cc-zen-controls { display: flex; gap: 15px; }
+.cc-btn-zen { background: white; color: var(--text-dark); border: none; padding: 12px 25px; border-radius: 30px; font-size: 0.9rem; font-weight: 800; cursor: pointer;}
+.cc-btn-zen-outline { background: transparent; color: white; border: 2px solid rgba(255,255,255,0.3); padding: 12px 25px; border-radius: 30px; font-size: 0.9rem; font-weight: 800; cursor: pointer;}
 
 /* =========================================================
-   5. RESPONSIVE DESIGN (MOBILE OPTIMIZED - 1 LAYAR)
+   5. RESPONSIVE DESIGN (MOBILE LAYOUT: HEADER + INFO)
 ========================================================= */
 .cc-bottom-nav { display: none; }
 
@@ -380,62 +370,63 @@ body {
 }
 
 @media (max-width: 768px) {
-    /* Layout Utama Mobile Berubah Jadi 1 Kolom Berjejer Ke Bawah */
     .os-layout { flex-direction: column; height: auto; overflow: auto; }
     body { overflow: auto; }
     
-    /* 1. SIDEBAR JADI HEADER MOBILE (TIDAK DISEMBUNYIKAN) */
+    /* 1. HEADER MOBILE (Sidebar diubah format) */
     .os-sidebar { 
-        width: 100%; height: auto; padding: 20px; border-right: none; 
-        border-bottom-left-radius: 24px; border-bottom-right-radius: 24px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        width: 100%; height: auto; padding: 25px 20px; border-right: none; 
+        border-bottom-left-radius: 30px; border-bottom-right-radius: 30px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1); z-index: 100;
     }
     
-    /* Sembunyikan Menu Kiri & Master Control di HP (Karna sudah ada Bottom Nav) */
-    .sb-menu, .widget-control { display: none; }
+    .mobile-header-actions { display: flex; position: absolute; top: 25px; right: 20px; gap: 10px; z-index: 10; }
+    .mobile-zen-icon, .mobile-eye-icon { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.1); color: white; width: 36px; height: 36px; border-radius: 50%; font-size: 0.95rem; display: flex; justify-content: center; align-items: center; cursor: pointer; backdrop-filter: blur(5px); transition: 0.2s;}
+    .mobile-zen-icon:active, .mobile-eye-icon:active { background: rgba(255,255,255,0.3); transform: scale(0.95);}
     
-    /* Susunan Widget Atas HP: Sapaan -> Cuaca / Vibe */
+    .sb-menu-wrapper, .widget-control, .desktop-only { display: none !important; }
     .sb-header { margin-bottom: 15px; }
     .sb-widgets { gap: 15px; }
     .widget-time { text-align: left; }
-    .time-clock { font-size: 2.4rem; }
-    .w-row-2 { grid-template-columns: 1fr 1fr; }
+    .time-greeting { font-size: 0.75rem;}
+    .time-clock { font-size: 3rem; margin-bottom: 2px;}
+    .time-date { font-size: 0.85rem;}
 
-    /* 2. MAIN WORKSPACE (Rapat di bawah Header) */
-    .os-topbar { padding: 15px 20px; margin-top: 10px; background: transparent; border: none; flex-direction: row-reverse;}
-    .search-compact input { width: 140px; } /* Search bar super kecil, expand on click */
+    /* Teks Briefing Khusus Mobile */
+    .mobile-briefing-text { 
+        display: block; font-size: 0.8rem; color: rgba(255,255,255,0.9); font-weight: 500;
+        background: rgba(0,0,0,0.15); padding: 12px 16px; border-radius: var(--radius-md); 
+        margin-top: 12px; margin-bottom: 5px; line-height: 1.5; border: 1px solid rgba(255,255,255,0.08);
+        backdrop-filter: blur(5px);
+    }
+    .w-row-2 { grid-template-columns: 1fr; gap: 10px; } /* Vibe dipindah jadi 1 row di bawah cuaca agar tidak sempit */
+
+    /* 2. SEARCH BAR & DASHBOARD PADDING */
+    .os-topbar { padding: 15px 20px; background: transparent; border: none; flex-direction: row-reverse;}
+    .search-compact input { width: 140px; }
     .search-compact input:focus { width: calc(100vw - 160px); position: absolute; right: 20px; z-index: 50; }
     .location-badge { font-size: 0.7rem; padding: 6px 12px; }
 
-    .os-dashboard { padding: 10px 20px 90px 20px; } /* Padding bawah extra untuk bottom nav */
+    .os-dashboard { padding: 10px 20px 90px 20px; }
     
-    /* 3. KONTEN DASHBOARD PADAT */
-    .briefing-card { flex-direction: column; align-items: flex-start; padding: 15px; gap: 15px; margin-bottom: 15px;}
-    .btn-zen { width: 100%; justify-content: center; }
-    
-    /* 4. KPI MINI JADI GRID 2 KOLOM (YANG KETIGA FULL) */
-    .kpi-mini-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;}
-    .kpi-mini:nth-child(1) { grid-column: 1 / -1; } /* Total Aset melebar penuh */
-    .kpi-mini { padding: 12px; }
-    .km-icon { width: 32px; height: 32px; font-size: 0.85rem;}
-    .km-label { font-size: 0.6rem; }
-    .km-val { font-size: 1rem; }
+    /* 3. KPI MINI MOBILE (2 Kolom) */
+    .kpi-mini-grid { grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;}
+    .kpi-mini:nth-child(1) { grid-column: 1 / -1; } /* Total Aset Full Width */
+    .kpi-mini { padding: 14px; }
+    .km-icon { width: 34px; height: 34px; font-size: 0.9rem;}
+    .km-val { font-size: 1.15rem; }
 
-    .qa-grid { grid-template-columns: repeat(2, 1fr); gap: 8px;}
-    .os-card { padding: 15px; margin-bottom: 15px;}
+    .qa-grid { grid-template-columns: repeat(2, 1fr); gap: 10px;}
+    .os-card { padding: 16px; margin-bottom: 15px;}
 
-    /* 5. BOTTOM NAVIGATION */
+    /* 4. BOTTOM NAV */
     .cc-bottom-nav { 
         display: flex; position: fixed; bottom: 0; left: 0; right: 0; 
-        background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px);
-        border-top: 1px solid var(--border-color); padding: 12px 10px 24px 10px;
-        justify-content: space-around; z-index: 1000; box-shadow: 0 -4px 15px rgba(0,0,0,0.03);
+        background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px);
+        border-top: 1px solid var(--border-color); padding: 12px 10px 25px 10px;
+        justify-content: space-around; z-index: 1000; box-shadow: 0 -5px 20px rgba(0,0,0,0.04);
     }
-    .cc-bottom-item { 
-        display: flex; flex-direction: column; align-items: center; gap: 6px; 
-        color: var(--text-muted); text-decoration: none; 
-        font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
-    }
+    .cc-bottom-item { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text-muted); text-decoration: none; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; }
     .cc-bottom-item.active { color: var(--primary); transform: translateY(-3px);}
     .cc-bottom-item i { font-size: 1.25rem; }
 }
