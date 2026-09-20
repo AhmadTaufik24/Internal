@@ -26,12 +26,14 @@ let scheduleNotifs = [];
 // 2. BOOT & AUTHENTICATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
+    // Jalankan jam segera mungkin
+    updateClock();
+    setInterval(updateClock, 1000);
+
     // PROTEKSI: Cek login langsung ke server Firebase
     auth.onAuthStateChanged((user) => {
         if (user) {
             document.getElementById('app-wrapper').style.display = 'flex';
-            updateClock();
-            setInterval(updateClock, 1000);
             bootSystem(); 
         } else {
             window.location.href = 'index.html';
@@ -41,6 +43,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function bootSystem() {
     await pullAllData(); 
+    
+    // Fitur Utama
     renderCalendarWidget(); 
     renderDynamicBriefing(); 
     renderTopKPIs();
@@ -48,27 +52,26 @@ async function bootSystem() {
     renderRadarAndWorkload();
     switchHealthMode(currentHealthMode); 
     renderPinnedNotes();
+    
+    // Fitur Estetik Baru (Cuaca & Vibe)
+    fetchWeather();
+    updateTodaysVibe();
 }
 
 async function pullAllData() {
     try {
-        // 1. Projects
         const projSnap = await db.collection('jobOrders').get();
         OS_DATA.projects = projSnap.docs.map(doc => ({id: doc.id, ...doc.data()}));
         
-        // 2. CRM
         const crmSnap = await db.collection('clients').get();
         OS_DATA.crm = crmSnap.docs.map(doc => ({id: doc.id, ...doc.data()}));
         
-        // 3. Notes
         const notesSnap = await db.collection('notes').get();
         OS_DATA.notes = notesSnap.docs.map(doc => ({id: doc.id, ...doc.data()}));
         
-        // 4. Assets
         const assetsSnap = await db.collection('assets').get();
         OS_DATA.assets = assetsSnap.docs.map(doc => ({id: doc.id, ...doc.data()}));
         
-        // 5. Events
         const eventsSnap = await db.collection('events').get();
         OS_DATA.events = eventsSnap.docs.map(doc => {
             let ev = {id: doc.id, ...doc.data()};
@@ -79,7 +82,6 @@ async function pullAllData() {
             return ev;
         });
 
-        // 6. Finance
         const user = auth.currentUser;
         const emailAdmin = "ahtasteriz@gmail.com"; 
         const financeDocId = (user && user.email === emailAdmin) ? "main_data" : (user ? user.uid : "main_data");
@@ -93,14 +95,102 @@ async function pullAllData() {
             OS_DATA.finance.transactions = [];
             OS_DATA.finance.accounts = [];
         }
-        
     } catch(err) {
         console.error("Gagal menarik data dari Firestore:", err);
     }
 }
 
 // ==========================================
-// 3. DYNAMIC MORNING BRIEFING 
+// 3. FITUR ESTETIK BARU (JAM, CUACA, VIBES)
+// ==========================================
+function updateClock() {
+    const now = new Date();
+    
+    // Update Jam & Tanggal Sidebar
+    const sClock = document.getElementById('sidebar-clock');
+    if(sClock) sClock.innerText = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+    
+    const sDate = document.getElementById('sidebar-date');
+    if(sDate) sDate.innerText = now.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+    
+    // Update Sapaan Sidebar (Inggris)
+    const h = now.getHours();
+    let sGreet = 'GOOD EVENING';
+    if(h >= 5 && h < 12) sGreet = 'GOOD MORNING';
+    else if(h >= 12 && h < 17) sGreet = 'GOOD AFTERNOON';
+    
+    const sGreetingEl = document.getElementById('sidebar-greeting');
+    if(sGreetingEl) sGreetingEl.innerText = sGreet;
+}
+
+async function fetchWeather() {
+    try {
+        // Koordinat Jakarta, ID. Menggunakan Open-Meteo (Gratis, Tanpa API Key)
+        const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-6.2088&longitude=106.8456&current=temperature_2m,relative_humidity_2m,weather_code');
+        const data = await res.json();
+        
+        const temp = data.current.temperature_2m;
+        const hum = data.current.relative_humidity_2m;
+        const code = data.current.weather_code;
+        
+        // Translasi WMO Code ke Text
+        let condition = "Clear / Sunny";
+        if (code >= 1 && code <= 3) condition = "Partly Cloudy";
+        if (code >= 45 && code <= 48) condition = "Foggy";
+        if (code >= 51 && code <= 67) condition = "Rainy";
+        if (code >= 71 && code <= 77) condition = "Snowy";
+        if (code >= 80 && code <= 82) condition = "Rain Showers";
+        if (code >= 95) condition = "Thunderstorm";
+
+        const descEl = document.getElementById('weather-desc');
+        const humEl = document.getElementById('weather-humidity');
+        
+        if(descEl) descEl.innerText = `${temp}°C • ${condition}`;
+        if(humEl) humEl.innerText = `${hum}%`;
+    } catch(err) {
+        console.log("Gagal mengambil data cuaca:", err);
+    }
+}
+
+function updateTodaysVibe() {
+    // Kumpulan Palette Warna Estetik
+    const palettes = [
+        ['#8F6E5C', '#D1BAB0', '#FCF7F5'], // Warm Coffee
+        ['#456D91', '#7A9EBF', '#BBD5E8'], // Taufik OS Blue
+        ['#F96B6B', '#F9AF6B', '#FDF2E9'], // Sunset Coral
+        ['#2C3E50', '#897E7A', '#EAEFF4'], // Enterprise Minimal
+        ['#10B981', '#76D7B4', '#F0FDF4'], // Fresh Mint
+        ['#D97706', '#FBBF24', '#FFFBEB'], // Golden Hour
+        ['#6366F1', '#A5B4FC', '#EEF2FF']  // Indigo Chill
+    ];
+    
+    // Algoritma ganti warna tiap hari (Berdasarkan hari dalam setahun)
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 0);
+    const diff = now - start;
+    const oneDay = 1000 * 60 * 60 * 24;
+    const dayOfYear = Math.floor(diff / oneDay);
+    
+    const p = palettes[dayOfYear % palettes.length];
+    
+    const circleBox = document.getElementById('vibe-circles');
+    if(circleBox) {
+        circleBox.innerHTML = `
+            <div class="color-swatch" style="background:${p[0]}"></div>
+            <div class="color-swatch" style="background:${p[1]}"></div>
+            <div class="color-swatch" style="background:${p[2]}"></div>
+        `;
+    }
+    
+    const hexBox = document.getElementById('vibe-hex');
+    if(hexBox) {
+        hexBox.innerText = `${p[0]} • ${p[1]} •${p[2]}`;
+    }
+}
+
+
+// ==========================================
+// 4. DYNAMIC MORNING BRIEFING 
 // ==========================================
 function renderDynamicBriefing() {
     const today = new Date().setHours(0,0,0,0);
@@ -134,7 +224,7 @@ function renderDynamicBriefing() {
     if (unpaidAmount > 0) briefingStr += `Terdapat <strong>${formatRp(unpaidAmount)}</strong> uang di fase Delivery. `;
     
     if (scheduleNotifs.length > 0) {
-        briefingStr += `<br><br><span style="color:var(--warning); display:inline-block; padding: 6px 12px; background: rgba(249, 175, 107, 0.15); border-radius: 8px; font-weight: 600; font-size: 12px; margin-top: 5px;">`;
+        briefingStr += `<br><br><span style="color:var(--accent-orange); display:inline-block; padding: 6px 12px; background: rgba(249, 175, 107, 0.15); border-radius: 8px; font-weight: 600; font-size: 12px; margin-top: 5px;">`;
         briefingStr += `<i class="fa-solid fa-bell"></i> Reminder: Ada ${scheduleNotifs.length} jadwal terdekat (${scheduleNotifs[0]}).`;
         briefingStr += `</span>`;
     }
@@ -143,7 +233,7 @@ function renderDynamicBriefing() {
 }
 
 // ==========================================
-// 4. TOP KPIs 
+// 5. TOP KPIs 
 // ==========================================
 function renderTopKPIs() {
     let totalReal = 0, totalKelola = 0;
@@ -183,7 +273,7 @@ function renderTopKPIs() {
 }
 
 // ==========================================
-// 5. UNIFIED ACTION INBOX
+// 6. UNIFIED ACTION INBOX
 // ==========================================
 function renderActionInbox() {
     const inbox = document.getElementById('inbox-list'); 
@@ -208,7 +298,7 @@ function renderActionInbox() {
         else if (j.stage === 'review') {
             const phone = getClientPhone(clientName);
             actions.push({
-                icon: 'fa-comments', color: 'var(--warning)', 
+                icon: 'fa-comments', color: 'var(--accent-orange)', 
                 title: `Follow-up: ${j.batchID}`, desc: `Menunggu ACC Klien.`,
                 btnText: 'WA', actionCode: `openWA('${phone}', 'Halo Kak, izin mengingatkan untuk review project${j.batchID} ya.')`, priority: 2
             });
@@ -229,7 +319,7 @@ function renderActionInbox() {
     if(countEl) countEl.innerText = actions.length;
 
     if (actions.length === 0) {
-        inbox.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-sub); font-size: 13px; background: var(--body-bg); border-radius: 12px; font-weight: 500;">Inbox bersih! Semua tugas under control 🎉</div>';
+        inbox.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px; background: var(--bg-main); border-radius: 12px; font-weight: 500;">Inbox bersih! Semua tugas under control 🎉</div>';
         return;
     }
 
@@ -273,7 +363,7 @@ function getClientPhone(name) {
 }
 
 // ==========================================
-// 6. PRODUCTION RADAR
+// 7. PRODUCTION RADAR
 // ==========================================
 function renderRadarAndWorkload() {
     const tbody = document.getElementById('radar-tbody');
@@ -310,7 +400,7 @@ function renderRadarAndWorkload() {
     if(bar && wStatus) {
         bar.style.width = perc + '%';
         if(perc < 50) { bar.style.background = 'var(--success)'; wStatus.innerText = `Aman (${activeCount}/${capacity})`; wStatus.style.color = 'var(--success)';}
-        else if(perc < 80) { bar.style.background = 'var(--warning)'; wStatus.innerText = `Padat (${activeCount}/${capacity})`; wStatus.style.color = '#d97706';}
+        else if(perc < 80) { bar.style.background = 'var(--accent-orange)'; wStatus.innerText = `Padat (${activeCount}/${capacity})`; wStatus.style.color = 'var(--accent-orange)';}
         else { bar.style.background = 'var(--danger)'; wStatus.innerText = `OVERLOAD (${activeCount}/${capacity})`; wStatus.style.color = 'var(--danger)';}
     }
 
@@ -318,18 +408,18 @@ function renderRadarAndWorkload() {
         const cName = j.clientName ? j.clientName.replace(/\s\(\d{4}\)$/, '') : '-';
         tbody.innerHTML += `
             <tr style="cursor:pointer;" onclick="window.location.href='project-tracker.html?detailId=${j.id}'">
-                <td><span class="status-pill ${j.bClass}">${j.badge}</span> <br><span style="font-size:11px; color:var(--text-sub);">${formatDate(j.data.deadline)}</span></td>
-                <td><strong style="color:var(--primary); font-size:13px;">${j.batchID}</strong></td>
+                <td><span class="status-pill ${j.bClass}">${j.badge}</span> <br><span style="font-size:11px; color:var(--text-muted);">${formatDate(j.data.deadline)}</span></td>
+                <td><strong style="color:var(--text-dark); font-size:13px;">${j.batchID}</strong></td>
                 <td><span style="font-size:13px">${cName}</span></td>
                 <td><span style="font-size:11px; font-weight:700; text-transform:uppercase;">${j.stage}</span></td>
             </tr>
         `;
     });
-    if(radarItems.length === 0) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:24px; color:var(--text-sub); font-size:13px; font-weight: 500;">Aman terkendali. Tidak ada deadline mendesak.</td></tr>';
+    if(radarItems.length === 0) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:24px; color:var(--text-muted); font-size:13px; font-weight: 500;">Aman terkendali. Tidak ada deadline mendesak.</td></tr>';
 }
 
 // ==========================================
-// 7. FINANCIAL PIPELINE 
+// 8. FINANCIAL PIPELINE 
 // ==========================================
 function formatNumberWithDot(num) { return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
 function formatInputTarget(el) { let val = el.value.replace(/[^0-9]/g, ''); el.value = val !== '' ? formatNumberWithDot(val) : ''; }
@@ -411,7 +501,7 @@ function renderFinancialPipeline() {
 }
 
 // ==========================================
-// 8. SMART SCHEDULER WIDGET
+// 9. SMART SCHEDULER WIDGET
 // ==========================================
 function renderCalendarWidget() {
     const today = new Date();
@@ -530,7 +620,7 @@ function selectDate(y, m, d, el = null) {
     });
 
     if (dayEvents.length === 0) {
-        listEl.innerHTML = '<div style="font-size: 13px; color: var(--text-sub); text-align: center; padding: 15px 0;">Tidak ada jadwal.</div>';
+        listEl.innerHTML = '<div style="font-size: 13px; color: var(--text-muted); text-align: center; padding: 15px 0;">Tidak ada jadwal.</div>';
         return;
     }
 
@@ -541,11 +631,11 @@ function selectDate(y, m, d, el = null) {
             : `openEventDetail('${ev.id}')`;
             
         listEl.innerHTML += `
-            <div class="cc-client-item" style="cursor: pointer; transition: 0.2s; background: var(--card-bg);" onclick="${action}" onmouseover="this.style.borderColor='var(--primary)'; this.style.boxShadow='var(--shadow-sm)';" onmouseout="this.style.borderColor='var(--border)'; this.style.boxShadow='none';">
+            <div class="cc-client-item" style="cursor: pointer; transition: 0.2s;" onclick="${action}" onmouseover="this.style.borderColor='var(--primary)'; this.style.boxShadow='var(--shadow-sm)';" onmouseout="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none';">
                 <i class="fa-solid ${icon}"></i>
                 <div style="flex: 1;">
-                    <div style="font-size:13px; font-weight:700; color: var(--text-main);">${ev.title}</div>
-                    <div style="font-size:11px; color:var(--text-sub); margin-top: 4px;">${ev.desc || '-'}</div>
+                    <div style="font-size:13px; font-weight:700; color: var(--text-dark);">${ev.title}</div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top: 4px;">${ev.desc || '-'}</div>
                 </div>
             </div>
         `;
@@ -658,7 +748,7 @@ async function simpanAcara() {
 }
 
 // ==========================================
-// 9. PINNED NOTES 
+// 10. PINNED NOTES 
 // ==========================================
 function renderPinnedNotes() {
     const box = document.getElementById('pinned-note-box'); 
@@ -670,20 +760,21 @@ function renderPinnedNotes() {
     if(pinned.length > 0) {
         pinned.forEach(p => {
             const cleanTxt = p.content.replace(/[#*`_]/g, '').replace(/\n/g, '<br>');
+            // Tag <p> dipastikan membungkus teks sesuai dengan aturan CSS yang baru ditambahkan
             box.innerHTML += `
                 <div class="cc-pin-item">
                     <h4>${p.title||'Catatan'}</h4>
-                    <p style="margin:0; opacity:0.9; font-size: 13px;">${cleanTxt}</p>
+                    <p>${cleanTxt}</p>
                 </div>
             `;
         });
     } else {
-        box.innerHTML = '<p style="color:var(--text-sub); font-size:13px; text-align:center; padding: 20px 0;">Belum ada notes yang di-pin.</p>';
+        box.innerHTML = '<p style="color:var(--text-muted); font-size:13px; text-align:center; padding: 20px 0;">Belum ada notes yang di-pin.</p>';
     }
 }
 
 // ==========================================
-// 10. OMNI-COMMAND PALETTE
+// 11. OMNI-COMMAND PALETTE
 // ==========================================
 function handleOmniCommand(event) {
     const input = event.target.value;
@@ -711,7 +802,7 @@ function handleOmniCommand(event) {
         });
     }
 
-    if(html === '') html = '<div style="padding:15px; text-align:center; font-size:13px; color:var(--text-sub);">Data tidak ditemukan.</div>';
+    if(html === '') html = '<div style="padding:15px; text-align:center; font-size:13px; color:var(--text-muted);">Data tidak ditemukan.</div>';
     
     dropdown.innerHTML = html;
     dropdown.style.display = 'block';
@@ -730,7 +821,7 @@ async function handleActionCommand(text, key) {
         const title = parts.slice(2).join(' ') || '...';
         
         html += `
-            <div class="omni-item" style="background:var(--primary-light);">
+            <div class="omni-item" style="background:var(--bg-main);">
                 <div class="omni-title">Catat ${type} Real</div>
                 <div class="omni-desc">Rp ${formatRp(amount)} - ${title}</div>
                 <div style="font-size:11px; color:var(--primary); margin-top:8px;"><strong>Tekan ENTER</strong> untuk eksekusi</div>
@@ -834,7 +925,7 @@ document.addEventListener('click', (e) => {
 });
 
 // ==========================================
-// 11. ZEN FOCUS MODE
+// 12. ZEN FOCUS MODE
 // ==========================================
 let zenTimer = null;
 let zenTimeLeft = 25 * 60; 
@@ -908,15 +999,7 @@ function updateZenUI() {
 // ==========================================
 // UTILS
 // ==========================================
-function updateClock() {
-    const now = new Date();
-    const clk = document.getElementById('clock');
-    if(clk) clk.innerText = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-    
-    const dt = document.getElementById('date-display');
-    if(dt) dt.innerText = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
+// updateClock() dipindah ke atas agar tergabung dengan Fitur 3
 function formatRp(n) { return new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', minimumFractionDigits:0 }).format(n); }
 function formatDate(dStr) { return dStr ? new Date(dStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : '-'; }
 function calculateJobPrice(jo) {
