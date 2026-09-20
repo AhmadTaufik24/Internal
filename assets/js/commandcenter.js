@@ -29,9 +29,15 @@ let isMoneyVisible = true;
 // 2. BOOT & AUTHENTICATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. Jalankan Jam langsung
     updateClock();
     setInterval(updateClock, 1000);
 
+    // 2. JALANKAN CUACA & VIBE INSTAN (Tanpa nunggu Firebase)
+    updateTodaysVibe();
+    fetchWeatherRealtime();
+
+    // 3. Cek Login Firebase
     auth.onAuthStateChanged((user) => {
         if (user) {
             document.getElementById('app-wrapper').style.display = 'flex';
@@ -52,9 +58,6 @@ async function bootSystem() {
     renderRadarAndWorkload();
     switchHealthMode(currentHealthMode); 
     renderPinnedNotes();
-    
-    fetchWeatherRealtime();
-    updateTodaysVibe();
 }
 
 async function pullAllData() {
@@ -100,7 +103,7 @@ async function pullAllData() {
 }
 
 // ==========================================
-// 3. FITUR ESTETIK BARU (JAM, CUACA, VIBES, MATA, TOGGLE MENU)
+// 3. FITUR ESTETIK (JAM, CUACA, VIBES, MATA, TOGGLE MENU)
 // ==========================================
 function updateClock() {
     const now = new Date();
@@ -134,7 +137,6 @@ function toggleMoneyVisibility(e) {
     if(e) e.stopPropagation();
     isMoneyVisible = !isMoneyVisible;
     
-    // Ganti Ikon Desktop & Mobile
     const deskEye = document.getElementById('desktop-eye-icon-fa');
     const mobEye = document.getElementById('mobile-eye-icon-fa');
     const iconClass = isMoneyVisible ? 'fa-eye-slash' : 'fa-eye';
@@ -142,37 +144,32 @@ function toggleMoneyVisibility(e) {
     if(deskEye) deskEye.className = `fa-solid ${iconClass}`;
     if(mobEye) mobEye.className = `fa-solid ${iconClass}`;
     
-    // Render ulang komponen yang memuat angka rupiah
     renderTopKPIs();
     renderFinancialPipeline();
     renderDynamicBriefing();
 }
 
-// Format Rupiah Master (Dicegat oleh sensor mata jika ditekan)
 function formatRp(n) { 
     if (!isMoneyVisible) return "Rp *****";
     return new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', minimumFractionDigits:0 }).format(n); 
 }
 
-// Lokasi & Cuaca Realtime dengan Geolocation API
+// Lokasi & Cuaca Realtime dengan Bypass Jakarta Default agar Cepat
 async function fetchWeatherRealtime() {
-    const descEl = document.getElementById('weather-desc');
+    // Tembak langsung ke default Jakarta agar loading hilang seketika
+    await getWeatherData(-6.2088, 106.8456, "Jakarta");
     
-    // Deteksi Lokasi dari Perangkat
+    // Setelah load Jakarta, coba minta lokasi presisi device
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             async (position) => {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
-                await getWeatherData(lat, lon);
+                await getWeatherData(lat, lon); // Update dgn lokasi asli jika diizinkan
             },
-            async () => {
-                // Default ke Jakarta jika ditolak/gagal
-                await getWeatherData(-6.2088, 106.8456, "Jakarta");
-            }
+            () => { /* Abaikan jika ditolak, tetap gunakan Jakarta */ },
+            { timeout: 5000 }
         );
-    } else {
-        await getWeatherData(-6.2088, 106.8456, "Jakarta");
     }
 }
 
@@ -182,7 +179,6 @@ async function getWeatherData(lat, lon, fallbackCity = null) {
         const data = await resW.json();
         
         let cityName = fallbackCity;
-        // Cari nama kota pakai reverse geocode gratis jika tidak pakai fallback
         if (!cityName) {
             try {
                 const resLoc = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=id`);
@@ -195,7 +191,6 @@ async function getWeatherData(lat, lon, fallbackCity = null) {
         const hum = data.current.relative_humidity_2m;
         const code = data.current.weather_code;
         
-        // Terjemahkan Kode WMO
         let condition = "Clear / Sunny";
         if (code >= 1 && code <= 3) condition = "Partly Cloudy";
         else if (code >= 45 && code <= 48) condition = "Foggy";
@@ -224,7 +219,6 @@ function updateTodaysVibe() {
         ['#8B5CF6', '#C4B5FD', '#F5F3FF']  // Purple
     ];
     
-    // Ambil hari ke-sekian di tahun ini
     const now = new Date();
     const start = new Date(now.getFullYear(), 0, 0);
     const dayOfYear = Math.floor((now - start) / (1000 * 60 * 60 * 24));
@@ -270,7 +264,6 @@ function renderDynamicBriefing() {
         briefingStr += `<br><span style="color:var(--accent-orange); display:inline-block; margin-top:6px; font-weight:700;"><i class="fa-solid fa-bell"></i> Reminder: Ada ${scheduleNotifs.length} jadwal terdekat (${scheduleNotifs[0]}).</span>`;
     }
 
-    // Suntik ke Desktop Card
     const dTitle = document.getElementById('desktop-greeting-title');
     const dText = document.getElementById('desktop-briefing-text');
     
@@ -283,7 +276,6 @@ function renderDynamicBriefing() {
     if(dTitle) dTitle.innerText = `${greetDesk}, Taufik.`;
     if(dText) dText.innerHTML = briefingStr;
 
-    // Suntik ke Mobile Header (Tanpa Sapaan, krn udah ada GOOD EVENING di atas)
     const mText = document.getElementById('mobile-briefing-text');
     if(mText) mText.innerHTML = briefingStr;
 }
@@ -318,7 +310,6 @@ function renderTopKPIs() {
     
     const pEl = document.getElementById('kpi-persen-real');
     if(pEl) {
-        // Logika agar saat mata dimatikan, persennya tetap tampil tapi uang sensor
         if(!isMoneyVisible) pEl.innerText = `Rp ***** (${realPercent.toFixed(1)}% Real)`;
         else pEl.innerText = `${formatRp(totalReal)} (${realPercent.toFixed(1)}% Real)`;
         
