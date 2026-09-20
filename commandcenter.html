@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="assets/css/commandcenter.css">
 </head>
-<body>
+<body class="show-money"> <!-- Class 'show-money' untuk fitur Mata visibilitas uang -->
 
     <!-- ZEN MODE OVERLAY -->
     <div id="zen-overlay" class="cc-zen-hidden">
@@ -32,7 +32,7 @@
     <div id="app-wrapper" class="os-layout" style="display: none;">
         
         <!-- ==========================================
-             SIDEBAR KIRI (DESKTOP & WIDGET HEADER MOBILE)
+             SIDEBAR KIRI (DESKTOP) / HEADER (MOBILE)
              ========================================== -->
         <aside class="os-sidebar cc-sidebar">
             <div class="sidebar-fx">
@@ -40,6 +40,12 @@
                 <div class="fx-orb fx-orb-1"></div>
                 <div class="fx-orb fx-orb-2"></div>
                 <div class="fx-noise"></div>
+            </div>
+
+            <!-- Header Mobile Actions (Sembunyi di Desktop) -->
+            <div class="mobile-header-actions">
+                <button class="mobile-zen-icon" onclick="enterZenMode()" title="Zen Mode"><i class="fa-solid fa-brain"></i></button>
+                <button class="mobile-eye-icon" onclick="toggleMoneyVisibility()"><i class="fa-solid fa-eye-slash" id="mobile-eye-icon-fa"></i></button>
             </div>
 
             <!-- TOP: Logo / Brand Pill -->
@@ -53,67 +59,58 @@
                 </div>
             </div>
 
-            <!-- MIDDLE: Menu Navigasi (Sembunyi di Mobile) -->
-            <nav class="sb-menu cc-nav-menu">
-                <div class="sb-nav-label">COMMAND</div>
-                <a href="#" class="sb-nav-item active"><i class="fa-solid fa-radar"></i> Hub</a>
-                
-                <div class="sb-nav-label mt-label">MODULES</div>
-                <a href="project-tracker.html" class="sb-nav-item"><i class="fa-solid fa-layer-group"></i> Projects</a>
-                <a href="finance.html" class="sb-nav-item"><i class="fa-solid fa-wallet"></i> Finance</a>
-                <a href="client-crm.html" class="sb-nav-item"><i class="fa-solid fa-users"></i> CRM</a>
-                <a href="notes.html" class="sb-nav-item"><i class="fa-solid fa-pen-nib"></i> Notes</a>
-                <a href="lib.html" class="sb-nav-item"><i class="fa-solid fa-box-archive"></i> Assets</a>
-            </nav>
+            <!-- MIDDLE: Accordion Menu (Bisa di-hide/show) -->
+            <div class="sb-menu-wrapper">
+                <button class="sb-menu-toggle" onclick="toggleSidebarMenu()">
+                    <i class="fa-solid fa-bars"></i> Navigasi Modul
+                </button>
+                <nav class="sb-menu cc-nav-menu" id="sidebar-menu-list">
+                    <div class="sb-nav-label">COMMAND</div>
+                    <a href="#" class="sb-nav-item active"><i class="fa-solid fa-radar"></i> Hub</a>
+                    
+                    <div class="sb-nav-label mt-label">MODULES</div>
+                    <a href="project-tracker.html" class="sb-nav-item"><i class="fa-solid fa-layer-group"></i> Projects</a>
+                    <a href="finance.html" class="sb-nav-item"><i class="fa-solid fa-wallet"></i> Finance</a>
+                    <a href="client-crm.html" class="sb-nav-item"><i class="fa-solid fa-users"></i> CRM</a>
+                    <a href="notes.html" class="sb-nav-item"><i class="fa-solid fa-pen-nib"></i> Notes</a>
+                    <a href="lib.html" class="sb-nav-item"><i class="fa-solid fa-box-archive"></i> Assets</a>
+                </nav>
+            </div>
 
             <!-- BOTTOM: Area Widget Estetik -->
             <div class="sb-widgets">
                 <!-- Jam & Sapaan -->
                 <div class="widget-time">
                     <div class="time-greeting" id="sidebar-greeting">GOOD EVENING, TAUFIK.</div>
-                    <div class="time-clock" id="sidebar-clock">17.54.44</div>
+                    <div class="time-clock" id="sidebar-clock">18:25</div>
                     <div class="time-date" id="sidebar-date">Minggu, 20 September 2026</div>
                 </div>
 
-                <!-- Grid Widget (Cuaca, Vibe, Big Day) -->
+                <!-- BRIEFING MOBILE: Hanya muncul di HP, tepat di bawah waktu -->
+                <div class="mobile-briefing-text" id="mobile-briefing-text">
+                    Sistem beroperasi optimal. Menganalisis data...
+                </div>
+
+                <!-- Grid Widget (Cuaca & Vibe) -->
                 <div class="widget-grid">
                     <!-- Cuaca Realtime -->
                     <div class="w-card weather-card">
                         <div class="w-header">
                             <span><i class="fa-solid fa-cloud-sun"></i> SKY CONDITION</span>
-                            <span class="w-badge" id="weather-humidity">16%</span>
+                            <span class="w-badge" id="weather-humidity">...%</span>
                         </div>
-                        <div class="w-body" id="weather-desc">29.2°C • Clear / Sunny</div>
+                        <div class="w-body" id="weather-desc">Mencari lokasi...</div>
                     </div>
 
-                    <!-- Row: Vibe & Big Day -->
-                    <div class="w-row-2">
-                        <div class="w-card vibe-card">
-                            <div class="w-header"><span><i class="fa-solid fa-palette"></i> TODAY'S VIBE</span></div>
+                    <!-- Today's Vibe -->
+                    <div class="w-card vibe-card">
+                        <div class="w-header"><span><i class="fa-solid fa-palette"></i> TODAY'S VIBE</span></div>
+                        <div class="vibe-content-wrapper">
                             <div class="vibe-circles" id="vibe-circles">
-                                <div class="vs" style="background:#8F6E5C"></div>
-                                <div class="vs" style="background:#D1BAB0"></div>
-                                <div class="vs" style="background:#FCF7F5"></div>
+                                <!-- Bulatan warna akan diinjeksi via JS -->
                             </div>
-                            <div class="vibe-hex" id="vibe-hex">#8F6E5C<br>#D1BAB0<br>#FCF7F5</div>
+                            <div class="vibe-hex" id="vibe-hex">Loading...</div>
                         </div>
-                        
-                        <div class="w-card bigday-card">
-                            <div class="w-header"><span><i class="fa-solid fa-ring"></i> THE BIG DAY</span></div>
-                            <div class="bigday-val">87 DAYS LEFT</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Master Control -->
-                <div class="widget-control">
-                    <div class="wc-label">MASTER CONTROL</div>
-                    <div class="wc-dock">
-                        <button class="dock-btn btn-backup"><i class="fa-solid fa-cloud-arrow-up"></i></button>
-                        <div class="dock-divider"></div>
-                        <button class="dock-btn btn-restore"><i class="fa-solid fa-rotate-left"></i></button>
-                        <div class="dock-divider"></div>
-                        <button class="dock-btn btn-power" onclick="window.location.href='index.html'"><i class="fa-solid fa-power-off"></i></button>
                     </div>
                 </div>
             </div>
@@ -139,11 +136,11 @@
             <!-- SCROLLABLE DASHBOARD -->
             <div class="os-dashboard cc-dashboard-area">
                 
-                <!-- 1. BRIEFING PANEL -->
-                <div class="briefing-card cc-briefing-panel">
+                <!-- 1. BRIEFING PANEL (Hanya Muncul di Desktop) -->
+                <div class="briefing-card cc-briefing-panel desktop-only">
                     <div class="bc-content">
-                        <h2 id="greeting-title">Selamat Sore, Taufik.</h2>
-                        <p id="briefing-text">Menganalisis data sistem...</p>
+                        <h2 id="desktop-greeting-title">Selamat Sore, Taufik.</h2>
+                        <p id="desktop-briefing-text">Menganalisis data sistem...</p>
                     </div>
                     <button class="btn-zen cc-btn-zen-trigger" onclick="enterZenMode()">
                         <i class="fa-solid fa-brain"></i> ZEN MODE
@@ -154,10 +151,14 @@
                 <div class="kpi-mini-grid cc-kpi-grid">
                     <div class="kpi-mini cc-kpi-clickable" onclick="window.location.href='finance.html?action=assetBreakdown'">
                         <div class="km-icon bg-warning-light text-warning"><i class="fa-solid fa-vault"></i></div>
-                        <div class="km-info">
-                            <span class="km-label">TOTAL ASET (NET WORTH)</span>
-                            <span class="km-val" id="kpi-total-asset">Rp 0</span>
-                            <span class="km-sub text-success" id="kpi-persen-real">Rp 0 (0% Real)</span>
+                        <div class="km-info w-100">
+                            <div class="km-header-row">
+                                <span class="km-label">TOTAL ASET (NET WORTH)</span>
+                                <!-- Tombol Mata untuk Sembunyikan Uang -->
+                                <button class="btn-eye" onclick="toggleMoneyVisibility(event)"><i class="fa-solid fa-eye-slash" id="desktop-eye-icon-fa"></i></button>
+                            </div>
+                            <span class="km-val money-text" id="kpi-total-asset">Rp 0</span>
+                            <span class="km-sub text-success money-text" id="kpi-persen-real">Rp 0 (0% Real)</span>
                         </div>
                     </div>
                     <div class="kpi-mini cc-kpi-clickable" onclick="window.location.href='project-tracker.html'">
@@ -176,13 +177,13 @@
                     </div>
                 </div>
 
-                <!-- 3. BENTO LAYOUT (Semua Modul Lama Masuk Sini) -->
+                <!-- 3. BENTO LAYOUT -->
                 <div class="bento-layout cc-bento-grid">
                     
                     <!-- Kiri: Akses Cepat, Inbox, Radar -->
                     <div class="bento-left">
                         
-                        <!-- Akses Cepat (Lebih Ramping) -->
+                        <!-- Akses Cepat -->
                         <div class="os-card cc-quick-access">
                             <div class="card-head">
                                 <h3><i class="fa-solid fa-bolt text-warning"></i> Akses Cepat</h3>
@@ -248,18 +249,18 @@
                                     </div>
                                 </div>
                                 <div class="health-details">
-                                    <div class="hd-item text-left"><span>Sisa Dana</span><strong id="runway-sisa" class="text-success">Rp 0</strong></div>
-                                    <div class="hd-item text-right"><span>Pengeluaran /Bln</span><strong id="runway-expense" class="text-danger">Rp 0</strong></div>
+                                    <div class="hd-item text-left"><span>Sisa Dana</span><strong class="text-success money-text" id="runway-sisa">Rp 0</strong></div>
+                                    <div class="hd-item text-right"><span>Pengeluaran /Bln</span><strong class="text-danger money-text" id="runway-expense">Rp 0</strong></div>
                                 </div>
                             </div>
                             <div class="cc-pipeline-list">
                                 <div class="cc-pipe-item">
                                     <div class="cc-pipe-icon bg-warning-light text-warning"><i class="fa-solid fa-hourglass-half"></i></div>
-                                    <div class="cc-pipe-info"><span class="cc-pipe-label">Uang Nyangkut</span><strong class="text-warning" id="pipe-nyangkut">Rp 0</strong></div>
+                                    <div class="cc-pipe-info"><span class="cc-pipe-label">Uang Nyangkut</span><strong class="text-warning money-text" id="pipe-nyangkut">Rp 0</strong></div>
                                 </div>
                                 <div class="cc-pipe-item">
                                     <div class="cc-pipe-icon bg-primary-light text-primary"><i class="fa-solid fa-gears"></i></div>
-                                    <div class="cc-pipe-info"><span class="cc-pipe-label">Potensial</span><strong class="text-primary" id="pipe-potensial">Rp 0</strong></div>
+                                    <div class="cc-pipe-info"><span class="cc-pipe-label">Potensial</span><strong class="text-primary money-text" id="pipe-potensial">Rp 0</strong></div>
                                 </div>
                             </div>
                         </div>
@@ -285,7 +286,7 @@
                             </div>
                         </div>
 
-                        <!-- Pinned Focus (Teks aman, tidak berantakan) -->
+                        <!-- Pinned Focus -->
                         <div class="os-card">
                             <div class="card-head">
                                 <h3><i class="fa-solid fa-thumbtack text-warning"></i> Pinned Focus</h3>
