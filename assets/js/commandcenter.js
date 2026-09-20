@@ -29,15 +29,12 @@ let isMoneyVisible = true;
 // 2. BOOT & AUTHENTICATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Jalankan Jam langsung
     updateClock();
     setInterval(updateClock, 1000);
 
-    // 2. JALANKAN CUACA & VIBE INSTAN (Tanpa nunggu Firebase)
     updateTodaysVibe();
     fetchWeatherRealtime();
 
-    // 3. Cek Login Firebase
     auth.onAuthStateChanged((user) => {
         if (user) {
             document.getElementById('app-wrapper').style.display = 'flex';
@@ -108,15 +105,12 @@ async function pullAllData() {
 function updateClock() {
     const now = new Date();
     
-    // Update Jam
     const sClock = document.getElementById('sidebar-clock');
     if(sClock) sClock.innerText = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
     
-    // Update Tanggal
     const sDate = document.getElementById('sidebar-date');
     if(sDate) sDate.innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     
-    // Sapaan Sidebar (Bahasa Inggris)
     const h = now.getHours();
     let sGreet = 'GOOD EVENING';
     if(h >= 5 && h < 12) sGreet = 'GOOD MORNING';
@@ -126,13 +120,13 @@ function updateClock() {
     if(sGreetingEl) sGreetingEl.innerText = `${sGreet}, TAUFIK.`;
 }
 
-// Fitur Sembunyikan Navigasi (Accordion)
+// Accordion Navigasi Sidebar Desktop
 function toggleSidebarMenu() {
     const menu = document.getElementById('sidebar-menu-list');
     if (menu) menu.classList.toggle('collapsed');
 }
 
-// Fitur Mata (Sembunyikan/Tampilkan Nominal Uang)
+// Fitur Mata Visibilitas Uang
 function toggleMoneyVisibility(e) {
     if(e) e.stopPropagation();
     isMoneyVisible = !isMoneyVisible;
@@ -144,6 +138,13 @@ function toggleMoneyVisibility(e) {
     if(deskEye) deskEye.className = `fa-solid ${iconClass}`;
     if(mobEye) mobEye.className = `fa-solid ${iconClass}`;
     
+    // Toggle class di body agar animasi blur CSS merespons
+    if(isMoneyVisible) {
+        document.body.classList.add('show-money');
+    } else {
+        document.body.classList.remove('show-money');
+    }
+
     renderTopKPIs();
     renderFinancialPipeline();
     renderDynamicBriefing();
@@ -154,20 +155,20 @@ function formatRp(n) {
     return new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', minimumFractionDigits:0 }).format(n); 
 }
 
-// Lokasi & Cuaca Realtime dengan Bypass Jakarta Default agar Cepat
+// Cuaca dan Lokasi Realtime (Sinkron ke Topbar)
 async function fetchWeatherRealtime() {
-    // Tembak langsung ke default Jakarta agar loading hilang seketika
+    // 1. Default cepat ke Jakarta
     await getWeatherData(-6.2088, 106.8456, "Jakarta");
     
-    // Setelah load Jakarta, coba minta lokasi presisi device
+    // 2. Minta akses GPS untuk lokasi presisi
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             async (position) => {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
-                await getWeatherData(lat, lon); // Update dgn lokasi asli jika diizinkan
+                await getWeatherData(lat, lon); 
             },
-            () => { /* Abaikan jika ditolak, tetap gunakan Jakarta */ },
+            () => { /* Kalau di-block, tetep pakai Jakarta */ },
             { timeout: 5000 }
         );
     }
@@ -181,6 +182,7 @@ async function getWeatherData(lat, lon, fallbackCity = null) {
         let cityName = fallbackCity;
         if (!cityName) {
             try {
+                // Konversi Lat/Lon ke Nama Kota
                 const resLoc = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=id`);
                 const locData = await resLoc.json();
                 cityName = locData.city || locData.locality || "Lokasi Anda";
@@ -201,22 +203,29 @@ async function getWeatherData(lat, lon, fallbackCity = null) {
 
         const descEl = document.getElementById('weather-desc');
         const humEl = document.getElementById('weather-humidity');
+        const topbarLoc = document.getElementById('topbar-location');
         
+        // Update di Panel Sidebar
         if(descEl) descEl.innerHTML = `${temp}°C • ${condition} <br><span style="font-size:0.65rem; color:rgba(255,255,255,0.7); display:block; margin-top:4px;"><i class="fa-solid fa-location-dot" style="color:var(--accent-orange);"></i> ${cityName}</span>`;
         if(humEl) humEl.innerText = `${hum}%`;
+
+        // Update Text "Command Hub" di Navbar jadi Nama Kota
+        if(topbarLoc) topbarLoc.innerText = cityName;
+
     } catch(err) {
         console.log("Cuaca gagal diload:", err);
     }
 }
 
-// Vibe warna ganti tiap hari
+// Today's Vibe Berganti Tiap Hari
 function updateTodaysVibe() {
     const palettes = [
+        ['#10B981', '#76D7B4', '#F0FDF4'], // Mint / Default
         ['#8F6E5C', '#D1BAB0', '#FCF7F5'], // Coffee
         ['#456D91', '#7A9EBF', '#BBD5E8'], // Ocean
-        ['#F96B6B', '#F9AF6B', '#FDF2E9'], // Sunset
-        ['#10B981', '#76D7B4', '#F0FDF4'], // Mint
-        ['#8B5CF6', '#C4B5FD', '#F5F3FF']  // Purple
+        ['#F96B6B', '#F9AF6B', '#FDF2E9'], // Sunset Coral
+        ['#8B5CF6', '#C4B5FD', '#F5F3FF'], // Purple
+        ['#D97706', '#FBBF24', '#FFFBEB']  // Golden
     ];
     
     const now = new Date();
@@ -258,7 +267,10 @@ function renderDynamicBriefing() {
     if (urgentJobs > 0) briefingStr += `Ada <strong>${urgentJobs} deadline mendesak</strong> hari ini. `;
     else briefingStr += `Tidak ada deadline mendesak hari ini. `;
     
-    if (unpaidAmount > 0) briefingStr += `Terdapat <strong>${formatRp(unpaidAmount)}</strong> uang di fase Delivery. `;
+    if (unpaidAmount > 0) {
+        // Teks nominal diformat ke "Rp *****" jika mata mati
+        briefingStr += `Terdapat <strong class="money-text">${formatRp(unpaidAmount)}</strong> uang di fase Delivery. `;
+    }
     
     if (scheduleNotifs.length > 0) {
         briefingStr += `<br><span style="color:var(--accent-orange); display:inline-block; margin-top:6px; font-weight:700;"><i class="fa-solid fa-bell"></i> Reminder: Ada ${scheduleNotifs.length} jadwal terdekat (${scheduleNotifs[0]}).</span>`;
@@ -276,6 +288,7 @@ function renderDynamicBriefing() {
     if(dTitle) dTitle.innerText = `${greetDesk}, Taufik.`;
     if(dText) dText.innerHTML = briefingStr;
 
+    // Untuk Mobile, Sapaan tidak ada karena sudah nyatu di jam atas
     const mText = document.getElementById('mobile-briefing-text');
     if(mText) mText.innerHTML = briefingStr;
 }
@@ -587,25 +600,42 @@ function selectDate(y, m, d, el = null) {
 }
 
 // -----------------------------------------------------
-// FUNGSI MODAL ACARA MANUAL
+// FUNGSI MODAL ACARA MANUAL (EDIT & HAPUS SUDAH AKTIF)
 // -----------------------------------------------------
 function openEventDetail(id) {
     const ev = allSystemEvents.find(e => e.id === id && e.type === 'manual'); if(!ev) return;
     document.getElementById('det-ev-title').innerText = ev.title;
     document.getElementById('det-ev-date').innerText = ev.startDate === ev.endDate ? formatDate(ev.startDate) : `${formatDate(ev.startDate)} s/d${formatDate(ev.endDate)}`;
     document.getElementById('det-ev-desc').innerText = ev.desc || 'Tidak ada catatan/deskripsi.'; document.getElementById('det-ev-reminder').innerText = `H-${ev.reminder}`;
-    document.getElementById('btn-edit-ev').onclick = () => editAcara(id); document.getElementById('btn-del-ev').onclick = () => deleteAcara(id);
+    
+    // Binding fungsi ke tombol Edit & Hapus
+    document.getElementById('btn-edit-ev').onclick = () => editAcara(id); 
+    document.getElementById('btn-del-ev').onclick = () => deleteAcara(id);
+    
     document.getElementById('modal-event-detail').style.display = 'flex';
 }
+
 function editAcara(id) {
-    closeModal('modal-event-detail'); const ev = OS_DATA.events.find(e => e.id === id); if(!ev) return;
+    closeModal('modal-event-detail'); 
+    const ev = OS_DATA.events.find(e => e.id === id); if(!ev) return;
     document.getElementById('evt-id').value = id; document.getElementById('evt-title').value = ev.title; document.getElementById('evt-start').value = ev.startDate;
     document.getElementById('evt-end').value = ev.endDate; document.getElementById('evt-desc').value = ev.desc || ''; document.getElementById('evt-reminder').value = ev.reminder || 0;
     document.getElementById('event-modal').style.display = 'flex';
 }
-async function deleteAcara(id) { if(confirm('Yakin ingin menghapus acara ini secara permanen?')) { try { await db.collection('events').doc(id).delete(); closeModal('modal-event-detail'); bootSystem(); } catch(err) { console.error(err); } } }
+
+async function deleteAcara(id) { 
+    if(confirm('Yakin ingin menghapus acara ini secara permanen?')) { 
+        try { 
+            await db.collection('events').doc(id).delete(); 
+            closeModal('modal-event-detail'); 
+            bootSystem(); 
+        } catch(err) { console.error(err); } 
+    } 
+}
+
 function tambahAcaraManual() { document.getElementById('evt-id').value = ''; document.getElementById('evt-title').value = ''; document.getElementById('evt-start').value = new Date().toISOString().split('T')[0]; document.getElementById('evt-end').value = new Date().toISOString().split('T')[0]; document.getElementById('evt-desc').value = ''; document.getElementById('evt-reminder').value = '1'; document.getElementById('event-modal').style.display = 'flex'; }
 function closeAcaraModal() { document.getElementById('event-modal').style.display = 'none'; }
+
 async function simpanAcara() {
     let id = document.getElementById('evt-id').value; const title = document.getElementById('evt-title').value.trim(); const startDate = document.getElementById('evt-start').value; const endDate = document.getElementById('evt-end').value; const desc = document.getElementById('evt-desc').value.trim(); const reminder = parseInt(document.getElementById('evt-reminder').value) || 0;
     if (!title || !startDate || !endDate) { alert("Nama Acara dan Tanggal wajib diisi!"); return; }
