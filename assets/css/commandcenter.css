@@ -52,9 +52,9 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-/* Jika class show-money dihilangkan, efek blur ringan ditambahkan (opsional CSS fallback) */
-body:not(.show-money) .money-text { filter: blur(4px); opacity: 0.7; user-select: none; transition: 0.2s;}
-body.show-money .money-text { filter: blur(0px); opacity: 1; transition: 0.2s;}
+/* EFEK SENSOR MATA UANG (BLUR) */
+body:not(.show-money) .money-text { filter: blur(5px); opacity: 0.6; user-select: none; transition: 0.3s ease;}
+body.show-money .money-text { filter: blur(0px); opacity: 1; transition: 0.3s ease;}
 
 /* =========================================================
    1. LAYOUT & SIDEBAR (DESKTOP)
@@ -132,27 +132,17 @@ body.show-money .money-text { filter: blur(0px); opacity: 1; transition: 0.2s;}
 .mobile-briefing-text { display: none; } /* Hanya muncul di HP */
 
 .widget-grid { display: flex; flex-direction: column; gap: 12px; }
-.w-card { background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-md); padding: 14px; backdrop-filter: blur(10px); }
+.w-card { background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-md); padding: 16px; backdrop-filter: blur(10px); }
 .w-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.65rem; font-weight: 800; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
 .w-header i { margin-right: 5px; font-size: 0.8rem;}
 .w-badge { font-weight: 800; color: white; }
 .w-body { font-size: 1.05rem; font-weight: 600; color: white; letter-spacing: -0.3px;}
 
-/* Vibe Layout Fix */
-.vibe-content-wrapper { display: flex; align-items: center; gap: 12px; }
-.vibe-circles { display: flex; gap: 4px; }
-.vs { width: 22px; height: 22px; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); }
-.vibe-hex { font-family: 'Fira Code', monospace; font-size: 0.6rem; color: rgba(255,255,255,0.7); line-height: 1.4; }
-
-/* Master Control */
-.widget-control { margin-top: 5px; }
-.wc-label { font-size: 0.6rem; font-weight: 800; letter-spacing: 2px; color: rgba(255,255,255,0.5); text-align: center; margin-bottom: 8px; }
-.wc-dock { display: flex; align-items: center; justify-content: space-evenly; background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 40px; padding: 5px; backdrop-filter: blur(10px); }
-.dock-btn { width: 36px; height: 36px; border-radius: 50%; background: transparent; border: none; font-size: 1rem; cursor: pointer; transition: var(--transition); display: flex; justify-content: center; align-items: center; }
-.btn-backup { color: var(--accent-blue); } .btn-restore { color: var(--accent-orange); } .btn-power { color: var(--accent-coral); }
-.dock-btn:hover { transform: translateY(-2px); color: white; }
-.btn-backup:hover { background: var(--accent-blue); } .btn-restore:hover { background: var(--accent-orange); } .btn-power:hover { background: var(--accent-coral); }
-.dock-divider { width: 1px; height: 16px; background: rgba(255,255,255,0.1); border-radius: 1px; }
+/* Vibe Layout Fix (Berdampingan) */
+.vibe-content-wrapper { display: flex; align-items: center; gap: 15px; margin-top: 5px; }
+.vibe-circles { display: flex; gap: 6px; }
+.vs { width: 28px; height: 28px; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); }
+.vibe-hex { font-family: 'Fira Code', monospace; font-size: 0.65rem; font-weight: 700; color: rgba(255,255,255,0.8); line-height: 1.4; letter-spacing: 0.5px;}
 
 /* =========================================================
    2. MAIN WORKSPACE (DASHBOARD)
@@ -343,7 +333,7 @@ body.show-money .money-text { filter: blur(0px); opacity: 1; transition: 0.2s;}
 .cc-form-group { margin-bottom: 15px; }
 .cc-form-group label { display: block; font-size: 0.7rem; font-weight: 800; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; }
 .cc-form-group input, .cc-form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.85rem; outline: none; background: var(--bg-main); transition: var(--transition);}
-.cc-form-group input:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(69, 109, 145, 0.1);}
+.cc-form-group input:focus, .cc-form-group textarea:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(69, 109, 145, 0.1);}
 .cc-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .cc-btn-primary { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: var(--radius-md); font-weight: 800; font-size: 0.85rem; cursor: pointer; width: 100%; transition: var(--transition);}
 
@@ -360,7 +350,7 @@ body.show-money .money-text { filter: blur(0px); opacity: 1; transition: 0.2s;}
 .cc-btn-zen-outline { background: transparent; color: white; border: 2px solid rgba(255,255,255,0.3); padding: 12px 25px; border-radius: 30px; font-size: 0.9rem; font-weight: 800; cursor: pointer;}
 
 /* =========================================================
-   5. RESPONSIVE DESIGN (MOBILE LAYOUT: HEADER + INFO)
+   5. RESPONSIVE DESIGN (MOBILE LAYOUT)
 ========================================================= */
 .cc-bottom-nav { display: none; }
 
@@ -373,7 +363,7 @@ body.show-money .money-text { filter: blur(0px); opacity: 1; transition: 0.2s;}
     .os-layout { flex-direction: column; height: auto; overflow: auto; }
     body { overflow: auto; }
     
-    /* 1. HEADER MOBILE (Sidebar diubah format) */
+    /* 1. HEADER MOBILE */
     .os-sidebar { 
         width: 100%; height: auto; padding: 25px 20px; border-right: none; 
         border-bottom-left-radius: 30px; border-bottom-right-radius: 30px;
@@ -384,7 +374,7 @@ body.show-money .money-text { filter: blur(0px); opacity: 1; transition: 0.2s;}
     .mobile-zen-icon, .mobile-eye-icon { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.1); color: white; width: 36px; height: 36px; border-radius: 50%; font-size: 0.95rem; display: flex; justify-content: center; align-items: center; cursor: pointer; backdrop-filter: blur(5px); transition: 0.2s;}
     .mobile-zen-icon:active, .mobile-eye-icon:active { background: rgba(255,255,255,0.3); transform: scale(0.95);}
     
-    .sb-menu-wrapper, .widget-control, .desktop-only { display: none !important; }
+    .sb-menu-wrapper, .desktop-only { display: none !important; }
     .sb-header { margin-bottom: 15px; }
     .sb-widgets { gap: 15px; }
     .widget-time { text-align: left; }
@@ -392,26 +382,23 @@ body.show-money .money-text { filter: blur(0px); opacity: 1; transition: 0.2s;}
     .time-clock { font-size: 3rem; margin-bottom: 2px;}
     .time-date { font-size: 0.85rem;}
 
-    /* Teks Briefing Khusus Mobile */
     .mobile-briefing-text { 
         display: block; font-size: 0.8rem; color: rgba(255,255,255,0.9); font-weight: 500;
         background: rgba(0,0,0,0.15); padding: 12px 16px; border-radius: var(--radius-md); 
         margin-top: 12px; margin-bottom: 5px; line-height: 1.5; border: 1px solid rgba(255,255,255,0.08);
         backdrop-filter: blur(5px);
     }
-    .w-row-2 { grid-template-columns: 1fr; gap: 10px; } /* Vibe dipindah jadi 1 row di bawah cuaca agar tidak sempit */
 
     /* 2. SEARCH BAR & DASHBOARD PADDING */
     .os-topbar { padding: 15px 20px; background: transparent; border: none; flex-direction: row-reverse;}
     .search-compact input { width: 140px; }
     .search-compact input:focus { width: calc(100vw - 160px); position: absolute; right: 20px; z-index: 50; }
-    .location-badge { font-size: 0.7rem; padding: 6px 12px; }
 
-    .os-dashboard { padding: 10px 20px 90px 20px; }
+    .os-dashboard { padding: 10px 20px 100px 20px; }
     
-    /* 3. KPI MINI MOBILE (2 Kolom) */
+    /* 3. KPI MINI MOBILE */
     .kpi-mini-grid { grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;}
-    .kpi-mini:nth-child(1) { grid-column: 1 / -1; } /* Total Aset Full Width */
+    .kpi-mini:nth-child(1) { grid-column: 1 / -1; }
     .kpi-mini { padding: 14px; }
     .km-icon { width: 34px; height: 34px; font-size: 0.9rem;}
     .km-val { font-size: 1.15rem; }
@@ -419,14 +406,25 @@ body.show-money .money-text { filter: blur(0px); opacity: 1; transition: 0.2s;}
     .qa-grid { grid-template-columns: repeat(2, 1fr); gap: 10px;}
     .os-card { padding: 16px; margin-bottom: 15px;}
 
-    /* 4. BOTTOM NAV */
+    /* 4. BOTTOM NAV (SCROLLABLE HORIZONTAL) */
     .cc-bottom-nav { 
-        display: flex; position: fixed; bottom: 0; left: 0; right: 0; 
+        display: block; position: fixed; bottom: 0; left: 0; right: 0; 
         background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px);
-        border-top: 1px solid var(--border-color); padding: 12px 10px 25px 10px;
-        justify-content: space-around; z-index: 1000; box-shadow: 0 -5px 20px rgba(0,0,0,0.04);
+        border-top: 1px solid var(--border-color); 
+        z-index: 1000; box-shadow: 0 -5px 20px rgba(0,0,0,0.04);
+        overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
     }
-    .cc-bottom-item { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text-muted); text-decoration: none; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; }
+    .cc-bottom-nav::-webkit-scrollbar { display: none; }
+    .bottom-nav-inner {
+        display: flex; align-items: center; justify-content: flex-start;
+        padding: 12px 20px 25px 20px; gap: 28px; width: max-content;
+    }
+    .cc-bottom-item { 
+        display: flex; flex-direction: column; align-items: center; gap: 6px; 
+        color: var(--text-muted); text-decoration: none; 
+        font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
+        flex-shrink: 0; transition: var(--transition);
+    }
     .cc-bottom-item.active { color: var(--primary); transform: translateY(-3px);}
     .cc-bottom-item i { font-size: 1.25rem; }
 }
