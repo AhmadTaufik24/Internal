@@ -11,8 +11,8 @@ const firebaseConfig = {
 };
 
 if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
-const auth = firebase.auth(); // <-- DITAMBAHKAN DI SINI
-const db = firebase.firestore(); // Panggil Firestore API
+const auth = firebase.auth(); 
+const db = firebase.firestore(); 
 
 let OS_DATA = { projects: [], finance: { transactions: [], accounts: [] }, crm: [], notes: [], assets: [], events: [] };
 
@@ -26,22 +26,19 @@ let scheduleNotifs = [];
 // 2. BOOT & AUTHENTICATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    // PROTEKSI: Cek login langsung ke server Firebase (Bisa nembus tab baru & sangat aman)
+    // PROTEKSI: Cek login langsung ke server Firebase
     auth.onAuthStateChanged((user) => {
         if (user) {
-            // Jika terbukti login, tampilkan UI dan jalankan sistem
             document.getElementById('app-wrapper').style.display = 'flex';
             updateClock();
             setInterval(updateClock, 1000);
-            bootSystem(); // Sekarang ini memanggil proses Async Cloud
+            bootSystem(); 
         } else {
-            // Jika belum login/penyusup, tendang ke index
             window.location.href = 'index.html';
         }
     });
 });
 
-// Jadikan Async karena akan download data dari awan
 async function bootSystem() {
     await pullAllData(); 
     renderCalendarWidget(); 
@@ -53,15 +50,15 @@ async function bootSystem() {
     renderPinnedNotes();
 }
 
-// [UPDATED] Tarik data dari Firestore, bukan localStorage
+// [PERBAIKAN KRUSIAL] Jalur Sinkronisasi Database Diluruskan
 async function pullAllData() {
     try {
-        // 1. Projects
-        const projSnap = await db.collection('projects').get();
+        // 1. Projects (SINKRON DENGAN: jobOrders)
+        const projSnap = await db.collection('jobOrders').get();
         OS_DATA.projects = projSnap.docs.map(doc => ({id: doc.id, ...doc.data()}));
         
-        // 2. CRM
-        const crmSnap = await db.collection('crm').get();
+        // 2. CRM (SINKRON DENGAN: clients)
+        const crmSnap = await db.collection('clients').get();
         OS_DATA.crm = crmSnap.docs.map(doc => ({id: doc.id, ...doc.data()}));
         
         // 3. Notes
@@ -83,10 +80,20 @@ async function pullAllData() {
             return ev;
         });
 
-        // 6. Finance
-        const finSnap = await db.collection('finance').get();
-        OS_DATA.finance.transactions = finSnap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-        OS_DATA.finance.accounts = []; // Sesuaikan kalau kamu punya tabel accounts sendiri
+        // 6. Finance (SINKRON DENGAN: Document Spesifik Array Transactions)
+        const user = auth.currentUser;
+        const emailAdmin = "ahtasteriz@gmail.com"; 
+        const financeDocId = (user && user.email === emailAdmin) ? "main_data" : (user ? user.uid : "main_data");
+        
+        const finDoc = await db.collection('finance').doc(financeDocId).get();
+        if (finDoc.exists) {
+            const fData = finDoc.data();
+            OS_DATA.finance.transactions = fData.transactions || [];
+            OS_DATA.finance.accounts = fData.accounts || [];
+        } else {
+            OS_DATA.finance.transactions = [];
+            OS_DATA.finance.accounts = [];
+        }
         
     } catch(err) {
         console.error("Gagal menarik data dari Firestore:", err);
@@ -243,11 +250,11 @@ function renderActionInbox() {
     });
 }
 
-// [UPDATED] Update ke Firestore
+// [PERBAIKAN KRUSIAL] Update status diarahkan ke collection jobOrders
 async function markDone(id) {
     if(confirm("Tandai project ini selesai & sudah dibayar? (Akan dipindah ke History)")) {
         try {
-            await db.collection('projects').doc(id).update({
+            await db.collection('jobOrders').doc(id).update({
                 stage: 'archive',
                 archivedDate: new Date().toISOString()
             });
@@ -406,7 +413,7 @@ function renderFinancialPipeline() {
 }
 
 // ==========================================
-// 8. SMART SCHEDULER WIDGET (VISUAL GRID)
+// 8. SMART SCHEDULER WIDGET
 // ==========================================
 function renderCalendarWidget() {
     const today = new Date();
@@ -531,8 +538,6 @@ function selectDate(y, m, d, el = null) {
 
     dayEvents.forEach(ev => {
         const icon = ev.type === 'job' ? 'fa-briefcase text-primary' : 'fa-calendar-check text-success';
-        
-        // JIKA JOB: MENGARAH KE PROJECT TRACKER. JIKA ACARA MANUAL: BUKA MODAL DETAIL.
         const action = ev.type === 'job' 
             ? `window.location.href='project-tracker.html?detailId=${ev.id}'` 
             : `openEventDetail('${ev.id}')`;
@@ -550,7 +555,7 @@ function selectDate(y, m, d, el = null) {
 }
 
 // -----------------------------------------------------
-// FUNGSI MODAL DETAIL, EDIT, DAN HAPUS ACARA MANUAL
+// FUNGSI MODAL ACARA MANUAL
 // -----------------------------------------------------
 function openEventDetail(id) {
     const ev = allSystemEvents.find(e => e.id === id && e.type === 'manual');
@@ -588,7 +593,6 @@ function editAcara(id) {
     document.getElementById('event-modal').style.display = 'flex';
 }
 
-// [UPDATED] Menghapus acara dari Cloud
 async function deleteAcara(id) {
     if(confirm('Yakin ingin menghapus acara ini secara permanen?')) {
         try {
@@ -602,7 +606,7 @@ async function deleteAcara(id) {
 }
 
 function tambahAcaraManual() {
-    document.getElementById('evt-id').value = ''; // Kosongkan ID
+    document.getElementById('evt-id').value = ''; 
     document.getElementById('evt-title').value = '';
     document.getElementById('evt-start').value = new Date().toISOString().split('T')[0];
     document.getElementById('evt-end').value = new Date().toISOString().split('T')[0];
@@ -616,7 +620,6 @@ function closeAcaraModal() {
     document.getElementById('event-modal').style.display = 'none';
 }
 
-// [UPDATED] Menyimpan acara ke Cloud
 async function simpanAcara() {
     let id = document.getElementById('evt-id').value;
     const title = document.getElementById('evt-title').value.trim();
@@ -635,7 +638,7 @@ async function simpanAcara() {
         return;
     }
 
-    if (!id) id = 'EVT-' + Date.now(); // Buat ID baru jika belum ada
+    if (!id) id = 'EVT-' + Date.now();
 
     try {
         await db.collection('events').doc(id).set({
@@ -694,11 +697,11 @@ function handleOmniCommand(event) {
     const q = input.toLowerCase();
     let html = '';
     
-    const projMatches = OS_DATA.projects.filter(p => (p.title&&p.title.toLowerCase().includes(q)) || p.batchID.toLowerCase().includes(q)).slice(0,3);
+    const projMatches = OS_DATA.projects.filter(p => (p.title&&p.title.toLowerCase().includes(q)) || (p.batchID && p.batchID.toLowerCase().includes(q))).slice(0,3);
     if(projMatches.length>0) {
         html += '<div class="omni-group-label">Project Tracker</div>';
         projMatches.forEach(p => { 
-            html += `<div class="omni-item" onclick="window.location.href='project-tracker.html?detailId=${p.id}'"><div class="omni-title">${p.batchID} - ${p.title||'Untitled'}</div><div class="omni-desc">Stage: ${p.stage}</div></div>`; 
+            html += `<div class="omni-item" onclick="window.location.href='project-tracker.html?detailId=${p.id}'"><div class="omni-title">${p.batchID || '-'} - ${p.title||'Untitled'}</div><div class="omni-desc">Stage: ${p.stage}</div></div>`; 
         });
     }
     
@@ -716,6 +719,7 @@ function handleOmniCommand(event) {
     dropdown.style.display = 'block';
 }
 
+// [PERBAIKAN KRUSIAL] Jalur Injeksi Data Command Center Diluruskan
 async function handleActionCommand(text, key) {
     const dropdown = document.getElementById('omni-dropdown');
     const parts = text.trim().split(' ');
@@ -751,7 +755,14 @@ async function handleActionCommand(text, key) {
             };
             
             try {
-                await db.collection('finance').doc(txId).set(txData);
+                // Injeksi dengan FieldValue.arrayUnion ke dalam dokumen finance
+                const user = auth.currentUser;
+                const emailAdmin = "ahtasteriz@gmail.com"; 
+                const financeDocId = (user && user.email === emailAdmin) ? "main_data" : (user ? user.uid : "main_data");
+                
+                await db.collection('finance').doc(financeDocId).update({
+                    transactions: firebase.firestore.FieldValue.arrayUnion(txData)
+                });
                 finishCommand();
             } catch(err) {
                 console.error("Gagal simpan transaksi:", err);
@@ -768,7 +779,7 @@ async function handleActionCommand(text, key) {
             </div>`;
             
         if(key === 'Enter' && title !== '...') {
-            const jobId = Date.now().toString();
+            const jobId = Date.now().toString() + Math.random().toString(36).slice(2);
             const jobData = {
                 id: jobId, 
                 category: 'General', 
@@ -778,13 +789,16 @@ async function handleActionCommand(text, key) {
                 batchID: 'CMD-' + Math.random().toString(36).substring(2,5).toUpperCase(), 
                 stage: 'scheduling', 
                 manualPrice: 0,
-                data: { deadline: new Date().toISOString().split('T')[0] }, 
+                slides: 1, // Untuk kompatibilitas struktur feed
+                statusText: '',
+                data: { deadline: new Date().toISOString().split('T')[0], ref: '', internalLink: '', clientLink: '', chkRef: false, chkFolder: false }, 
                 history: [], 
                 createdAt: new Date().toISOString()
             };
             
             try {
-                await db.collection('projects').doc(jobId).set(jobData);
+                // Simpan ke 'jobOrders' agar muncul di Project Tracker
+                await db.collection('jobOrders').doc(jobId).set(jobData);
                 finishCommand();
             } catch(err) {
                 console.error("Gagal buat job:", err);
@@ -843,7 +857,7 @@ function enterZenMode() {
     activeJobs.forEach(j => {
         const opt = document.createElement('option');
         opt.value = j.id;
-        opt.text = `${j.batchID} - ${j.title || 'Untitled'} (${j.stage.toUpperCase()})`;
+        opt.text = `${j.batchID || '-'} - ${j.title || 'Untitled'} (${j.stage.toUpperCase()})`;
         selectEl.appendChild(opt);
     });
 
