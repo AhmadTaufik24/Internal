@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Command Center - Autopilot Hub</title>
+    <title>Command Center - Taufik OS</title>
     <link rel="icon" type="image/png" href="assets/images/internal.png">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@500;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Baru Sesuai Tema Internal OS -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Fira+Code:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <link rel="stylesheet" href="assets/css/commandcenter.css">
 </head>
 <body>
@@ -31,58 +34,121 @@
         </div>
     </div>
 
-    <!-- MAIN APP WRAPPER -->
-    <div id="app-wrapper" style="display: none;" class="cc-app-wrapper">
+    <!-- MAIN APP WRAPPER (Menggunakan os-layout) -->
+    <div id="app-wrapper" style="display: none;" class="os-layout">
         
-        <!-- SIDEBAR NAVIGATION -->
-        <aside class="cc-sidebar">
-            <div class="cc-brand-logo">
-                <i class="fa-solid fa-bolt"></i> <span>TAUFIK OS</span>
+        <!-- SIDEBAR KIRI (Desain Internal OS) -->
+        <aside class="sidebar cc-sidebar">
+            <!-- FX Background Animasi -->
+            <div class="sidebar-fx">
+                <div class="fx-pattern"></div>
+                <div class="fx-orb fx-orb-1"></div>
+                <div class="fx-orb fx-orb-2"></div>
+                <div class="fx-noise"></div>
             </div>
-            <nav class="cc-nav-menu">
-                <div class="cc-nav-label">COMMAND</div>
+
+            <!-- TOP: Logo / Brand Pill (Fitur 3e) -->
+            <div class="sidebar-top">
+                <div class="brand-pill">
+                    <div class="bp-icon"><i class="fa-solid fa-layer-group"></i></div>
+                    <div class="bp-text">
+                        <h2>Taufik OS</h2>
+                        <span><i class="fa-solid fa-bolt"></i> v2.0 Online</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MIDDLE: Menu Navigasi -->
+            <nav class="cc-nav-menu" style="position: relative; z-index: 2; margin-top: 25px;">
+                <div class="cc-nav-label" style="color: rgba(255,255,255,0.6);">COMMAND</div>
                 <a href="#" class="cc-nav-item active"><i class="fa-solid fa-radar"></i> Hub</a>
                 
-                <div class="cc-nav-label cc-mt-nav">MODULES</div>
+                <div class="cc-nav-label cc-mt-nav" style="color: rgba(255,255,255,0.6); margin-top: 20px;">MODULES</div>
                 <a href="project-tracker.html" class="cc-nav-item"><i class="fa-solid fa-layer-group"></i> Projects</a>
                 <a href="finance.html" class="cc-nav-item"><i class="fa-solid fa-wallet"></i> Finance</a>
                 <a href="client-crm.html" class="cc-nav-item"><i class="fa-solid fa-users"></i> CRM</a>
                 <a href="notes.html" class="cc-nav-item"><i class="fa-solid fa-pen-nib"></i> Notes</a>
                 <a href="lib.html" class="cc-nav-item"><i class="fa-solid fa-box-archive"></i> Assets</a>
             </nav>
-            <div class="cc-sidebar-bottom">
-                <button class="cc-btn-exit" onclick="window.location.href='index.html'">
-                    <i class="fa-solid fa-house"></i> Internal OS
-                </button>
+
+            <!-- BOTTOM AREA: Time, Widgets, Dock -->
+            <div class="sidebar-middle" style="margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                
+                <!-- JAM & SAPAAN ESTETIK (Fitur 3a) -->
+                <div class="time-panel">
+                    <div class="time-greeting" id="sidebar-greeting">GOOD MORNING</div>
+                    <div class="time-clock" id="sidebar-clock">00:00</div>
+                    <div class="time-date" id="sidebar-date">...</div>
+                </div>
+
+                <!-- GLANCE HUB BENTO (Fitur 3b & 3c) -->
+                <div class="glance-hub-bento">
+                    <!-- Cuaca Realtime -->
+                    <div class="bento-item bento-weather">
+                        <div class="bento-header">
+                            <div class="bento-icon"><i class="fa-solid fa-cloud-sun"></i></div>
+                            <div class="bento-title">Sky Condition <span class="glance-badge" id="weather-humidity">17%</span></div>
+                        </div>
+                        <div class="bento-val" id="weather-desc">29.4°C • Clear / Sunny</div>
+                    </div>
+
+                    <!-- Today's Vibe -->
+                    <div class="bento-item" style="grid-column: 1 / -1;">
+                        <div class="bento-header">
+                            <div class="bento-icon" style="background: rgba(255, 255, 255, 0.15); color: #fff;"><i class="fa-solid fa-palette"></i></div>
+                            <div class="bento-title">Today's Vibe</div>
+                        </div>
+                        <div class="palette-box">
+                            <div class="color-circles" id="vibe-circles">
+                                <div class="color-swatch" style="background:#8F6E5C"></div>
+                                <div class="color-swatch" style="background:#D1BAB0"></div>
+                                <div class="color-swatch" style="background:#FCF7F5"></div>
+                            </div>
+                            <div class="hex-codes" id="vibe-hex">#8F6E5C • #D1BAB0 • #FCF7F5</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTROL DOCK -->
+            <div class="sidebar-bottom">
+                <div class="control-dock">
+                    <button class="dock-btn btn-backup" title="Backup System"><i class="fa-solid fa-cloud-arrow-up"></i></button>
+                    <div class="dock-divider"></div>
+                    <button class="dock-btn btn-restore" title="Settings"><i class="fa-solid fa-gear"></i></button>
+                    <div class="dock-divider"></div>
+                    <button class="dock-btn btn-power" onclick="window.location.href='index.html'" title="Exit Hub"><i class="fa-solid fa-power-off"></i></button>
+                </div>
             </div>
         </aside>
 
-        <!-- MAIN CONTENT AREA -->
-        <main class="cc-main-content">
+        <!-- MAIN WORKSPACE (KANAN) -->
+        <main class="main-content cc-main-content">
             
-            <!-- TOP BAR -->
+            <!-- TOP BAR PENCARIAN -->
             <header class="cc-topbar">
                 <div class="cc-omni-container">
                     <span class="cc-cmd-prefix"><i class="fa-solid fa-magnifying-glass"></i></span>
                     <input type="text" id="omni-input" placeholder="Cari data atau ketik perintah ( >out 50k Bensin )..." onkeyup="handleOmniCommand(event)">
                     <div id="omni-dropdown" class="cc-omni-dropdown" style="display: none;"></div>
                 </div>
-                <div class="cc-header-datetime">
-                    <div id="clock" class="cc-clock-display">00:00</div>
-                    <div id="date-display" class="cc-date-display">...</div>
+                <div class="cc-header-user">
+                    <div class="location-badge">
+                        <i class="fa-solid fa-location-dot"></i> <span>Command Hub</span>
+                    </div>
                 </div>
             </header>
 
-            <!-- DASHBOARD BODY -->
+            <!-- DASHBOARD AREA -->
             <div class="cc-dashboard-area">
                 
-                <!-- BRIEFING & GREETING ROW -->
+                <!-- GREETING & BRIEFING CARD -->
                 <div class="cc-briefing-panel">
                     <div class="cc-briefing-wrapper">
                         <div class="cc-briefing-icon"><i class="fa-solid fa-bolt"></i></div>
                         <div class="cc-briefing-text">
-                            <h2 id="greeting-title">Selamat Pagi, Taufik.</h2>
-                            <p id="briefing-text">Menganalisis data sistem...</p>
+                            <h2 id="greeting-title">Menganalisis Sistem...</h2>
+                            <p id="briefing-text">Memuat data command center.</p>
                         </div>
                     </div>
                     <button class="cc-btn-zen-trigger" onclick="enterZenMode()"><i class="fa-solid fa-brain"></i> Zen Mode</button>
@@ -125,7 +191,7 @@
                 <!-- MAIN BENTO GRID -->
                 <div class="cc-bento-grid">
                     
-                    <!-- LEFT/MAIN COLUMN -->
+                    <!-- KIRI / MAIN COLUMN -->
                     <div class="cc-bento-main">
                         
                         <!-- QUICK ACCESS -->
@@ -182,7 +248,7 @@
                         </div>
                     </div>
 
-                    <!-- RIGHT/SIDE COLUMN -->
+                    <!-- KANAN / SIDE COLUMN -->
                     <div class="cc-bento-side">
                         
                         <!-- FINANCIAL HEALTH -->
@@ -200,7 +266,6 @@
                                 <div class="health-runway" id="cash-runway">0 Bulan</div>
                                 <div class="health-status-wrapper">
                                     <span id="runway-status" class="health-badge health-blue">Kesehatan Finansial : 0%</span>
-                                    
                                     <div id="target-setup-box" class="cc-target-setup" style="display: none;">
                                         <span>Set Target: Rp </span>
                                         <input type="text" inputmode="numeric" id="input-target-amount" oninput="formatInputTarget(this)" onblur="saveTarget()" onkeypress="if(event.key === 'Enter') { this.blur(); }">
@@ -230,7 +295,7 @@
                                 <div class="cc-pipe-item">
                                     <div class="cc-pipe-icon bg-primary-light text-primary"><i class="fa-solid fa-gears"></i></div>
                                     <div class="cc-pipe-info">
-                                        <span class="cc-pipe-label">Potensial (Sedang Dikerjakan)</span>
+                                        <span class="cc-pipe-label">Potensial (Dikerjakan)</span>
                                         <strong class="text-primary" id="pipe-potensial">Rp 0</strong>
                                     </div>
                                 </div>
@@ -262,12 +327,13 @@
                             </div>
                         </div>
 
-                        <!-- PINNED FOCUS -->
+                        <!-- PINNED FOCUS (Fitur 2: Teks Berantakan Dibenarkan) -->
                         <div class="cc-card cc-pinned-card">
                             <div class="cc-card-header">
                                 <h3><i class="fa-solid fa-thumbtack text-warning"></i> Pinned Focus</h3>
                             </div>
-                            <div class="cc-pinned-note-wrapper" id="pinned-note-box"></div>
+                            <!-- Inline styling untuk memotong teks kepanjangan otomatis -->
+                            <div class="cc-pinned-note-wrapper" id="pinned-note-box" style="overflow-wrap: anywhere; word-break: break-word; white-space: pre-wrap; line-height: 1.5;"></div>
                         </div>
 
                     </div>
