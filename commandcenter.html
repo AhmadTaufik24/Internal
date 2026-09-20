@@ -57,7 +57,6 @@
         <main class="cc-main-content">
             
             <div class="cc-topbar">
-                <!-- DIPERBAIKI: Nama class diubah menjadi cc-omni-container -->
                 <div class="cc-omni-container" style="flex: 1; max-width: 500px; position: relative;">
                     <span class="cc-cmd-prefix" style="position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: var(--text-sub);"><i class="fa-solid fa-magnifying-glass"></i></span>
                     <input type="text" id="omni-input" placeholder="Cari data atau ketik perintah ( >out 50k Bensin )..." onkeyup="handleOmniCommand(event)" style="width: 100%; padding: 12px 20px 12px 45px; background: var(--body-bg); border: 1px solid var(--border); border-radius: 30px; font-family: inherit; font-size: 13px; outline: none;">
@@ -83,7 +82,6 @@
                 <div class="cc-bento-grid">
                     <div class="cc-bento-main">
                         
-                        <!-- DIPERBAIKI: Hapus style inline agar diatur oleh CSS -->
                         <div class="cc-kpi-grid">
                             <div class="cc-card cc-kpi-clickable" onclick="window.location.href='finance.html?action=assetBreakdown'" style="padding: 15px; display: flex; align-items: center; gap: 12px; cursor: pointer;" title="Lihat Rincian Kepemilikan Aset">
                                 <div class="cc-icon-box bg-warning-light text-warning" style="width: 40px; height: 40px; font-size: 16px;"><i class="fa-solid fa-vault"></i></div>
@@ -115,7 +113,6 @@
                             <div class="cc-card-header" style="margin-bottom: 15px; padding-bottom: 10px;">
                                 <h3><i class="fa-solid fa-bolt text-warning"></i> Akses Cepat</h3>
                             </div>
-                            <!-- DIPERBAIKI: Menggunakan CSS Grid auto-fill agar tidak melar -->
                             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px;">
                                 <button class="cc-qa-btn" onclick="window.location.href='project-tracker.html?action=new'"><i class="fa-solid fa-plus text-primary"></i> Job Order</button>
                                 <button class="cc-qa-btn" onclick="window.location.href='finance.html?action=income'"><i class="fa-solid fa-arrow-down text-success"></i> Pemasukan</button>
@@ -316,7 +313,7 @@
         <a href="javascript:void(0)" onclick="tambahAcaraManual()" class="cc-bottom-item"><i class="fa-solid fa-calendar-plus"></i> Acara</a>
     </nav>
 
-    <!-- DIPERBAIKI: Penambahan Script Auth -->
+    <!-- Script Auth & Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
