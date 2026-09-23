@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Command Center - Taufik OS</title>
     <link rel="icon" type="image/png" href="assets/images/internal.png">
     
@@ -31,9 +31,6 @@
     <!-- MAIN APP WRAPPER -->
     <div id="app-wrapper" class="os-layout" style="display: none;">
         
-        <!-- ==========================================
-             SIDEBAR KIRI (DESKTOP) / HEADER (MOBILE)
-             ========================================== -->
         <aside class="os-sidebar cc-sidebar">
             <div class="sidebar-fx">
                 <div class="fx-pattern"></div>
@@ -42,13 +39,11 @@
                 <div class="fx-noise"></div>
             </div>
 
-            <!-- Header Mobile Actions -->
             <div class="mobile-header-actions">
                 <button class="mobile-zen-icon" onclick="enterZenMode()" title="Zen Mode"><i class="fa-solid fa-brain"></i></button>
                 <button class="mobile-eye-icon" onclick="toggleMoneyVisibility()"><i class="fa-solid fa-eye-slash" id="mobile-eye-icon-fa"></i></button>
             </div>
 
-            <!-- TOP: Logo / Brand Pill -->
             <div class="sb-header">
                 <div class="brand-pill">
                     <div class="bp-icon"><i class="fa-solid fa-layer-group"></i></div>
@@ -59,42 +54,47 @@
                 </div>
             </div>
 
-            <!-- MIDDLE: Accordion Menu -->
+            <!-- NAVBAR MODULES -->
             <div class="sb-menu-wrapper">
-                <button class="sb-menu-toggle" onclick="toggleSidebarMenu()">
-                    <i class="fa-solid fa-bars"></i> Navigasi Modul
-                </button>
-                <nav class="sb-menu cc-nav-menu" id="sidebar-menu-list">
+                <div class="elegant-nav-header" onclick="toggleSidebarMenu()">
+                    <div class="nav-title">
+                        <i class="fa-solid fa-compass"></i>
+                        <span>Navigasi Modul</span>
+                    </div>
+                    <div class="nav-indicator">
+                        <i class="fa-solid fa-chevron-down rotated" id="nav-chevron"></i>
+                    </div>
+                </div>
+                
+                <nav class="sb-menu cc-nav-menu collapsed" id="sidebar-menu-list">
                     <div class="sb-nav-label">COMMAND</div>
-                    <a href="#" class="sb-nav-item active"><i class="fa-solid fa-radar"></i> Hub</a>
+                    <a href="#" class="sb-nav-item active"><i class="fa-solid fa-radar"></i> <span class="nav-text">Hub</span></a>
+                    <a href="project-tracker.html" class="sb-nav-item"><i class="fa-solid fa-layer-group"></i> <span class="nav-text">Projects</span></a>
                     
                     <div class="sb-nav-label mt-label">MODULES</div>
-                    <a href="project-tracker.html" class="sb-nav-item"><i class="fa-solid fa-layer-group"></i> Projects</a>
-                    <a href="finance.html" class="sb-nav-item"><i class="fa-solid fa-wallet"></i> Finance</a>
-                    <a href="client-crm.html" class="sb-nav-item"><i class="fa-solid fa-users"></i> CRM</a>
-                    <a href="notes.html" class="sb-nav-item"><i class="fa-solid fa-pen-nib"></i> Notes</a>
-                    <a href="lib.html" class="sb-nav-item"><i class="fa-solid fa-box-archive"></i> Assets</a>
+                    <a href="finance.html" class="sb-nav-item"><i class="fa-solid fa-wallet"></i> <span class="nav-text">Finance</span></a>
+                    <a href="client-crm.html" class="sb-nav-item"><i class="fa-solid fa-users"></i> <span class="nav-text">CRM</span></a>
+                    <a href="notes.html" class="sb-nav-item"><i class="fa-solid fa-pen-nib"></i> <span class="nav-text">Notes</span></a>
+                    <a href="lib.html" class="sb-nav-item"><i class="fa-solid fa-box-archive"></i> <span class="nav-text">Assets</span></a>
                 </nav>
             </div>
 
-            <!-- BOTTOM: Area Widget Estetik -->
             <div class="sb-widgets">
-                <!-- Jam & Sapaan -->
                 <div class="widget-time">
-                    <div class="time-greeting" id="sidebar-greeting">GOOD EVENING, TAUFIK.</div>
+                    <!-- Ini yang tadi hilang! Sapaan dikembalikan untuk dibaca JS di mode Mobile -->
+                    <div class="time-greeting" id="sidebar-greeting"></div>
                     <div class="time-clock" id="sidebar-clock">18:25</div>
                     <div class="time-date" id="sidebar-date">Minggu, 20 September 2026</div>
                 </div>
 
-                <!-- BRIEFING MOBILE -->
                 <div class="mobile-briefing-text" id="mobile-briefing-text">
                     Sistem beroperasi optimal. Menganalisis data...
                 </div>
+                
+                <div id="mobile-reminder-area" class="mobile-only-reminder"></div>
 
-                <!-- Grid Widget (Cuaca & Vibe - Layout Diperbarui) -->
-                <div class="widget-grid">
-                    <!-- Cuaca Realtime -->
-                    <div class="w-card weather-card">
+                <div class="widget-grid mobile-split-grid">
+                    <div class="w-card weather-card compact-card">
                         <div class="w-header">
                             <span><i class="fa-solid fa-cloud-sun"></i> SKY CONDITION</span>
                             <span class="w-badge" id="weather-humidity">...%</span>
@@ -102,13 +102,12 @@
                         <div class="w-body" id="weather-desc">Mencari lokasi...</div>
                     </div>
 
-                    <!-- Today's Vibe -->
-                    <div class="w-card vibe-card">
-                        <div class="w-header"><span><i class="fa-solid fa-palette"></i> TODAY'S VIBE</span></div>
+                    <div class="w-card vibe-card compact-card">
+                        <div class="w-header">
+                            <span><i class="fa-solid fa-palette"></i> TODAY'S VIBE</span>
+                        </div>
                         <div class="vibe-content-wrapper">
-                            <div class="vibe-circles" id="vibe-circles">
-                                <!-- Bulatan warna akan diinjeksi via JS -->
-                            </div>
+                            <div class="vibe-circles" id="vibe-circles"></div>
                             <div class="vibe-hex" id="vibe-hex">Loading...</div>
                         </div>
                     </div>
@@ -116,39 +115,29 @@
             </div>
         </aside>
 
-        <!-- ==========================================
-             MAIN WORKSPACE (KANAN / BAWAH DI MOBILE)
-             ========================================== -->
         <main class="os-main cc-main-content">
-            
-            <!-- TOP BAR -->
             <header class="os-topbar cc-topbar">
                 <div class="search-compact cc-omni-container">
                     <i class="fa-solid fa-magnifying-glass s-icon"></i>
-                    <input type="text" id="omni-input" placeholder="Cari data atau ketik perintah ( >out 50k Bensin )..." onkeyup="handleOmniCommand(event)">
+                    <input type="text" id="omni-input" placeholder="Cari data atau perintah..." onkeyup="handleOmniCommand(event)">
                     <div id="omni-dropdown" class="cc-omni-dropdown" style="display: none;"></div>
-                </div>
-                <!-- Menambahkan ID topbar-location agar teks Command Hub diganti otomatis dengan Kota -->
-                <div class="location-badge">
-                    <i class="fa-solid fa-location-dot"></i> <span id="topbar-location">Command Hub</span>
                 </div>
             </header>
 
-            <!-- SCROLLABLE DASHBOARD -->
             <div class="os-dashboard cc-dashboard-area">
                 
-                <!-- 1. BRIEFING PANEL (Desktop Only) -->
+                <!-- BRIEFING PANEL DESKTOP -->
                 <div class="briefing-card cc-briefing-panel desktop-only">
                     <div class="bc-content">
-                        <h2 id="desktop-greeting-title">Selamat Sore, Taufik.</h2>
+                        <h2 id="desktop-greeting-title">GOOD AFTERNOON, TAUFIK.</h2>
                         <p id="desktop-briefing-text">Menganalisis data sistem...</p>
+                        <div id="desktop-reminder-area" style="margin-top: 8px;"></div>
                     </div>
                     <button class="btn-zen cc-btn-zen-trigger" onclick="enterZenMode()">
-                        <i class="fa-solid fa-brain"></i> ZEN MODE
+                        <i class="fa-solid fa-circle-half-stroke"></i> ZEN MODE
                     </button>
                 </div>
 
-                <!-- 2. KPI GRID -->
                 <div class="kpi-mini-grid cc-kpi-grid">
                     <div class="kpi-mini cc-kpi-clickable" onclick="window.location.href='finance.html?action=assetBreakdown'">
                         <div class="km-icon bg-warning-light text-warning"><i class="fa-solid fa-vault"></i></div>
@@ -177,59 +166,17 @@
                     </div>
                 </div>
 
-                <!-- 3. BENTO LAYOUT -->
                 <div class="bento-layout cc-bento-grid">
                     
-                    <div class="bento-left">
-                        <div class="os-card cc-quick-access">
-                            <div class="card-head">
-                                <h3><i class="fa-solid fa-bolt text-warning"></i> Akses Cepat</h3>
-                            </div>
-                            <div class="qa-grid">
-                                <button class="qa-btn" onclick="window.location.href='project-tracker.html?action=new'"><i class="fa-solid fa-plus text-primary"></i> Job Order</button>
-                                <button class="qa-btn" onclick="window.location.href='finance.html?action=income'"><i class="fa-solid fa-arrow-down text-success"></i> Pemasukan</button>
-                                <button class="qa-btn" onclick="window.location.href='finance.html?action=expense'"><i class="fa-solid fa-arrow-up text-danger"></i> Pengeluaran</button>
-                                <button class="qa-btn" onclick="window.location.href='client-crm.html?action=new'"><i class="fa-solid fa-user-plus text-warning"></i> Klien Baru</button>
-                                <button class="qa-btn" onclick="window.location.href='notes.html?action=new'"><i class="fa-solid fa-pen text-sub"></i> Notes</button>
-                                <button class="qa-btn" onclick="tambahAcaraManual()"><i class="fa-solid fa-calendar-plus text-primary"></i> Jadwal</button>
+                    <div class="os-card cc-card-finance">
+                        <div class="card-head">
+                            <h3><i class="fa-solid fa-heart-pulse text-success"></i> Financial Health</h3>
+                            <div class="cc-toggle-group">
+                                <button id="toggle-real" class="cc-toggle-btn active" onclick="switchHealthMode('real')">Real</button>
+                                <button id="toggle-target" class="cc-toggle-btn" onclick="switchHealthMode('target')">Target</button>
                             </div>
                         </div>
-
-                        <div class="os-card">
-                            <div class="card-head">
-                                <h3><i class="fa-solid fa-inbox text-primary"></i> Action Inbox <span class="cc-badge" id="inbox-count">0</span></h3>
-                            </div>
-                            <div class="cc-inbox-list" id="inbox-list"></div>
-                        </div>
-
-                        <div class="os-card">
-                            <div class="card-head">
-                                <h3><i class="fa-solid fa-server text-warning"></i> Production Radar</h3>
-                            </div>
-                            <div class="cc-capacity-meter mt-2">
-                                <div class="cc-meter-labels">
-                                    <span>Workload</span><strong id="workload-status">Aman (0%)</strong>
-                                </div>
-                                <div class="cc-meter-bg"><div class="cc-meter-fill" id="workload-bar" style="width: 0%;"></div></div>
-                            </div>
-                            <div class="cc-radar-table-wrapper">
-                                <table class="cc-radar-table">
-                                    <thead><tr><th>Status</th><th>Project</th><th>Klien</th><th>Stage</th></tr></thead>
-                                    <tbody id="radar-tbody"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bento-right">
-                        <div class="os-card">
-                            <div class="card-head">
-                                <h3><i class="fa-solid fa-heart-pulse text-success"></i> Financial Health</h3>
-                                <div class="cc-toggle-group">
-                                    <button id="toggle-real" class="cc-toggle-btn active" onclick="switchHealthMode('real')">Real</button>
-                                    <button id="toggle-target" class="cc-toggle-btn" onclick="switchHealthMode('target')">Target</button>
-                                </div>
-                            </div>
+                        <div class="finance-bento-inner">
                             <div class="cc-health-box">
                                 <div class="health-title">SISA NAFAS</div>
                                 <div class="health-runway" id="cash-runway">0 Bulan</div>
@@ -240,50 +187,89 @@
                                         <input type="text" inputmode="numeric" id="input-target-amount" oninput="formatInputTarget(this)" onblur="saveTarget()" onkeypress="if(event.key === 'Enter') { this.blur(); }">
                                     </div>
                                 </div>
+                            </div>
+                            <div class="finance-stats-right">
                                 <div class="health-details">
                                     <div class="hd-item text-left"><span>Sisa Dana</span><strong class="text-success money-text" id="runway-sisa">Rp 0</strong></div>
                                     <div class="hd-item text-right"><span>Pengeluaran /Bln</span><strong class="text-danger money-text" id="runway-expense">Rp 0</strong></div>
                                 </div>
-                            </div>
-                            <div class="cc-pipeline-list">
-                                <div class="cc-pipe-item">
-                                    <div class="cc-pipe-icon bg-warning-light text-warning"><i class="fa-solid fa-hourglass-half"></i></div>
-                                    <div class="cc-pipe-info"><span class="cc-pipe-label">Uang Nyangkut</span><strong class="text-warning money-text" id="pipe-nyangkut">Rp 0</strong></div>
-                                </div>
-                                <div class="cc-pipe-item">
-                                    <div class="cc-pipe-icon bg-primary-light text-primary"><i class="fa-solid fa-gears"></i></div>
-                                    <div class="cc-pipe-info"><span class="cc-pipe-label">Potensial</span><strong class="text-primary money-text" id="pipe-potensial">Rp 0</strong></div>
+                                <div class="cc-pipeline-list">
+                                    <div class="cc-pipe-item">
+                                        <div class="cc-pipe-icon bg-warning-light text-warning"><i class="fa-solid fa-hourglass-half"></i></div>
+                                        <div class="cc-pipe-info"><span class="cc-pipe-label">Uang Nyangkut</span><strong class="text-warning money-text" id="pipe-nyangkut">Rp 0</strong></div>
+                                    </div>
+                                    <div class="cc-pipe-item">
+                                        <div class="cc-pipe-icon bg-primary-light text-primary"><i class="fa-solid fa-gears"></i></div>
+                                        <div class="cc-pipe-info"><span class="cc-pipe-label">Potensial</span><strong class="text-primary money-text" id="pipe-potensial">Rp 0</strong></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="os-card">
-                            <div class="card-head">
-                                <h3><i class="fa-solid fa-calendar-days text-primary"></i> Smart Scheduler</h3>
-                                <button onclick="tambahAcaraManual()" class="cc-icon-btn"><i class="fa-solid fa-plus"></i></button>
-                            </div>
-                            <div class="cc-calendar-widget">
-                                <div class="cc-cal-header">
-                                    <button class="cc-cal-nav" onclick="changeMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
-                                    <h4 id="cal-month-year" class="cc-cal-title">Bulan Tahun</h4>
-                                    <button class="cc-cal-nav" onclick="changeMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
-                                </div>
-                                <div class="cc-cal-weekdays"><span>Min</span><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span></div>
-                                <div class="cc-cal-days" id="cal-days-grid"></div>
-                            </div>
-                            <div id="cal-selected-events" class="cc-agenda-wrapper" style="display: none;">
-                                <h4 id="cal-selected-date-label">Agenda</h4>
-                                <div id="cal-selected-events-list" class="cc-agenda-list"></div>
-                            </div>
+                    <div class="os-card cc-card-qa">
+                        <div class="card-head">
+                            <h3><i class="fa-solid fa-bolt text-warning"></i> Akses Cepat</h3>
                         </div>
-
-                        <div class="os-card">
-                            <div class="card-head">
-                                <h3><i class="fa-solid fa-thumbtack text-warning"></i> Pinned Focus</h3>
-                            </div>
-                            <div class="cc-pinned-note-wrapper" id="pinned-note-box"></div>
+                        <div class="qa-grid-compact">
+                            <button class="qa-btn-compact" onclick="window.location.href='project-tracker.html?action=new'"><i class="fa-solid fa-plus text-primary"></i> Job Baru</button>
+                            <button class="qa-btn-compact" onclick="window.location.href='finance.html?action=income'"><i class="fa-solid fa-arrow-down text-success"></i> Catat Pemasukan</button>
+                            <button class="qa-btn-compact" onclick="window.location.href='finance.html?action=expense'"><i class="fa-solid fa-arrow-up text-danger"></i> Catat Pengeluaran</button>
+                            <button class="qa-btn-compact" onclick="tambahAcaraManual()"><i class="fa-solid fa-calendar-plus text-warning"></i> Buat Jadwal</button>
+                            <button class="qa-btn-compact" onclick="window.location.href='client-crm.html?action=new'"><i class="fa-solid fa-user-plus text-primary"></i> Klien Baru</button>
                         </div>
+                    </div>
 
+                    <div class="os-card cc-card-radar">
+                        <div class="card-head">
+                            <h3><i class="fa-solid fa-server text-warning"></i> Production Radar</h3>
+                        </div>
+                        <div class="cc-capacity-meter mt-2">
+                            <div class="cc-meter-labels">
+                                <span>Workload</span><strong id="workload-status">Aman (0%)</strong>
+                            </div>
+                            <div class="cc-meter-bg"><div class="cc-meter-fill" id="workload-bar" style="width: 0%;"></div></div>
+                        </div>
+                        <div class="cc-radar-table-wrapper">
+                            <table class="cc-radar-table">
+                                <thead><tr><th>Status</th><th>Project</th><th>Klien</th><th>Stage</th></tr></thead>
+                                <tbody id="radar-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="os-card cc-card-inbox">
+                        <div class="card-head">
+                            <h3><i class="fa-solid fa-inbox text-primary"></i> Action Inbox <span class="cc-badge" id="inbox-count">0</span></h3>
+                        </div>
+                        <div class="cc-inbox-list" id="inbox-list"></div>
+                    </div>
+
+                    <div class="os-card cc-card-calendar">
+                        <div class="card-head">
+                            <h3><i class="fa-solid fa-calendar-days text-primary"></i> Smart Scheduler</h3>
+                            <button onclick="tambahAcaraManual()" class="cc-icon-btn"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div class="cc-calendar-widget">
+                            <div class="cc-cal-header">
+                                <button class="cc-cal-nav" onclick="changeMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                                <h4 id="cal-month-year" class="cc-cal-title">Bulan Tahun</h4>
+                                <button class="cc-cal-nav" onclick="changeMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                            </div>
+                            <div class="cc-cal-weekdays"><span>Min</span><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span></div>
+                            <div class="cc-cal-days" id="cal-days-grid"></div>
+                        </div>
+                        <div id="cal-selected-events" class="cc-agenda-wrapper" style="display: none;">
+                            <h4 id="cal-selected-date-label">Agenda</h4>
+                            <div id="cal-selected-events-list" class="cc-agenda-list"></div>
+                        </div>
+                    </div>
+
+                    <div class="os-card cc-card-pin">
+                        <div class="card-head">
+                            <h3><i class="fa-solid fa-thumbtack text-warning"></i> Pinned Focus</h3>
+                        </div>
+                        <div class="cc-pinned-note-wrapper" id="pinned-note-box"></div>
                     </div>
                 </div>
 
@@ -291,7 +277,7 @@
         </main>
     </div>
 
-    <!-- MODAL: ADD/EDIT EVENT -->
+    <!-- MODALS -->
     <div id="event-modal" class="cc-modal-overlay" style="display: none;">
         <div class="cc-modal-card">
             <div class="cc-modal-header">
@@ -312,7 +298,6 @@
         </div>
     </div>
 
-    <!-- MODAL: EVENT DETAIL -->
     <div id="modal-event-detail" class="cc-modal-overlay" style="display: none;">
         <div class="cc-modal-card p-0">
             <div class="cc-modal-hero bg-primary">
@@ -343,18 +328,20 @@
         </div>
     </div>
 
-    <!-- MOBILE BOTTOM NAV (Dengan Wrapper Scroll) -->
-    <nav class="cc-bottom-nav">
-        <div class="bottom-nav-inner">
-            <a href="#" class="cc-bottom-item active"><i class="fa-solid fa-radar"></i> Hub</a>
-            <a href="project-tracker.html" class="cc-bottom-item"><i class="fa-solid fa-layer-group"></i> Projects</a>
-            <a href="finance.html" class="cc-bottom-item"><i class="fa-solid fa-wallet"></i> Finance</a>
-            <a href="client-crm.html" class="cc-bottom-item"><i class="fa-solid fa-users"></i> CRM</a>
-            <a href="notes.html" class="cc-bottom-item"><i class="fa-solid fa-pen-nib"></i> Notes</a>
-            <a href="lib.html" class="cc-bottom-item"><i class="fa-solid fa-box-archive"></i> Assets</a>
-            <a href="javascript:void(0)" onclick="tambahAcaraManual()" class="cc-bottom-item"><i class="fa-solid fa-calendar-plus"></i> Acara</a>
-        </div>
-    </nav>
+    <div class="bottom-nav-wrapper">
+        <div class="swipe-hint"><i class="fa-solid fa-angles-right"></i></div>
+        <nav class="cc-bottom-nav">
+            <div class="bottom-nav-inner">
+                <a href="#" class="cc-bottom-item active"><i class="fa-solid fa-radar"></i> Hub</a>
+                <a href="project-tracker.html" class="cc-bottom-item"><i class="fa-solid fa-layer-group"></i> Projects</a>
+                <a href="finance.html" class="cc-bottom-item"><i class="fa-solid fa-wallet"></i> Finance</a>
+                <a href="client-crm.html" class="cc-bottom-item"><i class="fa-solid fa-users"></i> CRM</a>
+                <a href="notes.html" class="cc-bottom-item"><i class="fa-solid fa-pen-nib"></i> Notes</a>
+                <a href="lib.html" class="cc-bottom-item"><i class="fa-solid fa-box-archive"></i> Assets</a>
+                <a href="javascript:void(0)" onclick="tambahAcaraManual()" class="cc-bottom-item"><i class="fa-solid fa-calendar-plus"></i> Acara</a>
+            </div>
+        </nav>
+    </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
