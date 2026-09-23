@@ -31,7 +31,6 @@ let isMoneyVisible = true;
 document.addEventListener('DOMContentLoaded', () => {
     updateClock();
     setInterval(updateClock, 1000);
-
     updateTodaysVibe();
     fetchWeatherRealtime();
 
@@ -74,10 +73,7 @@ async function pullAllData() {
         const eventsSnap = await db.collection('events').get();
         OS_DATA.events = eventsSnap.docs.map(doc => {
             let ev = {id: doc.id, ...doc.data()};
-            if(ev.date && !ev.startDate) {
-                ev.startDate = ev.date;
-                ev.endDate = ev.date;
-            }
+            if(ev.date && !ev.startDate) { ev.startDate = ev.date; ev.endDate = ev.date; }
             return ev;
         });
 
@@ -95,38 +91,49 @@ async function pullAllData() {
             OS_DATA.finance.accounts = [];
         }
     } catch(err) {
-        console.error("Gagal menarik data dari Firestore:", err);
+        console.error("Gagal menarik data:", err);
     }
 }
 
 // ==========================================
-// 3. FITUR ESTETIK (JAM, CUACA, VIBES, MATA, TOGGLE MENU)
+// 3. FITUR ESTETIK & NAVBAR
 // ==========================================
 function updateClock() {
     const now = new Date();
-    
     const sClock = document.getElementById('sidebar-clock');
     if(sClock) sClock.innerText = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
     
     const sDate = document.getElementById('sidebar-date');
     if(sDate) sDate.innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     
+    // Logika Sapaan Bahasa Inggris Otomatis Berdasarkan Jam
     const h = now.getHours();
     let sGreet = 'GOOD EVENING';
     if(h >= 5 && h < 12) sGreet = 'GOOD MORNING';
-    else if(h >= 12 && h < 17) sGreet = 'GOOD AFTERNOON';
+    else if(h >= 12 && h < 18) sGreet = 'GOOD AFTERNOON';
     
+    // Tembak sapaan ke mode Desktop (Briefing Card)
+    const dTitle = document.getElementById('desktop-greeting-title');
+    if(dTitle) dTitle.innerText = `${sGreet}, TAUFIK.`;
+
+    // Tembak sapaan ke mode Mobile (Diatas Jam) jika ada di HTML
     const sGreetingEl = document.getElementById('sidebar-greeting');
-    if(sGreetingEl) sGreetingEl.innerText = `${sGreet}, TAUFIK.`;
+    if(sGreetingEl) {
+        sGreetingEl.innerText = `${sGreet}, TAUFIK.`;
+        // Secara dinamis menyembunyikan tulisan di samping jam jika layarnya Desktop/Laptop
+        sGreetingEl.style.display = window.innerWidth > 768 ? 'none' : 'block';
+    }
 }
 
-// Accordion Navigasi Sidebar Desktop
 function toggleSidebarMenu() {
     const menu = document.getElementById('sidebar-menu-list');
-    if (menu) menu.classList.toggle('collapsed');
+    const chevron = document.getElementById('nav-chevron');
+    if (menu) {
+        menu.classList.toggle('collapsed');
+        if (chevron) chevron.classList.toggle('rotated');
+    }
 }
 
-// Fitur Mata Visibilitas Uang
 function toggleMoneyVisibility(e) {
     if(e) e.stopPropagation();
     isMoneyVisible = !isMoneyVisible;
@@ -138,12 +145,8 @@ function toggleMoneyVisibility(e) {
     if(deskEye) deskEye.className = `fa-solid ${iconClass}`;
     if(mobEye) mobEye.className = `fa-solid ${iconClass}`;
     
-    // Toggle class di body agar animasi blur CSS merespons
-    if(isMoneyVisible) {
-        document.body.classList.add('show-money');
-    } else {
-        document.body.classList.remove('show-money');
-    }
+    if(isMoneyVisible) document.body.classList.add('show-money');
+    else document.body.classList.remove('show-money');
 
     renderTopKPIs();
     renderFinancialPipeline();
@@ -151,25 +154,19 @@ function toggleMoneyVisibility(e) {
 }
 
 function formatRp(n) { 
-    if (!isMoneyVisible) return "Rp *****";
+    if (!isMoneyVisible) return "Rp xx.xx";
     return new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', minimumFractionDigits:0 }).format(n); 
 }
 
-// Cuaca dan Lokasi Realtime (Sinkron ke Topbar)
 async function fetchWeatherRealtime() {
-    // 1. Default cepat ke Jakarta
     await getWeatherData(-6.2088, 106.8456, "Jakarta");
-    
-    // 2. Minta akses GPS untuk lokasi presisi
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             async (position) => {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
                 await getWeatherData(lat, lon); 
-            },
-            () => { /* Kalau di-block, tetep pakai Jakarta */ },
-            { timeout: 5000 }
+            }, () => { }, { timeout: 5000 }
         );
     }
 }
@@ -182,7 +179,6 @@ async function getWeatherData(lat, lon, fallbackCity = null) {
         let cityName = fallbackCity;
         if (!cityName) {
             try {
-                // Konversi Lat/Lon ke Nama Kota
                 const resLoc = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=id`);
                 const locData = await resLoc.json();
                 cityName = locData.city || locData.locality || "Lokasi Anda";
@@ -203,57 +199,53 @@ async function getWeatherData(lat, lon, fallbackCity = null) {
 
         const descEl = document.getElementById('weather-desc');
         const humEl = document.getElementById('weather-humidity');
-        const topbarLoc = document.getElementById('topbar-location');
         
-        // Update di Panel Sidebar
         if(descEl) descEl.innerHTML = `${temp}°C • ${condition} <br><span style="font-size:0.65rem; color:rgba(255,255,255,0.7); display:block; margin-top:4px;"><i class="fa-solid fa-location-dot" style="color:var(--accent-orange);"></i> ${cityName}</span>`;
         if(humEl) humEl.innerText = `${hum}%`;
-
-        // Update Text "Command Hub" di Navbar jadi Nama Kota
-        if(topbarLoc) topbarLoc.innerText = cityName;
-
-    } catch(err) {
-        console.log("Cuaca gagal diload:", err);
-    }
+    } catch(err) { }
 }
 
-// Today's Vibe Berganti Tiap Hari
+window.copyHexCode = function(hex, element) {
+    navigator.clipboard.writeText(hex).then(() => {
+        const originalText = hex;
+        element.innerHTML = "<span style='color:var(--success); font-weight:800; font-size:0.6rem;'>Tersalin!</span>";
+        setTimeout(() => { element.innerText = originalText; }, 1500);
+    }).catch(err => console.error("Gagal copy: ", err));
+};
+
 function updateTodaysVibe() {
     const palettes = [
-        ['#10B981', '#76D7B4', '#F0FDF4'], // Mint / Default
-        ['#8F6E5C', '#D1BAB0', '#FCF7F5'], // Coffee
-        ['#456D91', '#7A9EBF', '#BBD5E8'], // Ocean
-        ['#F96B6B', '#F9AF6B', '#FDF2E9'], // Sunset Coral
-        ['#8B5CF6', '#C4B5FD', '#F5F3FF'], // Purple
-        ['#D97706', '#FBBF24', '#FFFBEB']  // Golden
+        ['#10B981', '#76D7B4', '#F0FDF4'], ['#8F6E5C', '#D1BAB0', '#FCF7F5'],
+        ['#456D91', '#7A9EBF', '#BBD5E8'], ['#F96B6B', '#F9AF6B', '#FDF2E9'],
+        ['#8B5CF6', '#C4B5FD', '#F5F3FF'], ['#D97706', '#FBBF24', '#FFFBEB']
     ];
-    
-    const now = new Date();
-    const start = new Date(now.getFullYear(), 0, 0);
+    const now = new Date(); const start = new Date(now.getFullYear(), 0, 0);
     const dayOfYear = Math.floor((now - start) / (1000 * 60 * 60 * 24));
-    
     const p = palettes[dayOfYear % palettes.length];
+    
+    localStorage.setItem('taufik_os_vibe', JSON.stringify(p));
     
     const circleBox = document.getElementById('vibe-circles');
     if(circleBox) {
-        circleBox.innerHTML = `
-            <div class="vs" style="background:${p[0]}"></div>
-            <div class="vs" style="background:${p[1]}"></div>
-            <div class="vs" style="background:${p[2]}"></div>
-        `;
+        circleBox.innerHTML = `<div class="vs" style="background:${p[0]}"></div><div class="vs" style="background:${p[1]}"></div><div class="vs" style="background:${p[2]}"></div>`;
     }
     
     const hexBox = document.getElementById('vibe-hex');
-    if(hexBox) hexBox.innerHTML = `${p[0]}<br>${p[1]}<br>${p[2]}`;
+    if(hexBox) {
+        hexBox.innerHTML = `
+            <span class="hex-clickable" onclick="copyHexCode('${p[0]}', this)">${p[0]}</span>
+            <span class="hex-clickable" onclick="copyHexCode('${p[1]}', this)">${p[1]}</span>
+            <span class="hex-clickable" onclick="copyHexCode('${p[2]}', this)">${p[2]}</span>
+        `;
+    }
 }
 
 // ==========================================
-// 4. DYNAMIC MORNING BRIEFING 
+// 4. DYNAMIC MORNING BRIEFING & NOTIFIKASI
 // ==========================================
 function renderDynamicBriefing() {
     const today = new Date().setHours(0,0,0,0);
-    let urgentJobs = 0;
-    let unpaidAmount = 0;
+    let urgentJobs = 0; let unpaidAmount = 0;
 
     OS_DATA.projects.forEach(j => {
         if (!['archive', 'done', 'upload'].includes(j.stage) && j.data && j.data.deadline) {
@@ -265,40 +257,29 @@ function renderDynamicBriefing() {
 
     let briefingStr = `Sistem beroperasi optimal. `;
     if (urgentJobs > 0) briefingStr += `Ada <strong>${urgentJobs} deadline mendesak</strong> hari ini. `;
-    else briefingStr += `Tidak ada deadline mendesak hari ini. `;
+    if (unpaidAmount > 0) briefingStr += `Terdapat <strong class="money-text">${formatRp(unpaidAmount)}</strong> uang di fase Delivery. `;
     
-    if (unpaidAmount > 0) {
-        // Teks nominal diformat ke "Rp *****" jika mata mati
-        briefingStr += `Terdapat <strong class="money-text">${formatRp(unpaidAmount)}</strong> uang di fase Delivery. `;
-    }
-    
-    if (scheduleNotifs.length > 0) {
-        briefingStr += `<br><span style="color:var(--accent-orange); display:inline-block; margin-top:6px; font-weight:700;"><i class="fa-solid fa-bell"></i> Reminder: Ada ${scheduleNotifs.length} jadwal terdekat (${scheduleNotifs[0]}).</span>`;
-    }
-
-    const dTitle = document.getElementById('desktop-greeting-title');
     const dText = document.getElementById('desktop-briefing-text');
-    
-    const h = new Date().getHours();
-    let greetDesk = 'Selamat Malam';
-    if(h >= 5 && h < 12) greetDesk = 'Selamat Pagi'; 
-    else if(h >= 12 && h < 15) greetDesk = 'Selamat Siang'; 
-    else if(h >= 15 && h < 19) greetDesk = 'Selamat Sore';
-
-    if(dTitle) dTitle.innerText = `${greetDesk}, Taufik.`;
-    if(dText) dText.innerHTML = briefingStr;
-
-    // Untuk Mobile, Sapaan tidak ada karena sudah nyatu di jam atas
     const mText = document.getElementById('mobile-briefing-text');
+    
+    if(dText) dText.innerHTML = briefingStr;
     if(mText) mText.innerHTML = briefingStr;
+
+    // RENDER NOTIFIKASI DENGAN CLASS CSS (.reminder-badge)
+    let notifHTML = '';
+    if (scheduleNotifs.length > 0) {
+        let nText = scheduleNotifs.map(n => `<span class="reminder-badge">${n.badge}</span>${n.title}`).join(', ');
+        notifHTML = `<span style="color:rgba(255,255,255,0.85); font-size: 0.8rem; font-weight: 500;"><i class="fa-solid fa-bell" style="color:var(--accent-orange); margin-right: 4px;"></i> Reminder: Ada ${scheduleNotifs.length} jadwal terdekat${nText}.</span>`;
+    }
+    
+    const dReminder = document.getElementById('desktop-reminder-area');
+    const mReminder = document.getElementById('mobile-reminder-area');
+    if (dReminder) dReminder.innerHTML = notifHTML;
+    if (mReminder) mReminder.innerHTML = notifHTML;
 }
 
-// ==========================================
-// 5. TOP KPIs 
-// ==========================================
 function renderTopKPIs() {
     let totalReal = 0, totalKelola = 0;
-
     OS_DATA.finance.transactions.forEach(tx => {
         if (tx.assetType === 'real') {
             if (tx.type === 'income') totalReal += tx.amount; 
@@ -308,13 +289,9 @@ function renderTopKPIs() {
             if (tx.type === 'titipan_out') totalKelola -= tx.amount;
         }
     });
-
     OS_DATA.projects.forEach(j => {
-        if (j.stage === 'upload' || j.stage === 'review') {
-            totalKelola += calculateJobPrice(j);
-        }
+        if (j.stage === 'upload' || j.stage === 'review') { totalKelola += calculateJobPrice(j); }
     });
-
     const totalAset = totalReal + totalKelola; 
     const realPercent = totalAset !== 0 ? (totalReal / Math.abs(totalAset)) * 100 : 0;
     
@@ -323,10 +300,12 @@ function renderTopKPIs() {
     
     const pEl = document.getElementById('kpi-persen-real');
     if(pEl) {
-        if(!isMoneyVisible) pEl.innerText = `Rp ***** (${realPercent.toFixed(1)}% Real)`;
-        else pEl.innerText = `${formatRp(totalReal)} (${realPercent.toFixed(1)}% Real)`;
-        
-        pEl.className = 'km-sub money-text ' + (realPercent < 0 ? 'text-danger' : 'text-success');
+        if(!isMoneyVisible) {
+            pEl.innerText = ""; 
+        } else {
+            pEl.innerText = `${formatRp(totalReal)} (${realPercent.toFixed(1)}% Real)`;
+            pEl.className = 'km-sub money-text ' + (realPercent < 0 ? 'text-danger' : 'text-success');
+        }
     }
 
     const elProject = document.getElementById('kpi-total-project');
@@ -335,9 +314,6 @@ function renderTopKPIs() {
     if(elKlien) elKlien.innerText = OS_DATA.crm.length;
 }
 
-// ==========================================
-// 6. UNIFIED ACTION INBOX
-// ==========================================
 function renderActionInbox() {
     const inbox = document.getElementById('inbox-list'); 
     if(!inbox) return;
@@ -401,9 +377,6 @@ function getClientPhone(name) {
     return c && c.phone ? String(c.phone).replace(/\D/g, '') : null;
 }
 
-// ==========================================
-// 7. PRODUCTION RADAR
-// ==========================================
 function renderRadarAndWorkload() {
     const tbody = document.getElementById('radar-tbody');
     if(!tbody) return;
@@ -451,9 +424,11 @@ function renderRadarAndWorkload() {
     if(radarItems.length === 0) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px; font-weight: 500;">Aman terkendali.</td></tr>';
 }
 
-// ==========================================
-// 8. FINANCIAL PIPELINE 
-// ==========================================
+function formatDate(dateStr) {
+    if(!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'});
+}
+
 function formatNumberWithDot(num) { return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
 function formatInputTarget(el) { let val = el.value.replace(/[^0-9]/g, ''); el.value = val !== '' ? formatNumberWithDot(val) : ''; }
 
@@ -524,7 +499,8 @@ function renderFinancialPipeline() {
 // ==========================================
 function renderCalendarWidget() {
     const today = new Date(); today.setHours(0,0,0,0);
-    allSystemEvents = []; scheduleNotifs = [];
+    allSystemEvents = []; 
+    scheduleNotifs = [];
 
     OS_DATA.projects.forEach(j => {
         if (['archive', 'done'].includes(j.stage)) return;
@@ -547,7 +523,7 @@ function renderCalendarWidget() {
         if (today >= reminderDate && today <= evEnd) {
             const diffDays = Math.ceil((evStart - today) / (1000 * 60 * 60 * 24));
             let hStr = diffDays > 0 ? `H-${diffDays}` : (diffDays === 0 ? "HARI INI" : "Berlangsung");
-            scheduleNotifs.push(`[${hStr}]${ev.title}`);
+            scheduleNotifs.push({ badge: hStr, title: ev.title }); 
         }
     });
 
@@ -599,16 +575,12 @@ function selectDate(y, m, d, el = null) {
     });
 }
 
-// -----------------------------------------------------
-// FUNGSI MODAL ACARA MANUAL (EDIT & HAPUS SUDAH AKTIF)
-// -----------------------------------------------------
 function openEventDetail(id) {
     const ev = allSystemEvents.find(e => e.id === id && e.type === 'manual'); if(!ev) return;
     document.getElementById('det-ev-title').innerText = ev.title;
     document.getElementById('det-ev-date').innerText = ev.startDate === ev.endDate ? formatDate(ev.startDate) : `${formatDate(ev.startDate)} s/d${formatDate(ev.endDate)}`;
     document.getElementById('det-ev-desc').innerText = ev.desc || 'Tidak ada catatan/deskripsi.'; document.getElementById('det-ev-reminder').innerText = `H-${ev.reminder}`;
     
-    // Binding fungsi ke tombol Edit & Hapus
     document.getElementById('btn-edit-ev').onclick = () => editAcara(id); 
     document.getElementById('btn-del-ev').onclick = () => deleteAcara(id);
     
@@ -618,8 +590,12 @@ function openEventDetail(id) {
 function editAcara(id) {
     closeModal('modal-event-detail'); 
     const ev = OS_DATA.events.find(e => e.id === id); if(!ev) return;
-    document.getElementById('evt-id').value = id; document.getElementById('evt-title').value = ev.title; document.getElementById('evt-start').value = ev.startDate;
-    document.getElementById('evt-end').value = ev.endDate; document.getElementById('evt-desc').value = ev.desc || ''; document.getElementById('evt-reminder').value = ev.reminder || 0;
+    document.getElementById('evt-id').value = id; 
+    document.getElementById('evt-title').value = ev.title; 
+    document.getElementById('evt-start').value = ev.startDate;
+    document.getElementById('evt-end').value = ev.endDate; 
+    document.getElementById('evt-desc').value = ev.desc || ''; 
+    document.getElementById('evt-reminder').value = ev.reminder || 0;
     document.getElementById('event-modal').style.display = 'flex';
 }
 
@@ -633,20 +609,36 @@ async function deleteAcara(id) {
     } 
 }
 
-function tambahAcaraManual() { document.getElementById('evt-id').value = ''; document.getElementById('evt-title').value = ''; document.getElementById('evt-start').value = new Date().toISOString().split('T')[0]; document.getElementById('evt-end').value = new Date().toISOString().split('T')[0]; document.getElementById('evt-desc').value = ''; document.getElementById('evt-reminder').value = '1'; document.getElementById('event-modal').style.display = 'flex'; }
+function tambahAcaraManual() { 
+    document.getElementById('evt-id').value = ''; 
+    document.getElementById('evt-title').value = ''; 
+    document.getElementById('evt-start').value = new Date().toISOString().split('T')[0]; 
+    document.getElementById('evt-end').value = new Date().toISOString().split('T')[0]; 
+    document.getElementById('evt-desc').value = ''; 
+    document.getElementById('evt-reminder').value = '1'; 
+    document.getElementById('event-modal').style.display = 'flex'; 
+}
 function closeAcaraModal() { document.getElementById('event-modal').style.display = 'none'; }
 
 async function simpanAcara() {
-    let id = document.getElementById('evt-id').value; const title = document.getElementById('evt-title').value.trim(); const startDate = document.getElementById('evt-start').value; const endDate = document.getElementById('evt-end').value; const desc = document.getElementById('evt-desc').value.trim(); const reminder = parseInt(document.getElementById('evt-reminder').value) || 0;
+    let id = document.getElementById('evt-id').value; 
+    const title = document.getElementById('evt-title').value.trim(); 
+    const startDate = document.getElementById('evt-start').value; 
+    const endDate = document.getElementById('evt-end').value; 
+    const desc = document.getElementById('evt-desc').value.trim(); 
+    const reminder = parseInt(document.getElementById('evt-reminder').value) || 0;
+    
     if (!title || !startDate || !endDate) { alert("Nama Acara dan Tanggal wajib diisi!"); return; }
     if (new Date(endDate) < new Date(startDate)) { alert("Tanggal Selesai tidak boleh lebih awal dari Tanggal Mulai!"); return; }
+    
     if (!id) id = 'EVT-' + Date.now();
-    try { await db.collection('events').doc(id).set({ id, title, startDate, endDate, desc, reminder, createdAt: new Date().toISOString() }, { merge: true }); closeAcaraModal(); bootSystem(); } catch(err) { alert("Gagal menyimpan ke cloud!"); }
+    try { 
+        await db.collection('events').doc(id).set({ id, title, startDate, endDate, desc, reminder, createdAt: new Date().toISOString() }, { merge: true }); 
+        closeAcaraModal(); 
+        bootSystem(); 
+    } catch(err) { alert("Gagal menyimpan ke cloud!"); }
 }
 
-// ==========================================
-// 10. PINNED NOTES 
-// ==========================================
 function renderPinnedNotes() {
     const box = document.getElementById('pinned-note-box'); if(!box) return;
     const pinned = OS_DATA.notes.filter(n => n.isPinned && !n.isArchived); box.innerHTML = '';
@@ -658,9 +650,6 @@ function renderPinnedNotes() {
     } else { box.innerHTML = '<p style="color:var(--text-muted); font-size:12px; text-align:center; padding: 20px 0;">Belum ada notes yang di-pin.</p>'; }
 }
 
-// ==========================================
-// 11. OMNI-COMMAND PALETTE
-// ==========================================
 function handleOmniCommand(event) {
     const input = event.target.value; const dropdown = document.getElementById('omni-dropdown');
     if (input.startsWith('>')) { handleActionCommand(input, event.key); return; }
@@ -718,9 +707,6 @@ document.addEventListener('click', (e) => {
     if (e.target.classList.contains('cc-modal-overlay')) { e.target.style.display = 'none'; }
 });
 
-// ==========================================
-// 12. ZEN FOCUS MODE
-// ==========================================
 let zenTimer = null; let zenTimeLeft = 25 * 60; let isZenRunning = false;
 function enterZenMode() {
     document.getElementById('zen-overlay').classList.remove('cc-zen-hidden');
