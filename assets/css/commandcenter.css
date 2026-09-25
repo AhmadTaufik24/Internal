@@ -388,50 +388,54 @@ body.show-money .money-text { opacity: 1; transition: 0.3s ease; }
     .os-layout { flex-direction: column; height: auto; width: 100%; overflow-x: hidden; }
     body { overflow-x: hidden; width: 100%; }
     
-    .os-sidebar { width: 100%; height: auto; padding: 20px 15px; border-right: none; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); z-index: 100; overflow: visible; }
+    /* Kurangi padding atas/bawah area biru agar lebih lega */
+    .os-sidebar { width: 100%; height: auto; padding: 15px 15px 20px 15px; border-right: none; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); z-index: 100; overflow: visible; }
     
-    .mobile-header-actions { display: flex; position: absolute; top: 20px; right: 15px; gap: 8px; z-index: 10; }
-    .mobile-zen-icon, .mobile-eye-icon { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.1); color: white; width: 34px; height: 34px; border-radius: 50%; font-size: 0.9rem; display: flex; justify-content: center; align-items: center; cursor: pointer; backdrop-filter: blur(5px); transition: 0.2s;}
+    .mobile-header-actions { display: flex; position: absolute; top: 15px; right: 15px; gap: 8px; z-index: 10; }
+    .mobile-zen-icon, .mobile-eye-icon { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.1); color: white; width: 30px; height: 30px; border-radius: 50%; font-size: 0.8rem; display: flex; justify-content: center; align-items: center; cursor: pointer; backdrop-filter: blur(5px); transition: 0.2s;}
     .mobile-zen-icon:active, .mobile-eye-icon:active { background: rgba(255,255,255,0.3); transform: scale(0.95);}
     .sb-menu-wrapper, .desktop-only { display: none !important; }
     
-    /* PERBAIKAN LOGO HP LEBIH KECIL */
-    .brand-pill { padding: 4px 12px 4px 6px; }
-    .bp-icon { width: 28px; height: 28px; font-size: 0.8rem; }
-    .bp-text h2 { font-size: 0.8rem; }
-    .bp-text span { font-size: 0.45rem; }
-    .sb-header { margin-bottom: 12px; }
+    /* PERBAIKAN LOGO HP LEBIH KECIL & RAPAT */
+    .brand-pill { padding: 4px 10px 4px 4px; }
+    .bp-icon { width: 24px; height: 24px; font-size: 0.75rem; }
+    .bp-text h2 { font-size: 0.75rem; }
+    .bp-text span { font-size: 0.4rem; }
+    .sb-header { margin-bottom: 10px; }
     
-    .sb-widgets { gap: 10px; }
-    .widget-time { text-align: left; margin-bottom: 8px; }
-    .time-greeting { font-size: 0.65rem; margin-bottom: 2px; opacity: 0.9; }
-    .time-clock { font-size: 3rem; margin-bottom: 0; line-height: 1; }
-    .time-date { font-size: 0.75rem; margin-top: 4px;}
+    /* JARAK WIDGET SUPER RAPAT */
+    .sb-widgets { gap: 6px; }
+    .widget-time { text-align: left; margin-bottom: 4px; }
+    .time-greeting { font-size: 0.6rem; margin-bottom: 0px; opacity: 0.9; }
+    .time-clock { font-size: 2.8rem; margin-bottom: -5px; line-height: 1; }
+    .time-date { font-size: 0.75rem; margin-top: 0px;}
     
-    /* VERSI 2: SLEEK MINIMALIST & GLASS PILL UNTUK BRIEFING/REMINDER */
+    /* TEKS BRIEFING & REMINDER DI PERKECIL & DIRAPATKAN */
     .mobile-briefing-text {
-        display: block; font-size: 0.8rem; color: rgba(255,255,255,0.9); font-weight: 500;
-        background: transparent; padding: 0; margin-top: 5px; margin-bottom: 8px; line-height: 1.4; border: none;
+        display: block; font-size: 0.75rem; color: rgba(255,255,255,0.9); font-weight: 500;
+        background: transparent; padding: 0; margin-top: 2px; margin-bottom: 6px; line-height: 1.3; border: none;
     }
     
+    /* KAPSUL KACA UNTUK REMINDER DI HP AGAR ELEGAN */
     .mobile-only-reminder {
-        display: block; font-size: 0.75rem; color: rgba(255,255,255,0.95); font-weight: 500;
-        background: rgba(255, 255, 255, 0.08); /* Efek Kaca Tipis */
+        display: block; font-size: 0.7rem; color: rgba(255,255,255,0.95); font-weight: 500;
+        background: rgba(255, 255, 255, 0.08); 
         border: 1px solid rgba(255, 255, 255, 0.15);
-        padding: 8px 12px; border-radius: 10px;
-        margin-top: 0; margin-bottom: 15px; line-height: 1.5;
+        padding: 6px 10px; border-radius: 8px;
+        margin-top: 0; margin-bottom: 10px; line-height: 1.3;
         backdrop-filter: blur(4px);
     }
     .mobile-only-reminder:empty { display: none !important; }
 
-    .mobile-split-grid { display: flex; flex-direction: row; gap: 10px; }
-    .compact-card { flex: 1; padding: 12px 10px; border-radius: 12px; overflow: hidden;}
-    .mobile-split-grid .w-header { margin-bottom: 8px; font-size: 0.5rem; letter-spacing: 0px; }
-    .mobile-split-grid .w-header i { font-size: 0.6rem; margin-right: 3px; }
-    .mobile-split-grid .w-body { font-size: 0.9rem; }
-    .mobile-split-grid .vibe-content-wrapper { gap: 8px; }
-    .mobile-split-grid .vs { width: 18px; height: 18px; }
-    .mobile-split-grid .vibe-hex { font-size: 0.55rem; line-height: 1.4; }
+    /* GRID CUACA & VIBE LEBIH COMPACT */
+    .mobile-split-grid { display: flex; flex-direction: row; gap: 8px; }
+    .compact-card { flex: 1; padding: 10px 8px; border-radius: 10px; overflow: hidden;}
+    .mobile-split-grid .w-header { margin-bottom: 6px; font-size: 0.5rem; letter-spacing: 0px; }
+    .mobile-split-grid .w-header i { font-size: 0.55rem; margin-right: 3px; }
+    .mobile-split-grid .w-body { font-size: 0.85rem; }
+    .mobile-split-grid .vibe-content-wrapper { gap: 6px; margin-top: 2px;}
+    .mobile-split-grid .vs { width: 14px; height: 14px; }
+    .mobile-split-grid .vibe-hex { font-size: 0.5rem; line-height: 1.2; }
 
     .os-topbar { padding: 12px 15px; background: transparent; border: none; flex-direction: row !important; justify-content: flex-start !important; }
     .search-compact input { width: 140px; }
