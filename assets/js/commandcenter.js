@@ -106,21 +106,17 @@ function updateClock() {
     const sDate = document.getElementById('sidebar-date');
     if(sDate) sDate.innerText = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     
-    // Logika Sapaan Bahasa Inggris Otomatis Berdasarkan Jam
     const h = now.getHours();
     let sGreet = 'GOOD EVENING';
     if(h >= 5 && h < 12) sGreet = 'GOOD MORNING';
     else if(h >= 12 && h < 18) sGreet = 'GOOD AFTERNOON';
     
-    // Tembak sapaan ke mode Desktop (Briefing Card)
     const dTitle = document.getElementById('desktop-greeting-title');
     if(dTitle) dTitle.innerText = `${sGreet}, TAUFIK.`;
 
-    // Tembak sapaan ke mode Mobile (Diatas Jam) jika ada di HTML
     const sGreetingEl = document.getElementById('sidebar-greeting');
     if(sGreetingEl) {
         sGreetingEl.innerText = `${sGreet}, TAUFIK.`;
-        // Secara dinamis menyembunyikan tulisan di samping jam jika layarnya Desktop/Laptop
         sGreetingEl.style.display = window.innerWidth > 768 ? 'none' : 'block';
     }
 }
@@ -256,8 +252,17 @@ function renderDynamicBriefing() {
     });
 
     let briefingStr = `Sistem beroperasi optimal. `;
-    if (urgentJobs > 0) briefingStr += `Ada <strong>${urgentJobs} deadline mendesak</strong> hari ini. `;
-    if (unpaidAmount > 0) briefingStr += `Terdapat <strong class="money-text">${formatRp(unpaidAmount)}</strong> uang di fase Delivery. `;
+    
+    // LOGIKA PENGECEKAN DEADLINE DITAMBAHKAN DI SINI
+    if (urgentJobs > 0) {
+        briefingStr += `Ada <strong>${urgentJobs} deadline mendesak</strong> hari ini. `;
+    } else {
+        briefingStr += `Tidak ada deadline mendesak hari ini. `;
+    }
+    
+    if (unpaidAmount > 0) {
+        briefingStr += `Terdapat <strong class="money-text">${formatRp(unpaidAmount)}</strong> uang di fase Delivery. `;
+    }
     
     const dText = document.getElementById('desktop-briefing-text');
     const mText = document.getElementById('mobile-briefing-text');
@@ -265,7 +270,6 @@ function renderDynamicBriefing() {
     if(dText) dText.innerHTML = briefingStr;
     if(mText) mText.innerHTML = briefingStr;
 
-    // RENDER NOTIFIKASI DENGAN CLASS CSS (.reminder-badge)
     let notifHTML = '';
     if (scheduleNotifs.length > 0) {
         let nText = scheduleNotifs.map(n => `<span class="reminder-badge">${n.badge}</span>${n.title}`).join(', ');
