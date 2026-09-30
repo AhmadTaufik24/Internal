@@ -211,9 +211,123 @@ window.copyHexCode = function(hex, element) {
 
 function updateTodaysVibe() {
     const palettes = [
-        ['#10B981', '#76D7B4', '#F0FDF4'], ['#8F6E5C', '#D1BAB0', '#FCF7F5'],
-        ['#456D91', '#7A9EBF', '#BBD5E8'], ['#F96B6B', '#F9AF6B', '#FDF2E9'],
-        ['#8B5CF6', '#C4B5FD', '#F5F3FF'], ['#D97706', '#FBBF24', '#FFFBEB']
+        ['#4A3B32', '#A89F91', '#F4F1EA'],
+
+        // Muted Black & Fog Gray
+
+        ['#2B2B2B', '#737373', '#E0E0E0'],
+
+        // Latte & Froth
+
+        ['#876953', '#C6B4A6', '#FDFBF7'],
+
+        // Sandstone & Ash
+
+        ['#D8C3A5', '#E9E2D0', '#8E8D8A'],
+
+        // Slate & Dove
+
+        ['#404245', '#888D92', '#E4E5E7'],
+
+        // Taupe & Ivory
+
+        ['#B3A9A0', '#D8D3CD', '#F7F6F2'],
+
+        // Minimalist Greige
+
+        ['#5A5448', '#9C9583', '#CAC4B0'],
+
+        // Soft Cocoa
+
+        ['#5C4A44', '#998379', '#E3D7D1'],
+
+        // Off-White & Charcoal
+
+        ['#FAFAFA', '#9E9E9E', '#121212'],
+
+        // Clay & Sand
+
+        ['#9C8777', '#C9BCAE', '#F0EDE6'],
+
+        // Soft Walnut
+
+        ['#5E4B3C', '#A6907D', '#EDE6DF'],
+
+        // Dusty Brown & Cotton
+
+        ['#807266', '#BFB6AE', '#F5F5F5'],
+
+        // Bone & Graphite
+
+        ['#E3E1D9', '#9E9B96', '#2B2A29'],
+
+        // Muted Obsidian
+
+        ['#3B3A39', '#8A8885', '#DBD8D3'],
+
+        // Pebble Gray
+
+        ['#545453', '#A3A3A1', '#E8E8E6'],
+
+        // Almond & Bark
+
+        ['#4A3F35', '#A28876', '#EADDCF'],
+
+        // Mist & Iron
+
+        ['#32343B', '#737780', '#C2C5CC'],
+
+        // Faded Sepia
+
+        ['#665445', '#AB988B', '#EBE4DF'],
+
+        // Vanilla & Toffee
+
+        ['#8A6842', '#D6BA98', '#F9F6F0'],
+
+        // Pale Khaki & Earth
+
+        ['#696152', '#B3AB98', '#F2F0E9'],
+
+        // Cashmere & Charcoal
+
+        ['#33312E', '#8A8075', '#D1C7BD'],
+
+        // Oat & Truffle
+
+        ['#423C37', '#A69A8F', '#E8DFD5'],
+
+        // Storm Gray
+
+        ['#4A4E59', '#9195A1', '#E0E2E8'],
+
+        // Soft Sienna
+
+        ['#8F6E5C', '#D1BAB0', '#FCF7F5'],
+
+        // Driftwood
+
+        ['#6E6761', '#B0AAA3', '#EDEDE9'],
+
+        // Warm Cement
+
+        ['#474542', '#938F88', '#DCD9D4'],
+
+        // Linen & Deep Brown
+
+        ['#3D362B', '#C2B8A3', '#F5F2EB'],
+
+        // Slate Blue-Gray & Silver
+
+        ['#36454F', '#879299', '#CFD8DC'],
+
+        // Mocha & Beige
+
+        ['#795C44', '#C5B09C', '#F2ECE7'],
+
+        // Soft Olive & Khaki
+
+        ['#55534A', '#A19C8B', '#E6E4DF']
     ];
     const now = new Date(); const start = new Date(now.getFullYear(), 0, 0);
     const dayOfYear = Math.floor((now - start) / (1000 * 60 * 60 * 24));
